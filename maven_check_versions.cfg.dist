@@ -1,0 +1,35 @@
+[base]
+cache_off = false
+cache_time = 600
+fail_mode = false
+fail_major = 0
+fail_minor = 0
+plugins = false
+modules = false
+show_skip = false
+show_search = false
+empty_version = false
+show_invalid = false
+skip_version = true
+user = USER
+password = PASSWORD
+
+[pom_http]
+auth = true
+
+[urllib3]
+warnings = true
+
+[requests]
+verify = true
+
+[pom]
+lib-name = absolute-lib-path/pom.xml
+
+[repositories]
+Central (repo1.maven.org) = repo1.maven
+
+[repo1.maven]
+base = https://repo1.maven.org
+path = maven2
+auth = false
