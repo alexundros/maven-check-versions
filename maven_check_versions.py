@@ -33,7 +33,12 @@ from bs4 import BeautifulSoup
 
 
 def cli_args() -> dict:
-    """Parse command line arguments."""
+    """
+    Parse command line arguments.
+
+    Returns:
+        dict: A dictionary containing command line arguments and their values.
+    """
     ap = ArgumentParser()
     ap.add_argument('-ci', '--ci_mode', help='CI Mode', action='store_true')
     ap.add_argument('-pf', '--pom', help='POM File')
@@ -57,7 +62,12 @@ def cli_args() -> dict:
 
 
 def main_process(args: dict) -> None:
-    """Main processing function."""
+    """
+    Main processing function.
+
+    Args:
+        args (dict): Dictionary of command line arguments and their values.
+    """
     os.chdir(os.path.dirname(__file__))
 
     cfg = ConfigParser()
@@ -86,7 +96,15 @@ def main_process(args: dict) -> None:
 
 
 def load_cache(file: str) -> dict:
-    """Load cache from a file."""
+    """
+    Load cache from a file.
+
+    Args:
+        file (str): Path to the cache file.
+
+    Returns:
+        dict: A dictionary representing the loaded cache.
+    """
     if os.path.exists(file):
         logging.info(f"Load Cache: {PurePath(file).name}")
         with open(file, 'r') as cf:
@@ -95,7 +113,13 @@ def load_cache(file: str) -> dict:
 
 
 def if_cache_save(cache: dict, file: str) -> None:
-    """Save cache to a file."""
+    """
+    Save cache to a file.
+
+    Args:
+        cache (dict): The cache data to be saved.
+        file (str): Path to the file where the cache will be saved.
+    """
     if cache is not None:
         logging.info(f"Save Cache: {PurePath(file).name}")
         with open(file, 'w') as cf:
@@ -103,7 +127,16 @@ def if_cache_save(cache: dict, file: str) -> None:
 
 
 def pom_process(cache: dict, cfg: ConfigParser, args: dict, pom: str, pfx: str = None) -> None:
-    """Process POM files."""
+    """
+    Process POM files.
+
+    Args:
+        cache (dict): Cache data for dependencies.
+        cfg (ConfigParser): Configuration data.
+        args (dict): Command line arguments.
+        pom (str): Path or URL to the POM file to process.
+        pfx (str, optional): Prefix for the artifact name. Defaults to None.
+    """
     verify = config_get(cfg, args, 'verify', 'requests', vt=bool)
 
     if pom.startswith('http'):
@@ -155,7 +188,18 @@ def pom_process(cache: dict, cfg: ConfigParser, args: dict, pom: str, pfx: str =
 
 
 def deps_process(cache: dict, cfg: ConfigParser, args: dict, items: list, ns: dict, root: ET.Element, verify: bool) -> None:
-    """Process dependencies."""
+    """
+    Process dependencies in a POM file.
+
+    Args:
+        cache (dict): Cache object to store dependencies.
+        cfg (ConfigParser): Configuration object.
+        args (dict): Command-line arguments.
+        deps (list): List of dependencies from the POM file.
+        ns (dict): XML namespace mapping.
+        root (ET.Element): Root XML element of the POM file.
+        verify (bool): Whether to verify HTTPS certificates.
+    """
     for item in items:
         artifact = item.find('xmlns:artifactId', namespaces=ns)
         if artifact is None:
@@ -205,7 +249,15 @@ def deps_process(cache: dict, cfg: ConfigParser, args: dict, items: list, ns: di
 
 
 def find_process(cache: dict, cfg: ConfigParser, args: dict, find: str) -> None:
-    """Process finding artifacts."""
+    """
+    Process finding artifacts.
+
+    Args:
+        cache (dict): Cache data.
+        cfg (ConfigParser): Configuration settings.
+        args (dict): Command-line arguments.
+        find (str): Artifact to search for.
+    """
     verify = config_get(cfg, args, 'verify', 'requests', vt=bool)
     group, artifact, ver = find.split(sep=":", maxsplit=3)
 
@@ -221,7 +273,21 @@ def find_process(cache: dict, cfg: ConfigParser, args: dict, find: str) -> None:
 
 
 def get_version(cfg: ConfigParser, args: dict, group: str, artifact: str, ns: dict, root: ET.Element, item: ET.Element) -> tuple[str | None, bool]:
-    """Get version information."""
+    """
+    Get version information.
+
+    Args:
+        cfg (ConfigParser): The configuration parser.
+        args (dict): Dictionary containing the parsed command line arguments.
+        group (str): The group ID of the artifact.
+        artifact (str): The artifact ID.
+        ns (dict): Namespace dictionary for XML parsing.
+        root (ET.Element): Root element of the POM file.
+        item (ET.Element): Dependency element from which to extract version.
+
+    Returns:
+        tuple[str | None, bool]: A tuple containing the resolved version and a boolean indicating if the version should be skipped.
+    """
     ver = item.find('xmlns:version', namespaces=ns)
 
     if ver is None:
@@ -254,7 +320,23 @@ def get_version(cfg: ConfigParser, args: dict, group: str, artifact: str, ns: di
 
 
 def process_sec(cache: dict, cfg: ConfigParser, args: dict, group: str, artifact: str, ver: str, key: str, sec: str, verify: bool) -> bool:
-    """Process a repository section."""
+    """
+    Process a repository section.
+
+    Args:
+        cache (dict): The cache dictionary.
+        cfg (ConfigParser): The configuration parser.
+        args (dict): Dictionary containing the parsed command line arguments.
+        group (str): The group ID of the artifact.
+        artifact (str): The artifact ID.
+        ver (str): The version of the artifact.
+        key (str): The key for the repository section.
+        sec (str): The repository section name.
+        verify (bool): Whether to verify SSL certificates.
+
+    Returns:
+        bool: True if the dependency is found, False otherwise.
+    """
     auth = ()
     if config_get(cfg, args, 'auth', sec, vt=bool):
         auth = (
@@ -291,7 +373,26 @@ def process_sec(cache: dict, cfg: ConfigParser, args: dict, group: str, artifact
 def check_versions(
         cache: dict, cfg: ConfigParser, args: dict, group: str, artifact: str, ver: str, key: str,
         path: str, auth: tuple, verify: bool, versions: list[str], rsp: requests.Response) -> bool:
-    """Check versions."""
+    """
+    Check versions.
+
+    Args:
+        cache (dict): The cache dictionary.
+        cfg (ConfigParser): The configuration parser.
+        args (dict): Dictionary containing the parsed command line arguments.
+        group (str): The group ID of the artifact.
+        artifact (str): The artifact ID.
+        ver (str): The version of the artifact.
+        key (str): The key for the repository section.
+        path (str): The path to the dependency in the repository.
+        auth (tuple): Tuple containing basic authentication credentials.
+        verify (bool): Whether to verify SSL certificates.
+        versions (list[str]): List of available versions.
+        rsp (requests.Response): The response object from the repository.
+
+    Returns:
+        bool: True if the current version is valid, False otherwise.
+    """
     versions = list(filter(lambda v: re.match('^\\d+.+', v), versions))
     ended = versions[-1]
     versions.reverse()
@@ -349,7 +450,25 @@ def check_versions(
 def service_rest(
         cache: dict, cfg: ConfigParser, args: dict, group: str, artifact: str, ver: str, key: str,
         sec: str, base: str, auth: tuple, verify: bool) -> bool:
-    """Process REST services."""
+    """
+    Process REST services.
+
+    Args:
+        cache (dict): The cache dictionary.
+        cfg (ConfigParser): The configuration parser.
+        args (dict): Dictionary containing the parsed command line arguments.
+        group (str): The group ID of the artifact.
+        artifact (str): The artifact ID.
+        ver (str): The version of the artifact.
+        key (str): The key for the repository section.
+        sec (str): The repository section name.
+        base (str): The base URL of the repository.
+        auth (tuple): Tuple containing basic authentication credentials.
+        verify (bool): Whether to verify SSL certificates.
+
+    Returns:
+        bool: True if the dependency is found, False otherwise.
+    """
     repo = config_get(cfg, args, 'repo', sec)
     path = f"{base}/service/rest/repository/browse/{repo}"
     path = f"{path}/{group.replace('.', '/')}/{artifact}"
@@ -380,7 +499,19 @@ def service_rest(
 
 
 def pom_data(auth: tuple, verify: bool, artifact: str, ver: str, path: str) -> tuple[bool, str | None]:
-    """Get POM data."""
+    """
+    Get POM data.
+
+    Args:
+        auth (tuple): Tuple containing basic authentication credentials.
+        verify (bool): Whether to verify SSL certificates.
+        artifact (str): The artifact ID.
+        ver (str): The version of the artifact.
+        path (str): The path to the dependency in the repository.
+
+    Returns:
+        tuple[bool, str | None]: A tuple containing a boolean indicating if the data was retrieved successfully and the date of the last modification.
+    """
     url = f"{path}/{ver}/{artifact}-{ver}.pom"
     rsp = requests.get(url, auth=auth, verify=verify)
 
@@ -392,7 +523,19 @@ def pom_data(auth: tuple, verify: bool, artifact: str, ver: str, path: str) -> t
 
 
 def config_get(cfg: ConfigParser, args: dict, key: str, section: str = 'base', vt=None) -> any | None:
-    """Get configuration value."""
+    """
+    Get configuration value with optional type conversion.
+
+    Args:
+        cfg (ConfigParser): Configuration data.
+        args (dict): Command line arguments.
+        section (str): Configuration section name.
+        option (str, optional): Configuration option name. Defaults to None.
+        vt (type, optional): Value type for conversion. Defaults to str.
+
+    Returns:
+        Any: Value of the configuration option or None if not found.
+    """
     try:
         if section == 'base' and key in args:
             if args.get(key):
@@ -417,7 +560,16 @@ def config_get(cfg: ConfigParser, args: dict, key: str, section: str = 'base', v
 
 
 def config_items(cfg: ConfigParser, section: str) -> list[tuple[str, str]]:
-    """Get configuration items."""
+    """
+    Retrieve all items from a configuration section.
+
+    Args:
+        cfg (ConfigParser): The configuration parser.
+        section (str): The section of the configuration file.
+
+    Returns:
+        list[tuple[str, str]]: A list of tuples containing the key-value pairs for the specified section.
+    """
     try:
         return cfg.items(section)
     except configparser.Error:
@@ -425,7 +577,12 @@ def config_items(cfg: ConfigParser, section: str) -> list[tuple[str, str]]:
 
 
 def configure_logging(args: dict) -> None:
-    """Configure logging."""
+    """
+    Configure logging.
+    
+    Args:
+        args (dict): Dictionary containing the parsed command line arguments.
+    """
     handlers = [logging.StreamHandler(sys.stdout)]
 
     if not args.get('logfile_off'):
@@ -443,7 +600,6 @@ def configure_logging(args: dict) -> None:
 
 
 def main() -> None:
-    """Main function."""
     is_ex = False
     ci_mode = False
 
