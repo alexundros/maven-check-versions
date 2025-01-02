@@ -37,7 +37,7 @@ def cli_args() -> dict:
     Parse command line arguments.
 
     Returns:
-        dict: A dictionary containing command line arguments and their values.
+        dict: A dictionary containing parsed command line arguments.
     """
     ap = ArgumentParser()
     ap.add_argument('-ci', '--ci_mode', help='CI Mode', action='store_true')
@@ -66,7 +66,7 @@ def main_process(args: dict) -> None:
     Main processing function.
 
     Args:
-        args (dict): Dictionary of command line arguments and their values.
+        args (dict): Dictionary of parsed command line arguments.
     """
     os.chdir(os.path.dirname(__file__))
 
@@ -398,7 +398,7 @@ def check_versions(
     versions.reverse()
 
     if versions[0] != ended:
-        logging.warning(f"Last versions: {versions[0:5]}")
+        logging.warning(f"Last versions: {versions[:5]}")
 
     mjv, mnv, vmjv, vmnv = 0, 0, 0, 0
     if config_get(cfg, args, 'fail_mode', vt=bool):
@@ -415,17 +415,17 @@ def check_versions(
         if item == ver and skip_curr:
             if cache is not None:
                 ts = math.trunc(time.time())
-                cache[f"{group}:{artifact}"] = (ts, item, key, None, versions[0:3])
+                cache[f"{group}:{artifact}"] = (ts, item, key, None, versions[:3])
             return True
 
         ok, date = pom_data(auth, verify, artifact, item, path)
         if ok:
             mf = '{}: {}:{}, current:{} {} {}'
-            logging.info(mf.format(key, group, artifact, ver, versions[0:3], date).rstrip())
+            logging.info(mf.format(key, group, artifact, ver, versions[:3], date).rstrip())
 
             if cache is not None:
                 ts = math.trunc(time.time())
-                cache[f"{group}:{artifact}"] = (ts, item, key, date, versions[0:3])
+                cache[f"{group}:{artifact}"] = (ts, item, key, date, versions[:3])
 
             if config_get(cfg, args, 'fail_mode', vt=bool):
                 imjv, imnv = 0, 0
@@ -579,7 +579,7 @@ def config_items(cfg: ConfigParser, section: str) -> list[tuple[str, str]]:
 def configure_logging(args: dict) -> None:
     """
     Configure logging.
-    
+
     Args:
         args (dict): Dictionary containing the parsed command line arguments.
     """
@@ -594,7 +594,8 @@ def configure_logging(args: dict) -> None:
         datetime.datetime.fromtimestamp(record.created)
 
     logging.basicConfig(
-        level=logging.INFO, handlers=handlers,
+        level=logging.INFO,
+        handlers=handlers,
         format='%(asctime)s %(levelname)s: %(message)s'
     )
 
