@@ -31,7 +31,7 @@ import urllib3
 from bs4 import BeautifulSoup
 
 
-def cli_args() -> dict:
+def parse_command_line_arguments() -> dict:
     """
     Parse command line arguments.
 
@@ -40,17 +40,17 @@ def cli_args() -> dict:
     """
     argument_parser = ArgumentParser()
     argument_parser.add_argument('-ci', '--ci_mode', help='CI Mode', action='store_true')
-    argument_parser.add_argument('-pf', '--pom', help='POM File')
-    argument_parser.add_argument('-fa', '--find', help='Find artifact')
+    argument_parser.add_argument('-pf', '--pom_file', help='POM File')
+    argument_parser.add_argument('-fa', '--find_artifact', help='Find artifact')
     # override config
     argument_parser.add_argument('-co', '--cache_off', help='Dont use Cache', action='store_true')
     argument_parser.add_argument('-lfo', '--logfile_off', help='Dont use Log file', action='store_true')
-    argument_parser.add_argument('-cf', '--config', help='Config File')
+    argument_parser.add_argument('-cf', '--config_file', help='Config File')
     argument_parser.add_argument('-fm', '--fail_mode', help='Fail Mode', action='store_true')
     argument_parser.add_argument('-mjv', '--fail_major', help='Fail Major delta')
     argument_parser.add_argument('-mnv', '--fail_minor', help='Fail Minor delta')
-    argument_parser.add_argument('-sp', '--plugins', help='Search plugins', action='store_true')
-    argument_parser.add_argument('-sm', '--modules', help='Process modules', action='store_true')
+    argument_parser.add_argument('-sp', '--search_plugins', help='Search plugins', action='store_true')
+    argument_parser.add_argument('-sm', '--process_modules', help='Process modules', action='store_true')
     argument_parser.add_argument('-sk', '--show_skip', help='Show Skip', action='store_true')
     argument_parser.add_argument('-ss', '--show_search', help='Show Search', action='store_true')
     argument_parser.add_argument('-ev', '--empty_version', help='Empty Version', action='store_true')
@@ -71,24 +71,24 @@ def main_process(parsed_arguments: dict) -> None:
 
     config = ConfigParser()
     config.optionxform = str
-    if (config_file := parsed_arguments.get('config')) is None:
+    if (config_file := parsed_arguments.get('config_file')) is None:
         config_file = Path(__file__).stem + '.cfg'
     if os.path.exists(config_file):
         config.read(config_file)
 
-    if not config_get(config, parsed_arguments, 'warnings', 'urllib3', vt=bool):
+    if not get_config_value(config, parsed_arguments, 'warnings', 'urllib3', vt=bool):
         urllib3.disable_warnings()
 
-    cache_disabled = config_get(config, parsed_arguments, 'cache_off')
+    cache_disabled = get_config_value(config, parsed_arguments, 'cache_off')
     cache_file_path = Path(__file__).stem + '.cache'
     cache_data = load_cache(cache_file_path) if not cache_disabled else None
 
-    if pom_file := parsed_arguments.get('pom'):
+    if pom_file := parsed_arguments.get('pom_file'):
         process_pom(cache_data, config, parsed_arguments, pom_file)
-    elif artifact_to_find := parsed_arguments.get('find'):
+    elif artifact_to_find := parsed_arguments.get('find_artifact'):
         find_artifact(cache_data, config, parsed_arguments, artifact_to_find)
     else:
-        for key, pom in config_items(config, 'pom'):
+        for key, pom in config_items(config, 'pom_file'):
             process_pom(cache_data, config, parsed_arguments, pom)
 
     if cache_data is not None:
@@ -138,13 +138,13 @@ def process_pom(cache_data: dict, config: ConfigParser, parsed_arguments: dict, 
         pom_path (str): Path or URL to the POM file to process.
         prefix (str, optional): Prefix for the artifact name. Defaults to None.
     """
-    verify_ssl = config_get(config, parsed_arguments, 'verify', 'requests', vt=bool)
+    verify_ssl = get_config_value(config, parsed_arguments, 'verify', 'requests', vt=bool)
 
     if pom_path.startswith('http'):
         auth_info = ()
-        if config_get(config, parsed_arguments, 'auth', 'pom_http', vt=bool):
-            username = config_get(config, parsed_arguments, 'user')
-            password = config_get(config, parsed_arguments, 'password')
+        if get_config_value(config, parsed_arguments, 'auth', 'pom_http', vt=bool):
+            username = get_config_value(config, parsed_arguments, 'user')
+            password = get_config_value(config, parsed_arguments, 'password')
             auth_info = (username, password)
 
         response = requests.get(pom_path, auth=auth_info, verify=verify_ssl)
@@ -170,7 +170,7 @@ def process_pom(cache_data: dict, config: ConfigParser, parsed_arguments: dict, 
 
     dependencies = root_element.findall('.//xmlns:dependency', namespaces=namespace_mapping)
 
-    if config_get(config, parsed_arguments, 'plugins', vt=bool):
+    if get_config_value(config, parsed_arguments, 'search_plugins', vt=bool):
         plugin_xpath = './/xmlns:plugins/xmlns:plugin'
         plugins = root_element.findall(plugin_xpath, namespaces=namespace_mapping)
         dependencies.extend(plugins)
@@ -178,7 +178,7 @@ def process_pom(cache_data: dict, config: ConfigParser, parsed_arguments: dict, 
     process_dependencies(
         cache_data, config, parsed_arguments, dependencies, namespace_mapping, root_element, verify_ssl)
 
-    if config_get(config, parsed_arguments, 'modules', vt=bool):
+    if get_config_value(config, parsed_arguments, 'process_modules', vt=bool):
         directory_path = os.path.dirname(pom_path)
         module_xpath = './/xmlns:modules/xmlns:module'
 
@@ -219,11 +219,11 @@ def process_dependencies(
             config, parsed_arguments, group_id_text, artifact_id_text, namespace_mapping, root_element, dependency)
 
         if skip_flag is True:
-            if config_get(config, parsed_arguments, 'show_skip', vt=bool):
+            if get_config_value(config, parsed_arguments, 'show_skip', vt=bool):
                 logging.warning(f"Skip: {group_id_text}:{artifact_id_text}:{version}")
             continue
 
-        if config_get(config, parsed_arguments, 'show_search', vt=bool):
+        if get_config_value(config, parsed_arguments, 'show_search', vt=bool):
             if version is None or re.match('^\\${([^}]+)}$', version):
                 logging.warning(f"Search: {group_id_text}:{artifact_id_text}:{version}")
             else:
@@ -237,7 +237,7 @@ def process_dependencies(
             if cached_version == version:
                 continue
 
-            cache_time_threshold = config_get(config, parsed_arguments, 'cache_time', vt=int)
+            cache_time_threshold = get_config_value(config, parsed_arguments, 'cache_time', vt=int)
 
             if cache_time_threshold == 0 or time.time() - cached_time < cache_time_threshold:
                 message_format = '*{}: {}:{}, current:{} versions: {} updated: {}'
@@ -268,10 +268,10 @@ def find_artifact(cache_data: dict, config: ConfigParser, parsed_arguments: dict
         parsed_arguments (dict): Command-line arguments.
         artifact_to_find (str): Artifact to search for.
     """
-    verify_ssl = config_get(config, parsed_arguments, 'verify', 'requests', vt=bool)
+    verify_ssl = get_config_value(config, parsed_arguments, 'verify', 'requests', vt=bool)
     group_id, artifact_id, version = artifact_to_find.split(sep=":", maxsplit=3)
 
-    if config_get(config, parsed_arguments, 'show_search', vt=bool):
+    if get_config_value(config, parsed_arguments, 'show_search', vt=bool):
         logging.info(f"Search: {group_id}:{artifact_id}:{version}")
 
     dependency_found = False
@@ -305,7 +305,7 @@ def get_version(config: ConfigParser, parsed_arguments: dict, group_id: str, art
     version_element = dependency.find('xmlns:version', namespaces=namespace_mapping)
 
     if version_element is None:
-        if not config_get(config, parsed_arguments, 'empty_version', vt=bool):
+        if not get_config_value(config, parsed_arguments, 'empty_version', vt=bool):
             return None, True
     else:
         version_text = version_element.text
@@ -327,7 +327,7 @@ def get_version(config: ConfigParser, parsed_arguments: dict, group_id: str, art
             version_text = project_version_element
 
         if re.match(variable_expression, version_text):
-            if not config_get(config, parsed_arguments, 'empty_version', vt=bool):
+            if not get_config_value(config, parsed_arguments, 'empty_version', vt=bool):
                 return version_text, True
 
     return version_text, False
@@ -354,15 +354,15 @@ def process_repository(
         bool: True if the dependency is found, False otherwise.
     """
     auth_info = ()
-    if config_get(config, parsed_arguments, 'auth', repository_section, vt=bool):
+    if get_config_value(config, parsed_arguments, 'auth', repository_section, vt=bool):
         auth_info = (
-            config_get(config, parsed_arguments, 'user'),
-            config_get(config, parsed_arguments, 'password')
+            get_config_value(config, parsed_arguments, 'user'),
+            get_config_value(config, parsed_arguments, 'password')
         )
 
-    base_url = config_get(config, parsed_arguments, 'base', repository_section)
-    path_suffix = config_get(config, parsed_arguments, 'path', repository_section)
-    repository_name = config_get(config, parsed_arguments, 'repo', repository_section)
+    base_url = get_config_value(config, parsed_arguments, 'base', repository_section)
+    path_suffix = get_config_value(config, parsed_arguments, 'path', repository_section)
+    repository_name = get_config_value(config, parsed_arguments, 'repo', repository_section)
 
     path = f"{base_url}/{path_suffix}"
     if repository_name is not None:
@@ -381,7 +381,7 @@ def process_repository(
                             path, auth_info, verify_ssl, available_versions, response)):
             return True
 
-    if config_get(config, parsed_arguments, 'service_rest', repository_section, vt=bool):
+    if get_config_value(config, parsed_arguments, 'service_rest', repository_section, vt=bool):
         return service_rest(*(
             cache_data, config, parsed_arguments, group_id, artifact_id, version, section_key,
             repository_section, base_url, auth_info, verify_ssl))
@@ -425,14 +425,14 @@ def check_versions(
     minor_version_threshold = 0
     current_major_version = 0
     current_minor_version = 0
-    if config_get(config, parsed_arguments, 'fail_mode', vt=bool):
-        major_version_threshold = int(config_get(config, parsed_arguments, 'fail_major'))
-        minor_version_threshold = int(config_get(config, parsed_arguments, 'fail_minor'))
+    if get_config_value(config, parsed_arguments, 'fail_mode', vt=bool):
+        major_version_threshold = int(get_config_value(config, parsed_arguments, 'fail_major'))
+        minor_version_threshold = int(get_config_value(config, parsed_arguments, 'fail_minor'))
 
         if version_match := re.match('^(\\d+).(\\d+).+', version):
             current_major_version, current_minor_version = int(version_match.group(1)), int(version_match.group(2))
 
-    skip_current_version = config_get(config, parsed_arguments, 'skip_current', vt=bool)
+    skip_current_version = get_config_value(config, parsed_arguments, 'skip_current', vt=bool)
     invalid_flag = False
 
     for item in available_versions:
@@ -454,7 +454,7 @@ def check_versions(
                 cache_data[f"{group_id}:{artifact_id}"] = (
                     timestamp, item, section_key, last_modified_date, available_versions[:3])
 
-            if config_get(config, parsed_arguments, 'fail_mode', vt=bool):
+            if get_config_value(config, parsed_arguments, 'fail_mode', vt=bool):
                 item_major_version = 0
                 item_minor_version = 0
                 if item_match := re.match('^(\\d+).(\\d+).+', item):
@@ -467,7 +467,7 @@ def check_versions(
             return True
 
         else:
-            if config_get(config, parsed_arguments, 'show_invalid', vt=bool):
+            if get_config_value(config, parsed_arguments, 'show_invalid', vt=bool):
                 if not invalid_flag:
                     logging.info(response.url)
                 logging.warning(f"Invalid: {group_id}:{artifact_id}:{item}")
@@ -499,7 +499,7 @@ def service_rest(
     Returns:
         bool: True if the dependency is found, False otherwise.
     """
-    repository_name = config_get(config, parsed_arguments, 'repo', repository_section)
+    repository_name = get_config_value(config, parsed_arguments, 'repo', repository_section)
     path = f"{base_url}/service/rest/repository/browse/{repository_name}"
     path = f"{path}/{group_id.replace('.', '/')}/{artifact_id}"
 
@@ -554,7 +554,7 @@ def pom_data(auth_info: tuple, verify_ssl: bool, artifact_id: str, version: str,
     return False, None
 
 
-def config_get(
+def get_config_value(
         config: ConfigParser, parsed_arguments: dict, key: str, section: str = 'base', value_type=None
 ) -> any | None:
     """
@@ -640,7 +640,7 @@ def main() -> None:
 
     try:
         start_time = time.time()
-        parsed_arguments = cli_args()
+        parsed_arguments = parse_command_line_arguments()
         configure_logging(parsed_arguments)
         ci_mode_enabled = parsed_arguments.get('ci_mode')
 
