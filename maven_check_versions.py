@@ -16,13 +16,12 @@ from configparser import ConfigParser
 from pathlib import Path, PurePath
 
 # Modules from PACKAGES Env or local packages
-lpd = os.path.dirname(__file__)
-lsp = os.path.join(lpd, '.site-packages')
-sys.path.append(lsp)
-if os.getenv('PACKAGES'):
-    evp = os.getenv('PACKAGES')
-    sys.path.append(evp)
-    if not os.path.exists(evp):
+local_package_dir = os.path.dirname(__file__)
+site_packages_path = os.path.join(local_package_dir, '.site-packages')
+sys.path.append(site_packages_path)
+if packages_env := os.getenv('PACKAGES'):
+    sys.path.append(packages_env)
+    if not os.path.exists(packages_env):
         print('Invalid PACKAGES environment')
         sys.exit(1)
 
@@ -39,556 +38,591 @@ def cli_args() -> dict:
     Returns:
         dict: A dictionary containing parsed command line arguments.
     """
-    ap = ArgumentParser()
-    ap.add_argument('-ci', '--ci_mode', help='CI Mode', action='store_true')
-    ap.add_argument('-pf', '--pom', help='POM File')
-    ap.add_argument('-fa', '--find', help='Find artifact')
+    argument_parser = ArgumentParser()
+    argument_parser.add_argument('-ci', '--ci_mode', help='CI Mode', action='store_true')
+    argument_parser.add_argument('-pf', '--pom', help='POM File')
+    argument_parser.add_argument('-fa', '--find', help='Find artifact')
     # override config
-    ap.add_argument('-co', '--cache_off', help='Dont use Cache', action='store_true')
-    ap.add_argument('-lfo', '--logfile_off', help='Dont use Log file', action='store_true')
-    ap.add_argument('-cf', '--config', help='Config File')
-    ap.add_argument('-fm', '--fail_mode', help='Fail Mode', action='store_true')
-    ap.add_argument('-mjv', '--fail_major', help='Fail Major delta')
-    ap.add_argument('-mnv', '--fail_minor', help='Fail Minor delta')
-    ap.add_argument('-sp', '--plugins', help='Search plugins', action='store_true')
-    ap.add_argument('-sm', '--modules', help='Process modules', action='store_true')
-    ap.add_argument('-sk', '--show_skip', help='Show Skip', action='store_true')
-    ap.add_argument('-ss', '--show_search', help='Show Search', action='store_true')
-    ap.add_argument('-ev', '--empty_version', help='Empty Version', action='store_true')
-    ap.add_argument('-si', '--show_invalid', help='Show Invalid', action='store_true')
-    ap.add_argument('-un', '--user', help='Basic Auth user')
-    ap.add_argument('-up', '--password', help='Basic Auth password')
-    return vars(ap.parse_args())
+    argument_parser.add_argument('-co', '--cache_off', help='Dont use Cache', action='store_true')
+    argument_parser.add_argument('-lfo', '--logfile_off', help='Dont use Log file', action='store_true')
+    argument_parser.add_argument('-cf', '--config', help='Config File')
+    argument_parser.add_argument('-fm', '--fail_mode', help='Fail Mode', action='store_true')
+    argument_parser.add_argument('-mjv', '--fail_major', help='Fail Major delta')
+    argument_parser.add_argument('-mnv', '--fail_minor', help='Fail Minor delta')
+    argument_parser.add_argument('-sp', '--plugins', help='Search plugins', action='store_true')
+    argument_parser.add_argument('-sm', '--modules', help='Process modules', action='store_true')
+    argument_parser.add_argument('-sk', '--show_skip', help='Show Skip', action='store_true')
+    argument_parser.add_argument('-ss', '--show_search', help='Show Search', action='store_true')
+    argument_parser.add_argument('-ev', '--empty_version', help='Empty Version', action='store_true')
+    argument_parser.add_argument('-si', '--show_invalid', help='Show Invalid', action='store_true')
+    argument_parser.add_argument('-un', '--user', help='Basic Auth user')
+    argument_parser.add_argument('-up', '--password', help='Basic Auth password')
+    return vars(argument_parser.parse_args())
 
 
-def main_process(args: dict) -> None:
+def main_process(parsed_arguments: dict) -> None:
     """
     Main processing function.
 
     Args:
-        args (dict): Dictionary of parsed command line arguments.
+        parsed_arguments (dict): Dictionary of parsed command line arguments.
     """
     os.chdir(os.path.dirname(__file__))
 
-    cfg = ConfigParser()
-    cfg.optionxform = str
-    if (cf := args.get('config')) is None:
-        cf = Path(__file__).stem + '.cfg'
-    if os.path.exists(cf):
-        cfg.read(cf)
+    config = ConfigParser()
+    config.optionxform = str
+    if (config_file := parsed_arguments.get('config')) is None:
+        config_file = Path(__file__).stem + '.cfg'
+    if os.path.exists(config_file):
+        config.read(config_file)
 
-    if not config_get(cfg, args, 'warnings', 'urllib3', vt=bool):
+    if not config_get(config, parsed_arguments, 'warnings', 'urllib3', vt=bool):
         urllib3.disable_warnings()
 
-    co = config_get(cfg, args, 'cache_off')
-    cfile = Path(__file__).stem + '.cache'
-    cache = load_cache(cfile) if not co else None
+    cache_disabled = config_get(config, parsed_arguments, 'cache_off')
+    cache_file_path = Path(__file__).stem + '.cache'
+    cache_data = load_cache(cache_file_path) if not cache_disabled else None
 
-    if pom := args.get('pom'):
-        pom_process(cache, cfg, args, pom)
-    elif find := args.get('find'):
-        find_process(cache, cfg, args, find)
+    if pom_file := parsed_arguments.get('pom'):
+        process_pom(cache_data, config, parsed_arguments, pom_file)
+    elif artifact_to_find := parsed_arguments.get('find'):
+        find_artifact(cache_data, config, parsed_arguments, artifact_to_find)
     else:
-        for key, pom in config_items(cfg, 'pom'):
-            pom_process(cache, cfg, args, pom)
+        for key, pom in config_items(config, 'pom'):
+            process_pom(cache_data, config, parsed_arguments, pom)
 
-    if_cache_save(cache, cfile)
+    if cache_data is not None:
+        save_cache(cache_data, cache_file_path)
 
 
-def load_cache(file: str) -> dict:
+def load_cache(cache_file: str) -> dict:
     """
     Load cache from a file.
 
     Args:
-        file (str): Path to the cache file.
+        cache_file (str): Path to the cache file.
 
     Returns:
         dict: A dictionary representing the loaded cache.
     """
-    if os.path.exists(file):
-        logging.info(f"Load Cache: {PurePath(file).name}")
-        with open(file, 'r') as cf:
+    if os.path.exists(cache_file):
+        logging.info(f"Load Cache: {PurePath(cache_file).name}")
+        with open(cache_file, 'r') as cf:
             return json.load(cf)
-    return dict()
+    return {}
 
 
-def if_cache_save(cache: dict, file: str) -> None:
+def save_cache(cache_data: dict, cache_file: str) -> None:
     """
     Save cache to a file.
 
     Args:
-        cache (dict): The cache data to be saved.
-        file (str): Path to the file where the cache will be saved.
+        cache_data (dict): The cache data to be saved.
+        cache_file (str): Path to the file where the cache will be saved.
     """
-    if cache is not None:
-        logging.info(f"Save Cache: {PurePath(file).name}")
-        with open(file, 'w') as cf:
-            json.dump(cache, cf)
+    if cache_data is not None:
+        logging.info(f"Save Cache: {PurePath(cache_file).name}")
+        with open(cache_file, 'w') as cf:
+            json.dump(cache_data, cf)
 
 
-def pom_process(cache: dict, cfg: ConfigParser, args: dict, pom: str, pfx: str = None) -> None:
+def process_pom(cache_data: dict, config: ConfigParser, parsed_arguments: dict, pom_path: str,
+                prefix: str = None) -> None:
     """
     Process POM files.
 
     Args:
-        cache (dict): Cache data for dependencies.
-        cfg (ConfigParser): Configuration data.
-        args (dict): Command line arguments.
-        pom (str): Path or URL to the POM file to process.
-        pfx (str, optional): Prefix for the artifact name. Defaults to None.
+        cache_data (dict): Cache data for dependencies.
+        config (ConfigParser): Configuration data.
+        parsed_arguments (dict): Command line arguments.
+        pom_path (str): Path or URL to the POM file to process.
+        prefix (str, optional): Prefix for the artifact name. Defaults to None.
     """
-    verify = config_get(cfg, args, 'verify', 'requests', vt=bool)
+    verify_ssl = config_get(config, parsed_arguments, 'verify', 'requests', vt=bool)
 
-    if pom.startswith('http'):
-        auth = ()
-        if config_get(cfg, args, 'auth', 'pom_http', vt=bool):
-            usr = config_get(cfg, args, 'user')
-            pwd = config_get(cfg, args, 'password')
-            auth = (usr, pwd)
+    if pom_path.startswith('http'):
+        auth_info = ()
+        if config_get(config, parsed_arguments, 'auth', 'pom_http', vt=bool):
+            username = config_get(config, parsed_arguments, 'user')
+            password = config_get(config, parsed_arguments, 'password')
+            auth_info = (username, password)
 
-        rsp = requests.get(pom, auth=auth, verify=verify)
+        response = requests.get(pom_path, auth=auth_info, verify=verify_ssl)
 
-        if rsp.status_code != 200:
-            raise FileNotFoundError(f'{pom} not found')
-        tree = ET.ElementTree(ET.fromstring(rsp.text))
+        if response.status_code != 200:
+            raise FileNotFoundError(f'{pom_path} not found')
+        tree = ET.ElementTree(ET.fromstring(response.text))
     else:
-        if not os.path.exists(pom):
-            raise FileNotFoundError(f'{pom} not found')
-        tree = ET.parse(pom)
+        if not os.path.exists(pom_path):
+            raise FileNotFoundError(f'{pom_path} not found')
+        tree = ET.parse(pom_path)
 
-    root = tree.getroot()
-    ns = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
+    root_element = tree.getroot()
+    namespace_mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
 
-    name = root.find('./xmlns:artifactId', namespaces=ns).text
-    fnd = root.find('./xmlns:groupId', namespaces=ns)
-    name = (fnd.text + ':' if fnd is not None else '') + name
-    if pfx is not None:
-        name = f"{pfx} / {name}"
+    artifact_id = root_element.find('./xmlns:artifactId', namespaces=namespace_mapping).text
+    group_id_element = root_element.find('./xmlns:groupId', namespaces=namespace_mapping)
+    full_artifact_name = (group_id_element.text + ':' if group_id_element is not None else '') + artifact_id
+    if prefix is not None:
+        full_artifact_name = f"{prefix} / {full_artifact_name}"
 
-    logging.info(f"=== Processing: {name} ===")
+    logging.info(f"=== Processing: {full_artifact_name} ===")
 
-    deps = root.findall('.//xmlns:dependency', namespaces=ns)
+    dependencies = root_element.findall('.//xmlns:dependency', namespaces=namespace_mapping)
 
-    if config_get(cfg, args, 'plugins', vt=bool):
-        xp = './/xmlns:plugins/xmlns:plugin'
-        plugins = root.findall(xp, namespaces=ns)
-        for item in plugins:
-            deps.append(item)
+    if config_get(config, parsed_arguments, 'plugins', vt=bool):
+        plugin_xpath = './/xmlns:plugins/xmlns:plugin'
+        plugins = root_element.findall(plugin_xpath, namespaces=namespace_mapping)
+        dependencies.extend(plugins)
 
-    deps_process(cache, cfg, args, deps, ns, root, verify)
+    process_dependencies(
+        cache_data, config, parsed_arguments, dependencies, namespace_mapping, root_element, verify_ssl)
 
-    if config_get(cfg, args, 'modules', vt=bool):
-        dpath = os.path.dirname(pom)
-        xp = './/xmlns:modules/xmlns:module'
+    if config_get(config, parsed_arguments, 'modules', vt=bool):
+        directory_path = os.path.dirname(pom_path)
+        module_xpath = './/xmlns:modules/xmlns:module'
 
-        for item in root.findall(xp, namespaces=ns):
-            mf = f"{dpath}/{item.text}/pom.xml"
-            if os.path.exists(mf):
-                pom_process(cache, cfg, args, mf, name)
+        for module in root_element.findall(module_xpath, namespaces=namespace_mapping):
+            module_pom_path = f"{directory_path}/{module.text}/pom.xml"
+            if os.path.exists(module_pom_path):
+                process_pom(cache_data, config, parsed_arguments, module_pom_path, full_artifact_name)
 
 
-def deps_process(cache: dict, cfg: ConfigParser, args: dict, items: list, ns: dict, root: ET.Element, verify: bool) -> None:
+def process_dependencies(
+        cache_data: dict, config: ConfigParser, parsed_arguments: dict, dependencies: list,
+        namespace_mapping: dict, root_element: ET.Element, verify_ssl: bool) -> None:
     """
     Process dependencies in a POM file.
 
     Args:
-        cache (dict): Cache object to store dependencies.
-        cfg (ConfigParser): Configuration object.
-        args (dict): Command-line arguments.
-        deps (list): List of dependencies from the POM file.
-        ns (dict): XML namespace mapping.
-        root (ET.Element): Root XML element of the POM file.
-        verify (bool): Whether to verify HTTPS certificates.
+        cache_data (dict): Cache object to store dependencies.
+        config (ConfigParser): Configuration object.
+        parsed_arguments (dict): Command-line arguments.
+        dependencies (list): List of dependencies from the POM file.
+        namespace_mapping (dict): XML namespace mapping.
+        root_element (ET.Element): Root XML element of the POM file.
+        verify_ssl (bool): Whether to verify HTTPS certificates.
     """
-    for item in items:
-        artifact = item.find('xmlns:artifactId', namespaces=ns)
-        if artifact is None:
+    for dependency in dependencies:
+        artifact_id = dependency.find('xmlns:artifactId', namespaces=namespace_mapping)
+        if artifact_id is None:
             continue
-        artifact = artifact.text
+        artifact_id_text = artifact_id.text
 
-        group = item.find('xmlns:groupId', namespaces=ns)
-        if group is None:
-            logging.error(f"Empty groupId in {artifact}")
+        group_id = dependency.find('xmlns:groupId', namespaces=namespace_mapping)
+        if group_id is None:
+            logging.error(f"Empty groupId in {artifact_id_text}")
             continue
-        group = group.text
+        group_id_text = group_id.text
 
-        ver, skip = get_version(cfg, args, group, artifact, ns, root, item)
+        version, skip_flag = get_version(
+            config, parsed_arguments, group_id_text, artifact_id_text, namespace_mapping, root_element, dependency)
 
-        if skip is True:
-            if config_get(cfg, args, 'show_skip', vt=bool):
-                logging.warning(f"Skip: {group}:{artifact}:{ver}")
+        if skip_flag is True:
+            if config_get(config, parsed_arguments, 'show_skip', vt=bool):
+                logging.warning(f"Skip: {group_id_text}:{artifact_id_text}:{version}")
             continue
 
-        if config_get(cfg, args, 'show_search', vt=bool):
-            if ver is None or re.match('^\\${([^}]+)}$', ver):
-                logging.warning(f"Search: {group}:{artifact}:{ver}")
+        if config_get(config, parsed_arguments, 'show_search', vt=bool):
+            if version is None or re.match('^\\${([^}]+)}$', version):
+                logging.warning(f"Search: {group_id_text}:{artifact_id_text}:{version}")
             else:
-                logging.info(f"Search: {group}:{artifact}:{ver}")
+                logging.info(f"Search: {group_id_text}:{artifact_id_text}:{version}")
 
-        if (cache is not None and
-                cache.get(f"{group}:{artifact}") is not None):
+        if (cache_data is not None and
+                cache_data.get(f"{group_id_text}:{artifact_id_text}") is not None):
 
-            ct, cv, ck, cd, cvs = cache.get(f"{group}:{artifact}")
-            if cv == ver:
+            cached_time, cached_version, cached_key, cached_date, cached_versions = cache_data.get(
+                f"{group_id_text}:{artifact_id_text}")
+            if cached_version == version:
                 continue
 
-            cct = config_get(cfg, args, 'cache_time', vt=int)
+            cache_time_threshold = config_get(config, parsed_arguments, 'cache_time', vt=int)
 
-            if cct == 0 or time.time() - ct < cct:
-                mf = '*{}: {}:{}, current:{} versions: {} updated: {}'
-                cd = cd if cd is not None else ''
-                logging.info(mf.format(ck, group, artifact, ver, ', '.join(cvs), cd).rstrip())
+            if cache_time_threshold == 0 or time.time() - cached_time < cache_time_threshold:
+                message_format = '*{}: {}:{}, current:{} versions: {} updated: {}'
+                formatted_date = cached_date if cached_date is not None else ''
+                logging.info(message_format.format(
+                    cached_key, group_id_text, artifact_id_text, version,
+                    ', '.join(cached_versions), formatted_date).rstrip())
                 continue
 
-        found = False
-        for key, sec in config_items(cfg, 'repositories'):
-            if found := process_sec(*(cache, cfg, args, group, artifact, ver, key, sec, verify)):
+        dependency_found = False
+        for section_key, repository_section in config_items(config, 'repositories'):
+            if (dependency_found :=
+            process_repository(*(
+                    cache_data, config, parsed_arguments, group_id_text, artifact_id_text, version,
+                    section_key, repository_section, verify_ssl))):
                 break
-        if not found:
-            logging.warning(f"Not Found: {group}:{artifact}, current:{ver}")
+        if not dependency_found:
+            logging.warning(f"Not Found: {group_id_text}:{artifact_id_text}, current:{version}")
 
 
-def find_process(cache: dict, cfg: ConfigParser, args: dict, find: str) -> None:
+def find_artifact(cache_data: dict, config: ConfigParser, parsed_arguments: dict, artifact_to_find: str) -> None:
     """
     Process finding artifacts.
 
     Args:
-        cache (dict): Cache data.
-        cfg (ConfigParser): Configuration settings.
-        args (dict): Command-line arguments.
-        find (str): Artifact to search for.
+        cache_data (dict): Cache data.
+        config (ConfigParser): Configuration settings.
+        parsed_arguments (dict): Command-line arguments.
+        artifact_to_find (str): Artifact to search for.
     """
-    verify = config_get(cfg, args, 'verify', 'requests', vt=bool)
-    group, artifact, ver = find.split(sep=":", maxsplit=3)
+    verify_ssl = config_get(config, parsed_arguments, 'verify', 'requests', vt=bool)
+    group_id, artifact_id, version = artifact_to_find.split(sep=":", maxsplit=3)
 
-    if config_get(cfg, args, 'show_search', vt=bool):
-        logging.info(f"Search: {group}:{artifact}:{ver}")
+    if config_get(config, parsed_arguments, 'show_search', vt=bool):
+        logging.info(f"Search: {group_id}:{artifact_id}:{version}")
 
-    found = False
-    for key, sec in config_items(cfg, 'repositories'):
-        if found := process_sec(*(cache, cfg, args, group, artifact, ver, key, sec, verify)):
+    dependency_found = False
+    for section_key, repository_section in config_items(config, 'repositories'):
+        if (dependency_found :=
+        process_repository(*(
+                cache_data, config, parsed_arguments, group_id, artifact_id, version,
+                section_key, repository_section, verify_ssl))):
             break
-    if not found:
-        logging.warning(f"Not Found: {group}:{artifact}, current:{ver}")
+    if not dependency_found:
+        logging.warning(f"Not Found: {group_id}:{artifact_id}, current:{version}")
 
 
-def get_version(cfg: ConfigParser, args: dict, group: str, artifact: str, ns: dict, root: ET.Element, item: ET.Element) -> tuple[str | None, bool]:
+def get_version(config: ConfigParser, parsed_arguments: dict, group_id: str, artifact_id: str, namespace_mapping: dict,
+                root_element: ET.Element, dependency: ET.Element) -> tuple[str | None, bool]:
     """
     Get version information.
 
     Args:
-        cfg (ConfigParser): The configuration parser.
-        args (dict): Dictionary containing the parsed command line arguments.
-        group (str): The group ID of the artifact.
-        artifact (str): The artifact ID.
-        ns (dict): Namespace dictionary for XML parsing.
-        root (ET.Element): Root element of the POM file.
-        item (ET.Element): Dependency element from which to extract version.
+        config (ConfigParser): The configuration parser.
+        parsed_arguments (dict): Dictionary containing the parsed command line arguments.
+        group_id (str): The group ID of the artifact.
+        artifact_id (str): The artifact ID.
+        namespace_mapping (dict): Namespace dictionary for XML parsing.
+        root_element (ET.Element): Root element of the POM file.
+        dependency (ET.Element): Dependency element from which to extract version.
 
     Returns:
         tuple[str | None, bool]: A tuple containing the resolved version and a boolean indicating if the version should be skipped.
     """
-    ver = item.find('xmlns:version', namespaces=ns)
+    version_element = dependency.find('xmlns:version', namespaces=namespace_mapping)
 
-    if ver is None:
-        if not config_get(cfg, args, 'empty_version', vt=bool):
+    if version_element is None:
+        if not config_get(config, parsed_arguments, 'empty_version', vt=bool):
             return None, True
     else:
-        ver = ver.text
-        var_ex = '^\\${([^}]+)}$'
+        version_text = version_element.text
+        variable_expression = '^\\${([^}]+)}$'
 
-        if m := re.search(var_ex, ver):
-            xp = f"./xmlns:properties/xmlns:{m.group(1)}"
-            fnd = root.find(xp, namespaces=ns)
-            if fnd is not None:
-                ver = fnd.text
+        if match := re.search(variable_expression, version_text):
+            property_xpath = f"./xmlns:properties/xmlns:{match.group(1)}"
+            found_property = root_element.find(property_xpath, namespaces=namespace_mapping)
+            if found_property is not None:
+                version_text = found_property.text
 
-        if ver == '${project.version}':
-            pv = root.find('xmlns:version', namespaces=ns).text
-            if m := re.search(var_ex, pv):
-                xp = f"./xmlns:properties/xmlns:{m.group(1)}"
-                fnd = root.find(xp, namespaces=ns)
-                if fnd is not None:
-                    pv = fnd.text
-            ver = pv
+        if version_text == '${project.version}':
+            project_version_element = root_element.find('xmlns:version', namespaces=namespace_mapping).text
+            if match := re.search(variable_expression, project_version_element):
+                property_xpath = f"./xmlns:properties/xmlns:{match.group(1)}"
+                found_property = root_element.find(property_xpath, namespaces=namespace_mapping)
+                if found_property is not None:
+                    project_version_element = found_property.text
+            version_text = project_version_element
 
-        if re.match(var_ex, ver):
-            if not config_get(cfg, args, 'empty_version', vt=bool):
-                return ver, True
+        if re.match(variable_expression, version_text):
+            if not config_get(config, parsed_arguments, 'empty_version', vt=bool):
+                return version_text, True
 
-    return ver, False
+    return version_text, False
 
 
-def process_sec(cache: dict, cfg: ConfigParser, args: dict, group: str, artifact: str, ver: str, key: str, sec: str, verify: bool) -> bool:
+def process_repository(
+        cache_data: dict, config: ConfigParser, parsed_arguments: dict, group_id: str, artifact_id: str,
+        version: str, section_key: str, repository_section: str, verify_ssl: bool) -> bool:
     """
     Process a repository section.
 
     Args:
-        cache (dict): The cache dictionary.
-        cfg (ConfigParser): The configuration parser.
-        args (dict): Dictionary containing the parsed command line arguments.
-        group (str): The group ID of the artifact.
-        artifact (str): The artifact ID.
-        ver (str): The version of the artifact.
-        key (str): The key for the repository section.
-        sec (str): The repository section name.
-        verify (bool): Whether to verify SSL certificates.
+        cache_data (dict): The cache dictionary.
+        config (ConfigParser): The configuration parser.
+        parsed_arguments (dict): Dictionary containing the parsed command line arguments.
+        group_id (str): The group ID of the artifact.
+        artifact_id (str): The artifact ID.
+        version (str): The version of the artifact.
+        section_key (str): The key for the repository section.
+        repository_section (str): The repository section name.
+        verify_ssl (bool): Whether to verify SSL certificates.
 
     Returns:
         bool: True if the dependency is found, False otherwise.
     """
-    auth = ()
-    if config_get(cfg, args, 'auth', sec, vt=bool):
-        auth = (
-            config_get(cfg, args, 'user'),
-            config_get(cfg, args, 'password')
+    auth_info = ()
+    if config_get(config, parsed_arguments, 'auth', repository_section, vt=bool):
+        auth_info = (
+            config_get(config, parsed_arguments, 'user'),
+            config_get(config, parsed_arguments, 'password')
         )
 
-    cbase = config_get(cfg, args, 'base', sec)
-    cpath = config_get(cfg, args, 'path', sec)
-    crepo = config_get(cfg, args, 'repo', sec)
+    base_url = config_get(config, parsed_arguments, 'base', repository_section)
+    path_suffix = config_get(config, parsed_arguments, 'path', repository_section)
+    repository_name = config_get(config, parsed_arguments, 'repo', repository_section)
 
-    path = f"{cbase}/{cpath}"
-    if crepo is not None:
-        path = f"{path}/{crepo}"
-    path = f"{path}/{group.replace('.', '/')}/{artifact}"
+    path = f"{base_url}/{path_suffix}"
+    if repository_name is not None:
+        path = f"{path}/{repository_name}"
+    path = f"{path}/{group_id.replace('.', '/')}/{artifact_id}"
 
-    url = path + '/maven-metadata.xml'
-    rsp = requests.get(url, auth=auth, verify=verify)
+    metadata_url = path + '/maven-metadata.xml'
+    response = requests.get(metadata_url, auth=auth_info, verify=verify_ssl)
 
-    if rsp.status_code == 200:
-        tree = ET.ElementTree(ET.fromstring(rsp.text))
-        items = tree.getroot().findall('.//version')
-        items = list(map(lambda v: v.text, items))
+    if response.status_code == 200:
+        tree = ET.ElementTree(ET.fromstring(response.text))
+        version_elements = tree.getroot().findall('.//version')
+        available_versions = list(map(lambda v: v.text, version_elements))
 
-        if check_versions(*(cache, cfg, args, group, artifact, ver, key, path, auth, verify, items, rsp)):
+        if check_versions(*(cache_data, config, parsed_arguments, group_id, artifact_id, version, section_key,
+                            path, auth_info, verify_ssl, available_versions, response)):
             return True
 
-    if config_get(cfg, args, 'service_rest', sec, vt=bool):
-        return service_rest(*(cache, cfg, args, group, artifact, ver, key, sec, cbase, auth, verify))
+    if config_get(config, parsed_arguments, 'service_rest', repository_section, vt=bool):
+        return service_rest(*(
+            cache_data, config, parsed_arguments, group_id, artifact_id, version, section_key,
+            repository_section, base_url, auth_info, verify_ssl))
 
     return False
 
 
 def check_versions(
-        cache: dict, cfg: ConfigParser, args: dict, group: str, artifact: str, ver: str, key: str,
-        path: str, auth: tuple, verify: bool, versions: list[str], rsp: requests.Response) -> bool:
+        cache_data: dict, config: ConfigParser, parsed_arguments: dict, group_id: str, artifact_id: str, version: str,
+        section_key: str,
+        path: str, auth_info: tuple, verify_ssl: bool, available_versions: list[str],
+        response: requests.Response) -> bool:
     """
     Check versions.
 
     Args:
-        cache (dict): The cache dictionary.
-        cfg (ConfigParser): The configuration parser.
-        args (dict): Dictionary containing the parsed command line arguments.
-        group (str): The group ID of the artifact.
-        artifact (str): The artifact ID.
-        ver (str): The version of the artifact.
-        key (str): The key for the repository section.
+        cache_data (dict): The cache dictionary.
+        config (ConfigParser): The configuration parser.
+        parsed_arguments (dict): Dictionary containing the parsed command line arguments.
+        group_id (str): The group ID of the artifact.
+        artifact_id (str): The artifact ID.
+        version (str): The version of the artifact.
+        section_key (str): The key for the repository section.
         path (str): The path to the dependency in the repository.
-        auth (tuple): Tuple containing basic authentication credentials.
-        verify (bool): Whether to verify SSL certificates.
-        versions (list[str]): List of available versions.
-        rsp (requests.Response): The response object from the repository.
+        auth_info (tuple): Tuple containing basic authentication credentials.
+        verify_ssl (bool): Whether to verify SSL certificates.
+        available_versions (list[str]): List of available versions.
+        response (requests.Response): The response object from the repository.
 
     Returns:
         bool: True if the current version is valid, False otherwise.
     """
-    versions = list(filter(lambda v: re.match('^\\d+.+', v), versions))
-    ended = versions[-1]
-    versions.reverse()
+    available_versions = list(filter(lambda v: re.match('^\\d+.+', v), available_versions))
+    latest_version = available_versions[-1]
+    available_versions.reverse()
 
-    if versions[0] != ended:
-        logging.warning(f"Last versions: {versions[:5]}")
+    if available_versions[0] != latest_version:
+        logging.warning(f"Last versions: {available_versions[:5]}")
 
-    mjv, mnv, vmjv, vmnv = 0, 0, 0, 0
-    if config_get(cfg, args, 'fail_mode', vt=bool):
-        mjv = int(config_get(cfg, args, 'fail_major'))
-        mnv = int(config_get(cfg, args, 'fail_minor'))
+    major_version_threshold = 0
+    minor_version_threshold = 0
+    current_major_version = 0
+    current_minor_version = 0
+    if config_get(config, parsed_arguments, 'fail_mode', vt=bool):
+        major_version_threshold = int(config_get(config, parsed_arguments, 'fail_major'))
+        minor_version_threshold = int(config_get(config, parsed_arguments, 'fail_minor'))
 
-        if vm := re.match('^(\\d+).(\\d+).+', ver):
-            vmjv, vmnv = int(vm.group(1)), int(vm.group(2))
+        if version_match := re.match('^(\\d+).(\\d+).+', version):
+            current_major_version, current_minor_version = int(version_match.group(1)), int(version_match.group(2))
 
-    skip_curr = config_get(cfg, args, 'skip_current', vt=bool)
-    invalid = False
+    skip_current_version = config_get(config, parsed_arguments, 'skip_current', vt=bool)
+    invalid_flag = False
 
-    for item in versions:
-        if item == ver and skip_curr:
-            if cache is not None:
-                ts = math.trunc(time.time())
-                cache[f"{group}:{artifact}"] = (ts, item, key, None, versions[:3])
+    for item in available_versions:
+        if item == version and skip_current_version:
+            if cache_data is not None:
+                timestamp = math.trunc(time.time())
+                cache_data[f"{group_id}:{artifact_id}"] = (timestamp, item, section_key, None, available_versions[:3])
             return True
 
-        ok, date = pom_data(auth, verify, artifact, item, path)
-        if ok:
-            mf = '{}: {}:{}, current:{} {} {}'
-            logging.info(mf.format(key, group, artifact, ver, versions[:3], date).rstrip())
+        is_valid, last_modified_date = pom_data(auth_info, verify_ssl, artifact_id, item, path)
+        if is_valid:
+            message_format = '{}: {}:{}, current:{} {} {}'
+            logging.info(message_format.format(
+                section_key, group_id, artifact_id, version, available_versions[:3],
+                last_modified_date).rstrip())
 
-            if cache is not None:
-                ts = math.trunc(time.time())
-                cache[f"{group}:{artifact}"] = (ts, item, key, date, versions[:3])
+            if cache_data is not None:
+                timestamp = math.trunc(time.time())
+                cache_data[f"{group_id}:{artifact_id}"] = (
+                    timestamp, item, section_key, last_modified_date, available_versions[:3])
 
-            if config_get(cfg, args, 'fail_mode', vt=bool):
-                imjv, imnv = 0, 0
-                if im := re.match('^(\\d+).(\\d+).+', item):
-                    imjv, imnv = int(im.group(1)), int(im.group(2))
+            if config_get(config, parsed_arguments, 'fail_mode', vt=bool):
+                item_major_version = 0
+                item_minor_version = 0
+                if item_match := re.match('^(\\d+).(\\d+).+', item):
+                    item_major_version, item_minor_version = int(item_match.group(1)), int(item_match.group(2))
 
-                if imjv - vmjv > mjv or imnv - vmnv > mnv:
-                    logging.warning(f"Fail version: {item} > {ver}")
+                if item_major_version - current_major_version > major_version_threshold or \
+                        item_minor_version - current_minor_version > minor_version_threshold:
+                    logging.warning(f"Fail version: {item} > {version}")
                     raise AssertionError
             return True
 
         else:
-            if config_get(cfg, args, 'show_invalid', vt=bool):
-                if not invalid:
-                    logging.info(rsp.url)
-                logging.warning(f"Invalid: {group}:{artifact}:{item}")
-            invalid = True
+            if config_get(config, parsed_arguments, 'show_invalid', vt=bool):
+                if not invalid_flag:
+                    logging.info(response.url)
+                logging.warning(f"Invalid: {group_id}:{artifact_id}:{item}")
+            invalid_flag = True
 
     return False
 
 
 def service_rest(
-        cache: dict, cfg: ConfigParser, args: dict, group: str, artifact: str, ver: str, key: str,
-        sec: str, base: str, auth: tuple, verify: bool) -> bool:
+        cache_data: dict, config: ConfigParser, parsed_arguments: dict, group_id: str, artifact_id: str, version: str,
+        section_key: str,
+        repository_section: str, base_url: str, auth_info: tuple, verify_ssl: bool) -> bool:
     """
     Process REST services.
 
     Args:
-        cache (dict): The cache dictionary.
-        cfg (ConfigParser): The configuration parser.
-        args (dict): Dictionary containing the parsed command line arguments.
-        group (str): The group ID of the artifact.
-        artifact (str): The artifact ID.
-        ver (str): The version of the artifact.
-        key (str): The key for the repository section.
-        sec (str): The repository section name.
-        base (str): The base URL of the repository.
-        auth (tuple): Tuple containing basic authentication credentials.
-        verify (bool): Whether to verify SSL certificates.
+        cache_data (dict): The cache dictionary.
+        config (ConfigParser): The configuration parser.
+        parsed_arguments (dict): Dictionary containing the parsed command line arguments.
+        group_id (str): The group ID of the artifact.
+        artifact_id (str): The artifact ID.
+        version (str): The version of the artifact.
+        section_key (str): The key for the repository section.
+        repository_section (str): The repository section name.
+        base_url (str): The base URL of the repository.
+        auth_info (tuple): Tuple containing basic authentication credentials.
+        verify_ssl (bool): Whether to verify SSL certificates.
 
     Returns:
         bool: True if the dependency is found, False otherwise.
     """
-    repo = config_get(cfg, args, 'repo', sec)
-    path = f"{base}/service/rest/repository/browse/{repo}"
-    path = f"{path}/{group.replace('.', '/')}/{artifact}"
+    repository_name = config_get(config, parsed_arguments, 'repo', repository_section)
+    path = f"{base_url}/service/rest/repository/browse/{repository_name}"
+    path = f"{path}/{group_id.replace('.', '/')}/{artifact_id}"
 
-    url = path + '/maven-metadata.xml'
-    rsp = requests.get(url, auth=auth, verify=verify)
+    metadata_url = path + '/maven-metadata.xml'
+    response = requests.get(metadata_url, auth=auth_info, verify=verify_ssl)
 
-    if rsp.status_code == 200:
-        tree = ET.ElementTree(ET.fromstring(rsp.text))
-        items = tree.getroot().findall('.//version')
-        items = list(map(lambda v: v.text, items))
+    if response.status_code == 200:
+        tree = ET.ElementTree(ET.fromstring(response.text))
+        version_elements = tree.getroot().findall('.//version')
+        available_versions = list(map(lambda v: v.text, version_elements))
 
-        if check_versions(*(cache, cfg, args, group, artifact, ver, key, path, auth, verify, items, rsp)):
+        if check_versions(*(cache_data, config, parsed_arguments, group_id, artifact_id, version, section_key,
+                            path, auth_info, verify_ssl, available_versions, response)):
             return True
 
-    rsp = requests.get(path + '/', auth=auth, verify=verify)
+    response = requests.get(path + '/', auth=auth_info, verify=verify_ssl)
 
-    if rsp.status_code == 200:
-        html = BeautifulSoup(rsp.text, 'html.parser')
-        items = html.find('table').find_all('a')
-        items = list(map(lambda v: v.text, items))
-        path = f"{base}/repository/{repo}/{group.replace('.', '/')}/{artifact}"
+    if response.status_code == 200:
+        html_content = BeautifulSoup(response.text, 'html.parser')
+        version_links = html_content.find('table').find_all('a')
+        available_versions = list(map(lambda v: v.text, version_links))
+        path = f"{base_url}/repository/{repository_name}/{group_id.replace('.', '/')}/{artifact_id}"
 
-        if check_versions(*(cache, cfg, args, group, artifact, ver, key, path, auth, verify, items, rsp)):
+        if check_versions(*(cache_data, config, parsed_arguments, group_id, artifact_id, version, section_key,
+                            path, auth_info, verify_ssl, available_versions, response)):
             return True
 
     return False
 
 
-def pom_data(auth: tuple, verify: bool, artifact: str, ver: str, path: str) -> tuple[bool, str | None]:
+def pom_data(auth_info: tuple, verify_ssl: bool, artifact_id: str, version: str, path: str) -> tuple[bool, str | None]:
     """
     Get POM data.
 
     Args:
-        auth (tuple): Tuple containing basic authentication credentials.
-        verify (bool): Whether to verify SSL certificates.
-        artifact (str): The artifact ID.
-        ver (str): The version of the artifact.
+        auth_info (tuple): Tuple containing basic authentication credentials.
+        verify_ssl (bool): Whether to verify SSL certificates.
+        artifact_id (str): The artifact ID.
+        version (str): The version of the artifact.
         path (str): The path to the dependency in the repository.
 
     Returns:
         tuple[bool, str | None]: A tuple containing a boolean indicating if the data was retrieved successfully and the date of the last modification.
     """
-    url = f"{path}/{ver}/{artifact}-{ver}.pom"
-    rsp = requests.get(url, auth=auth, verify=verify)
+    url = f"{path}/{version}/{artifact_id}-{version}.pom"
+    response = requests.get(url, auth=auth_info, verify=verify_ssl)
 
-    if rsp.status_code == 200:
-        hlm = rsp.headers.get('Last-Modified')
-        return True, parser.parse(hlm).date().isoformat()
+    if response.status_code == 200:
+        last_modified_header = response.headers.get('Last-Modified')
+        return True, parser.parse(last_modified_header).date().isoformat()
 
     return False, None
 
 
-def config_get(cfg: ConfigParser, args: dict, key: str, section: str = 'base', vt=None) -> any | None:
+def config_get(
+        config: ConfigParser, parsed_arguments: dict, key: str, section: str = 'base', value_type=None
+) -> any | None:
     """
     Get configuration value with optional type conversion.
 
     Args:
-        cfg (ConfigParser): Configuration data.
-        args (dict): Command line arguments.
+        config (ConfigParser): Configuration data.
+        parsed_arguments (dict): Command line arguments.
         section (str): Configuration section name.
         option (str, optional): Configuration option name. Defaults to None.
-        vt (type, optional): Value type for conversion. Defaults to str.
+        value_type (type, optional): Value type for conversion. Defaults to str.
 
     Returns:
         Any: Value of the configuration option or None if not found.
     """
     try:
-        if section == 'base' and key in args:
-            if args.get(key):
-                return args[key]
+        if section == 'base' and key in parsed_arguments:
+            if value := parsed_arguments.get(key):
+                return value
 
-            ek = 'CV_' + key.upper()
-            if ev := os.environ.get(ek):
-                return ev
+            env_key = 'CV_' + key.upper()
+            if (env_value := os.environ.get(env_key)):
+                return env_value
 
-        val = cfg.get(section, key)
+        value = config.get(section, key)
 
-        if vt == bool:
-            return val.lower() == 'true'
-        if vt == int:
-            return int(val)
-        if vt == float:
-            return float(val)
+        if value_type == bool:
+            return value.lower() == 'true'
+        if value_type == int:
+            return int(value)
+        if value_type == float:
+            return float(value)
 
-        return val
+        return value
     except configparser.Error:
         return None
 
 
-def config_items(cfg: ConfigParser, section: str) -> list[tuple[str, str]]:
+def config_items(config: ConfigParser, section: str) -> list[tuple[str, str]]:
     """
     Retrieve all items from a configuration section.
 
     Args:
-        cfg (ConfigParser): The configuration parser.
+        config (ConfigParser): The configuration parser.
         section (str): The section of the configuration file.
 
     Returns:
         list[tuple[str, str]]: A list of tuples containing the key-value pairs for the specified section.
     """
     try:
-        return cfg.items(section)
+        return config.items(section)
     except configparser.Error:
         return []
 
 
-def configure_logging(args: dict) -> None:
+def configure_logging(parsed_arguments: dict) -> None:
     """
     Configure logging.
 
     Args:
-        args (dict): Dictionary containing the parsed command line arguments.
+        parsed_arguments (dict): Dictionary containing the parsed command line arguments.
     """
     handlers = [logging.StreamHandler(sys.stdout)]
 
-    if not args.get('logfile_off'):
-        lfd = os.path.dirname(__file__)
-        lf = os.path.join(lfd, Path(__file__).stem + '.log')
-        handlers.append(logging.FileHandler(lf, 'w'))
+    if not parsed_arguments.get('logfile_off'):
+        log_directory = os.path.dirname(__file__)
+        log_file_path = os.path.join(log_directory, Path(__file__).stem + '.log')
+        handlers.append(logging.FileHandler(log_file_path, 'w'))
 
     logging.Formatter.formatTime = lambda self, record, fmt=None: \
         datetime.datetime.fromtimestamp(record.created)
@@ -601,46 +635,46 @@ def configure_logging(args: dict) -> None:
 
 
 def main() -> None:
-    is_ex = False
-    ci_mode = False
+    exception_occurred = False
+    ci_mode_enabled = False
 
     try:
-        start = time.time()
-        args = cli_args()
-        configure_logging(args)
-        ci_mode = args.get('ci_mode')
+        start_time = time.time()
+        parsed_arguments = cli_args()
+        configure_logging(parsed_arguments)
+        ci_mode_enabled = parsed_arguments.get('ci_mode')
 
-        main_process(args)
+        main_process(parsed_arguments)
 
-        end = f"{time.time() - start:.2f} sec."
-        logging.info(f"Processing is completed, {end}")
+        elapsed_time = f"{time.time() - start_time:.2f} sec."
+        logging.info(f"Processing is completed, {elapsed_time}")
 
     except FileNotFoundError as ex:
-        is_ex = True
+        exception_occurred = True
         logging.exception(ex)
 
     except AssertionError:
-        is_ex = True
+        exception_occurred = True
 
     except KeyboardInterrupt:
-        is_ex = True
+        exception_occurred = True
         logging.warning('Processing is interrupted')
 
     except SystemExit:  # NOSONAR
-        is_ex = True
+        exception_occurred = True
 
     except Exception as ex:
-        is_ex = True
+        exception_occurred = True
         logging.exception(ex)
 
     try:
-        if not ci_mode:
+        if not ci_mode_enabled:
             input('Press Enter to continue')
     except KeyboardInterrupt:
         pass
     except UnicodeDecodeError:
         pass
-    sys.exit(1 if is_ex else 0)
+    sys.exit(1 if exception_occurred else 0)
 
 
 if __name__ == '__main__':
