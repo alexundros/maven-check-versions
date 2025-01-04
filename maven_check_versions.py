@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import time
+# noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser
 from configparser import ConfigParser
@@ -25,10 +26,10 @@ if packages_env := os.getenv('PACKAGES'):
         print('Invalid PACKAGES environment')
         sys.exit(1)
 
-import dateutil.parser as parser
-import requests
-import urllib3
-from bs4 import BeautifulSoup
+import dateutil.parser as parser  # noqa: E402
+import requests  # noqa: E402
+import urllib3  # noqa: E402
+from bs4 import BeautifulSoup  # noqa: E402
 
 
 def parse_command_line_arguments() -> dict:
@@ -42,7 +43,7 @@ def parse_command_line_arguments() -> dict:
     argument_parser.add_argument('-ci', '--ci_mode', help='CI Mode', action='store_true')
     argument_parser.add_argument('-pf', '--pom_file', help='POM File')
     argument_parser.add_argument('-fa', '--find_artifact', help='Find artifact')
-    # override config
+    # override for config file options
     argument_parser.add_argument('-co', '--cache_off', help='Dont use Cache', action='store_true')
     argument_parser.add_argument('-lfo', '--logfile_off', help='Dont use Log file', action='store_true')
     argument_parser.add_argument('-cf', '--config_file', help='Config File')
@@ -107,7 +108,7 @@ def load_cache(cache_file: str) -> dict:
     """
     if os.path.exists(cache_file):
         logging.info(f"Load Cache: {PurePath(cache_file).name}")
-        with open(cache_file, 'r') as cf:
+        with open(cache_file) as cf:
             return json.load(cf)
     return {}
 
@@ -293,11 +294,9 @@ def process_dependencies(
 
         dependency_found = False
         for section_key, repository_section in config_items(config_parser, 'repositories'):
-            if (dependency_found :=
-            process_repository(*(
+            if (dependency_found := process_repository(*(
                     cache_data, config_parser, parsed_arguments, group_id_text, artifact_id_text, version,
-                    section_key, repository_section, verify_ssl
-            ))):
+                    section_key, repository_section, verify_ssl))):
                 break
         if not dependency_found:
             logging.warning(f"Not Found: {group_id_text}:{artifact_id_text}, current:{version}")
@@ -347,11 +346,9 @@ def find_artifact(cache_data: dict, config_parser: ConfigParser, parsed_argument
 
     dependency_found = False
     for section_key, repository_section in config_items(config_parser, 'repositories'):
-        if (dependency_found :=
-        process_repository(*(
+        if (dependency_found := process_repository(*(
                 cache_data, config_parser, parsed_arguments, group_id, artifact_id, version,
-                section_key, repository_section, verify_ssl
-        ))):
+                section_key, repository_section, verify_ssl))):
             break
     if not dependency_found:
         logging.warning(f"Not Found: {group_id}:{artifact_id}, current:{version}")
@@ -711,6 +708,7 @@ def configure_logging(parsed_arguments: dict) -> None:
     )
 
 
+# noinspection PyMissingOrEmptyDocstring
 def main() -> None:
     exception_occurred = False
     ci_mode_enabled = False
