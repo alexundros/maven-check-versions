@@ -126,8 +126,9 @@ def save_cache(cache_data: dict, cache_file: str) -> None:
             json.dump(cache_data, cf)
 
 
-def process_pom(cache_data: dict, config_parser: ConfigParser, parsed_arguments: dict, pom_path: str,
-                prefix: str = None) -> None:
+def process_pom(
+        cache_data: dict, config_parser: ConfigParser, parsed_arguments: dict, pom_path: str, prefix: str = None
+) -> None:
     """
     Process POM files.
 
@@ -140,57 +141,101 @@ def process_pom(cache_data: dict, config_parser: ConfigParser, parsed_arguments:
     """
     verify_ssl = get_config_value(config_parser, parsed_arguments, 'verify', 'requests', value_type=bool)
 
-    if pom_path.startswith('http'):
-        auth_info = ()
-        if get_config_value(config_parser, parsed_arguments, 'auth', 'pom_http', value_type=bool):
-            username = get_config_value(config_parser, parsed_arguments, 'user')
-            password = get_config_value(config_parser, parsed_arguments, 'password')
-            auth_info = (username, password)
-
-        response = requests.get(pom_path, auth=auth_info, verify=verify_ssl)
-
-        if response.status_code != 200:
-            raise FileNotFoundError(f'{pom_path} not found')
-        tree = ET.ElementTree(ET.fromstring(response.text))
-    else:
-        if not os.path.exists(pom_path):
-            raise FileNotFoundError(f'{pom_path} not found')
-        tree = ET.parse(pom_path)
-
+    tree = load_pom_tree(pom_path, verify_ssl, config_parser, parsed_arguments)
     root_element = tree.getroot()
     namespace_mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
 
+    full_artifact_name = get_artifact_name(root_element, namespace_mapping, prefix)
+    logging.info(f"=== Processing: {full_artifact_name} ===")
+
+    dependencies = collect_dependencies(root_element, namespace_mapping, config_parser, parsed_arguments)
+    process_dependencies(
+        cache_data, config_parser, parsed_arguments, dependencies, namespace_mapping, root_element, verify_ssl)
+
+    process_modules_if_required(
+        cache_data, config_parser, parsed_arguments, root_element, pom_path, namespace_mapping, full_artifact_name)
+
+
+def load_pom_tree(
+        pom_path: str, verify_ssl: bool, config_parser: ConfigParser, parsed_arguments: dict
+) -> ET.ElementTree:
+    """
+    Load the XML tree of a POM file.
+
+    Args:
+        pom_path (str): Path or URL to the POM file.
+        verify_ssl (bool): Whether to verify SSL certificates.
+        config_parser (ConfigParser): Configuration data.
+        parsed_arguments (dict): Command line arguments.
+
+    Returns:
+        ET.ElementTree: Parsed XML tree of the POM file.
+    """
+    if pom_path.startswith('http'):
+        auth_info = ()
+        if get_config_value(config_parser, parsed_arguments, 'auth', 'pom_http', value_type=bool):
+            auth_info = (
+                get_config_value(config_parser, parsed_arguments, 'user'),
+                get_config_value(config_parser, parsed_arguments, 'password')
+            )
+
+        response = requests.get(pom_path, auth=auth_info, verify=verify_ssl)
+        if response.status_code != 200:
+            raise FileNotFoundError(f'{pom_path} not found')
+        return ET.ElementTree(ET.fromstring(response.text))
+    else:
+        if not os.path.exists(pom_path):
+            raise FileNotFoundError(f'{pom_path} not found')
+        return ET.parse(pom_path)
+
+
+def get_artifact_name(root_element: ET.Element, namespace_mapping: dict, prefix: str = None) -> str:
+    """
+    Get the full name of the artifact from the POM file.
+
+    Args:
+        root_element (ET.Element): Root element of the POM file.
+        namespace_mapping (dict): XML namespace mapping.
+        prefix (str, optional): Prefix for the artifact name. Defaults to None.
+
+    Returns:
+        str: Full artifact name.
+    """
     artifact_id = root_element.find('./xmlns:artifactId', namespaces=namespace_mapping).text
     group_id_element = root_element.find('./xmlns:groupId', namespaces=namespace_mapping)
     full_artifact_name = (group_id_element.text + ':' if group_id_element is not None else '') + artifact_id
     if prefix is not None:
         full_artifact_name = f"{prefix} / {full_artifact_name}"
+    return full_artifact_name
 
-    logging.info(f"=== Processing: {full_artifact_name} ===")
 
+def collect_dependencies(
+        root_element: ET.Element, namespace_mapping: dict, config_parser: ConfigParser, parsed_arguments: dict
+) -> list:
+    """
+    Collect dependencies from the POM file.
+
+    Args:
+        root_element (ET.Element): Root element of the POM file.
+        namespace_mapping (dict): XML namespace mapping.
+        config_parser (ConfigParser): Configuration data.
+        parsed_arguments (dict): Command line arguments.
+
+    Returns:
+        list: List of dependencies from the POM file.
+    """
     dependencies = root_element.findall('.//xmlns:dependency', namespaces=namespace_mapping)
-
     if get_config_value(config_parser, parsed_arguments, 'search_plugins', value_type=bool):
         plugin_xpath = './/xmlns:plugins/xmlns:plugin'
         plugins = root_element.findall(plugin_xpath, namespaces=namespace_mapping)
         dependencies.extend(plugins)
-
-    process_dependencies(
-        cache_data, config_parser, parsed_arguments, dependencies, namespace_mapping, root_element, verify_ssl)
-
-    if get_config_value(config_parser, parsed_arguments, 'process_modules', value_type=bool):
-        directory_path = os.path.dirname(pom_path)
-        module_xpath = './/xmlns:modules/xmlns:module'
-
-        for module in root_element.findall(module_xpath, namespaces=namespace_mapping):
-            module_pom_path = f"{directory_path}/{module.text}/pom.xml"
-            if os.path.exists(module_pom_path):
-                process_pom(cache_data, config_parser, parsed_arguments, module_pom_path, full_artifact_name)
+    return dependencies
 
 
 def process_dependencies(
         cache_data: dict, config_parser: ConfigParser, parsed_arguments: dict, dependencies: list,
-        namespace_mapping: dict, root_element: ET.Element, verify_ssl: bool) -> None:
+        namespace_mapping: dict, root_element: ET.Element, verify_ssl: bool
+) -> None:
     """
     Process dependencies in a POM file.
 
@@ -258,6 +303,32 @@ def process_dependencies(
             logging.warning(f"Not Found: {group_id_text}:{artifact_id_text}, current:{version}")
 
 
+def process_modules_if_required(
+        cache_data: dict, config_parser: ConfigParser, parsed_arguments: dict,
+        root_element: ET.Element, pom_path: str, namespace_mapping: dict, full_artifact_name: str
+) -> None:
+    """
+    Process modules listed in the POM file if required.
+
+    Args:
+        cache_data (dict): Cache data for dependencies.
+        config_parser (ConfigParser): Configuration data.
+        parsed_arguments (dict): Command line arguments.
+        root_element (ET.Element): Root element of the POM file.
+        pom_path (str): Path to the POM file.
+        namespace_mapping (dict): XML namespace mapping.
+        full_artifact_name (str): Prefix for the artifact name.
+    """
+    if get_config_value(config_parser, parsed_arguments, 'process_modules', value_type=bool):
+        directory_path = os.path.dirname(pom_path)
+        module_xpath = './/xmlns:modules/xmlns:module'
+
+        for module in root_element.findall(module_xpath, namespaces=namespace_mapping):
+            module_pom_path = f"{directory_path}/{module.text}/pom.xml"
+            if os.path.exists(module_pom_path):
+                process_pom(cache_data, config_parser, parsed_arguments, module_pom_path, full_artifact_name)
+
+
 def find_artifact(cache_data: dict, config_parser: ConfigParser, parsed_arguments: dict, artifact_to_find: str) -> None:
     """
     Process finding artifacts.
@@ -286,8 +357,10 @@ def find_artifact(cache_data: dict, config_parser: ConfigParser, parsed_argument
         logging.warning(f"Not Found: {group_id}:{artifact_id}, current:{version}")
 
 
-def get_version(config_parser: ConfigParser, parsed_arguments: dict, namespace_mapping: dict,
-                root_element: ET.Element, dependency: ET.Element) -> tuple[str | None, bool]:
+def get_version(
+        config_parser: ConfigParser, parsed_arguments: dict, namespace_mapping: dict, root_element: ET.Element,
+        dependency: ET.Element
+) -> tuple[str | None, bool]:
     """
     Get version information.
 
@@ -336,7 +409,8 @@ def get_version(config_parser: ConfigParser, parsed_arguments: dict, namespace_m
 
 def process_repository(
         cache_data: dict, config_parser: ConfigParser, parsed_arguments: dict, group_id: str, artifact_id: str,
-        version: str, section_key: str, repository_section: str, verify_ssl: bool) -> bool:
+        version: str, section_key: str, repository_section: str, verify_ssl: bool
+) -> bool:
     """
     Process a repository section.
 
@@ -391,10 +465,10 @@ def process_repository(
 
 
 def check_versions(
-        cache_data: dict, config_parser: ConfigParser, parsed_arguments: dict, group_id: str, artifact_id: str, version: str,
-        section_key: str,
-        path: str, auth_info: tuple, verify_ssl: bool, available_versions: list[str],
-        response: requests.Response) -> bool:
+        cache_data: dict, config_parser: ConfigParser, parsed_arguments: dict, group_id: str, artifact_id: str,
+        version: str, section_key: str, path: str, auth_info: tuple, verify_ssl: bool, available_versions: list[str],
+        response: requests.Response
+) -> bool:
     """
     Check versions.
 
@@ -478,9 +552,9 @@ def check_versions(
 
 
 def service_rest(
-        cache_data: dict, config_parser: ConfigParser, parsed_arguments: dict, group_id: str, artifact_id: str, version: str,
-        section_key: str,
-        repository_section: str, base_url: str, auth_info: tuple, verify_ssl: bool) -> bool:
+        cache_data: dict, config_parser: ConfigParser, parsed_arguments: dict, group_id: str, artifact_id: str,
+        version: str, section_key: str, repository_section: str, base_url: str, auth_info: tuple, verify_ssl: bool
+) -> bool:
     """
     Process REST services.
 
