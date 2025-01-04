@@ -1,6 +1,6 @@
 cd "$(dirname "$0")/.."
 docker run --rm -v "$(pwd):/usr/src" \
-  -e SONAR_HOST_URL="${SONAR_HOST_URL:-http://host.docker.internal:10000}" \
+  -e SONAR_HOST_URL="${SONAR_HOST_URL:-http://host.docker.internal:9000}" \
   --name sonar-scanner-maven_check_versions sonarsource/sonar-scanner-cli \
   -Dsonar.login="${SONAR_LOGIN:-admin}" \
   -Dsonar.password="${SONAR_PASSWORD:-sonar}" \
