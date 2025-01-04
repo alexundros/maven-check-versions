@@ -23,7 +23,7 @@ warnings = true
 [requests]
 verify = true
 
-[pom]
+[pom_files]
 lib-name = absolute-lib-path/pom.xml
 
 [repositories]
