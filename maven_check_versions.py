@@ -264,21 +264,16 @@ def process_dependencies(
         version, skip_flag = get_version(config_parser, parsed_arguments, namespace_mapping, root_element, dependency)
 
         if skip_flag is True:
-            if get_config_value(config_parser, parsed_arguments, 'show_skip', value_type=bool):
-                logging.warning(f"Skip: {group_id_text}:{artifact_id_text}:{version}")
+            log_skip_if_required(config_parser, parsed_arguments, group_id_text, artifact_id_text, version)
             continue
 
-        if get_config_value(config_parser, parsed_arguments, 'show_search', value_type=bool):
-            if version is None or re.match('^\\${([^}]+)}$', version):
-                logging.warning(f"Search: {group_id_text}:{artifact_id_text}:{version}")
-            else:
-                logging.info(f"Search: {group_id_text}:{artifact_id_text}:{version}")
+        log_search_if_required(config_parser, parsed_arguments, group_id_text, artifact_id_text, version)
 
         if (cache_data is not None and
                 cache_data.get(f"{group_id_text}:{artifact_id_text}") is not None):
 
-            cached_time, cached_version, cached_key, cached_date, cached_versions = cache_data.get(
-                f"{group_id_text}:{artifact_id_text}")
+            cached_time, cached_version, cached_key, cached_date, cached_versions = \
+                (cache_data.get(f"{group_id_text}:{artifact_id_text}"))
             if cached_version == version:
                 continue
 
@@ -300,6 +295,43 @@ def process_dependencies(
                 break
         if not dependency_found:
             logging.warning(f"Not Found: {group_id_text}:{artifact_id_text}, current:{version}")
+
+
+def log_skip_if_required(
+        config_parser: ConfigParser, parsed_arguments: dict, group_id_text: str, artifact_id_text: str, version: str
+) -> None:
+    """
+    Logs a warning message if a dependency is skipped based on configuration or command-line argument settings.
+
+    Args:
+        config_parser (ConfigParser): Configuration parser to fetch values from configuration files.
+        parsed_arguments (dict): Dictionary of parsed command-line arguments to check runtime options.
+        group_id_text (str): The group ID of the Maven artifact being processed.
+        artifact_id_text (str): The artifact ID of the Maven artifact being processed.
+        version (str): The version of the Maven artifact being processed.
+    """
+    if get_config_value(config_parser, parsed_arguments, 'show_skip', value_type=bool):
+        logging.warning(f"Skip: {group_id_text}:{artifact_id_text}:{version}")
+
+
+def log_search_if_required(
+        config_parser: ConfigParser, parsed_arguments: dict, group_id_text: str, artifact_id_text: str, version: str
+) -> None:
+    """
+    Logs a message indicating a search action for a dependency if specific conditions are met.
+
+    Args:
+        config_parser (ConfigParser): Configuration parser to fetch values from configuration files.
+        parsed_arguments (dict): Dictionary of parsed command-line arguments to check runtime options.
+        group_id_text (str): The group ID of the Maven artifact being processed.
+        artifact_id_text (str): The artifact ID of the Maven artifact being processed.
+        version (str): The version of the Maven artifact being processed; can be None or a property placeholder.
+    """
+    if get_config_value(config_parser, parsed_arguments, 'show_search', value_type=bool):
+        if version is None or re.match('^\\${([^}]+)}$', version):
+            logging.warning(f"Search: {group_id_text}:{artifact_id_text}:{version}")
+        else:
+            logging.info(f"Search: {group_id_text}:{artifact_id_text}:{version}")
 
 
 def process_modules_if_required(
