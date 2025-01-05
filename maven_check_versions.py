@@ -12,9 +12,10 @@ import sys
 import time
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
-from argparse import ArgumentParser
 from configparser import ConfigParser
 from pathlib import Path, PurePath
+
+from argparse import ArgumentParser
 
 # Modules from PACKAGES Env or local packages
 local_package_dir = os.path.dirname(__file__)
@@ -411,29 +412,37 @@ def get_version(
         if not get_config_value(config_parser, parsed_arguments, 'empty_version', value_type=bool):
             return None, True
     else:
-        version_text = version_element.text
-        variable_expression = '^\\${([^}]+)}$'
-
-        if match := re.search(variable_expression, version_text):
-            property_xpath = f"./xmlns:properties/xmlns:{match.group(1)}"
-            found_property = root_element.find(property_xpath, namespaces=namespace_mapping)
-            if found_property is not None:
-                version_text = found_property.text
+        version_text = resolve_version(version_element.text, root_element, namespace_mapping)
 
         if version_text == '${project.version}':
-            project_version_element = root_element.find('xmlns:version', namespaces=namespace_mapping).text
-            if match := re.search(variable_expression, project_version_element):
-                property_xpath = f"./xmlns:properties/xmlns:{match.group(1)}"
-                found_property = root_element.find(property_xpath, namespaces=namespace_mapping)
-                if found_property is not None:
-                    project_version_element = found_property.text
-            version_text = project_version_element
+            project_version_text = root_element.find('xmlns:version', namespaces=namespace_mapping).text
+            version_text = resolve_version(project_version_text, root_element, namespace_mapping)
 
-        if re.match(variable_expression, version_text):
+        if re.match('^\\${([^}]+)}$', version_text):
             if not get_config_value(config_parser, parsed_arguments, 'empty_version', value_type=bool):
                 return version_text, True
 
     return version_text, False
+
+
+def resolve_version(version_text: str, root_element: ET.Element, namespace_mapping: dict) -> str:
+    """
+    Resolves in version text by checking POM properties.
+
+    Args:
+        version_text (str): The version text, potentially containing placeholders.
+        root_element (ET.Element): Root element of the POM file.
+        namespace_mapping (dict): XML namespace mapping for parsing.
+
+    Returns:
+        str: Resolved version text or None if unresolved.
+    """
+    if match := re.match(r'^\${([^}]+)}$', version_text):
+        property_xpath = f"./xmlns:properties/xmlns:{match.group(1)}"
+        property_element = root_element.find(property_xpath, namespaces=namespace_mapping)
+        if property_element is not None:
+            version_text = property_element.text
+    return version_text
 
 
 def process_repository(
