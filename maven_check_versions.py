@@ -81,7 +81,7 @@ def main_process(parsed_arguments: dict) -> None:
     if not get_config_value(config_parser, parsed_arguments, 'warnings', 'urllib3', value_type=bool):
         urllib3.disable_warnings()
 
-    cache_disabled = get_config_value(config_parser, parsed_arguments, 'cache_off')
+    cache_disabled = get_config_value(config_parser, parsed_arguments, 'cache_off', value_type=bool)
     cache_file_path = Path(__file__).stem + '.cache'
     cache_data = load_cache(cache_file_path) if not cache_disabled else None
 
@@ -274,7 +274,7 @@ def process_dependencies(
                 cache_data.get(f"{group_id_text}:{artifact_id_text}") is not None):
 
             cached_time, cached_version, cached_key, cached_date, cached_versions = \
-                (cache_data.get(f"{group_id_text}:{artifact_id_text}"))
+                cache_data.get(f"{group_id_text}:{artifact_id_text}")
             if cached_version == version:
                 continue
 
@@ -290,9 +290,9 @@ def process_dependencies(
 
         dependency_found = False
         for section_key, repository_section in config_items(config_parser, 'repositories'):
-            if (dependency_found := process_repository(*(
+            if (dependency_found := process_repository(
                     cache_data, config_parser, parsed_arguments, group_id_text, artifact_id_text, version,
-                    section_key, repository_section, verify_ssl))):
+                    section_key, repository_section, verify_ssl)):
                 break
         if not dependency_found:
             logging.warning(f"Not Found: {group_id_text}:{artifact_id_text}, current:{version}")
@@ -342,9 +342,9 @@ def find_artifact(cache_data: dict, config_parser: ConfigParser, parsed_argument
 
     dependency_found = False
     for section_key, repository_section in config_items(config_parser, 'repositories'):
-        if (dependency_found := process_repository(*(
+        if (dependency_found := process_repository(
                 cache_data, config_parser, parsed_arguments, group_id, artifact_id, version,
-                section_key, repository_section, verify_ssl))):
+                section_key, repository_section, verify_ssl)):
             break
     if not dependency_found:
         logging.warning(f"Not Found: {group_id}:{artifact_id}, current:{version}")
@@ -453,14 +453,15 @@ def process_repository(
         version_elements = tree.getroot().findall('.//version')
         available_versions = list(map(lambda v: v.text, version_elements))
 
-        if check_versions(*(cache_data, config_parser, parsed_arguments, group_id, artifact_id, version, section_key,
-                            path, auth_info, verify_ssl, available_versions, response)):
+        if check_versions(
+                cache_data, config_parser, parsed_arguments, group_id, artifact_id, version, section_key,
+                path, auth_info, verify_ssl, available_versions, response):
             return True
 
     if get_config_value(config_parser, parsed_arguments, 'service_rest', repository_section, value_type=bool):
-        return service_rest(*(
+        return service_rest(
             cache_data, config_parser, parsed_arguments, group_id, artifact_id, version, section_key,
-            repository_section, base_url, auth_info, verify_ssl))
+            repository_section, base_url, auth_info, verify_ssl)
 
     return False
 
@@ -501,6 +502,7 @@ def check_versions(
     minor_version_threshold = 0
     current_major_version = 0
     current_minor_version = 0
+
     if get_config_value(config_parser, parsed_arguments, 'fail_mode', value_type=bool):
         major_version_threshold = int(get_config_value(config_parser, parsed_arguments, 'fail_major'))
         minor_version_threshold = int(get_config_value(config_parser, parsed_arguments, 'fail_minor'))
@@ -513,33 +515,21 @@ def check_versions(
 
     for item in available_versions:
         if item == version and skip_current_version:
-            if cache_data is not None:
-                timestamp = math.trunc(time.time())
-                cache_data[f"{group_id}:{artifact_id}"] = (timestamp, item, section_key, None, available_versions[:3])
+            update_cache_data(
+                cache_data, available_versions, artifact_id, group_id, item, None, section_key)
             return True
 
         is_valid, last_modified_date = pom_data(auth_info, verify_ssl, artifact_id, item, path)
         if is_valid:
-            message_format = '{}: {}:{}, current:{} {} {}'
-            logging.info(message_format.format(
-                section_key, group_id, artifact_id, version, available_versions[:3],
-                last_modified_date).rstrip())
+            logging.info('{}: {}:{}, current:{} {} {}'.format(
+                section_key, group_id, artifact_id, version, available_versions[:3], last_modified_date).rstrip())
 
-            if cache_data is not None:
-                timestamp = math.trunc(time.time())
-                cache_data[f"{group_id}:{artifact_id}"] = (
-                    timestamp, item, section_key, last_modified_date, available_versions[:3])
+            update_cache_data(
+                cache_data, available_versions, artifact_id, group_id, item, last_modified_date, section_key)
 
-            if get_config_value(config_parser, parsed_arguments, 'fail_mode', value_type=bool):
-                item_major_version = 0
-                item_minor_version = 0
-                if item_match := re.match('^(\\d+).(\\d+).+', item):
-                    item_major_version, item_minor_version = int(item_match.group(1)), int(item_match.group(2))
-
-                if item_major_version - current_major_version > major_version_threshold or \
-                        item_minor_version - current_minor_version > minor_version_threshold:
-                    logging.warning(f"Fail version: {item} > {version}")
-                    raise AssertionError
+            fail_mode_if_required(
+                config_parser, current_major_version, current_minor_version, item,
+                major_version_threshold, minor_version_threshold, parsed_arguments, version)
             return True
 
         else:
@@ -548,6 +538,56 @@ def check_versions(
             invalid_flag = True
 
     return False
+
+
+def update_cache_data(
+        cache_data: dict, available_versions: list, artifact_id: str, group_id, item: str,
+        last_modified_date: str | None, section_key: str
+) -> None:
+    """
+    Update the cache data with the latest information about the artifact.
+
+    Args:
+        cache_data (dict): The cache dictionary where data is stored.
+        available_versions (list): List of available versions for the artifact.
+        artifact_id (str): The artifact ID of the Maven dependency.
+        group_id (str): The group ID of the Maven dependency.
+        item (str): The specific version item being processed.
+        last_modified_date (str | None): The last modified date of the artifact.
+        section_key (str): The key for the repository section.
+    """
+    if cache_data is not None:
+        value = (math.trunc(time.time()), item, section_key, last_modified_date, available_versions[:3])
+        cache_data[f"{group_id}:{artifact_id}"] = value
+
+
+def fail_mode_if_required(
+        config_parser: ConfigParser, current_major_version: int, current_minor_version: int, item: str,
+        major_version_threshold: int, minor_version_threshold: int, parsed_arguments: dict, version: str
+) -> None:
+    """
+    Check if the fail mode is enabled and if the version difference exceeds the thresholds.
+    If so, log a warning and raise an AssertionError.
+
+    Args:
+        config_parser (ConfigParser): Configuration parser to fetch values from configuration files.
+        current_major_version (int): The current major version of the artifact.
+        current_minor_version (int): The current minor version of the artifact.
+        item (str): The specific version item being processed.
+        major_version_threshold (int): The major version threshold for failure.
+        minor_version_threshold (int): The minor version threshold for failure.
+        parsed_arguments (dict): Dictionary of parsed command-line arguments to check runtime options.
+        version (str): The version of the Maven artifact being processed.
+    """
+    if get_config_value(config_parser, parsed_arguments, 'fail_mode', value_type=bool):
+        item_major_version = 0
+        item_minor_version = 0
+        if item_match := re.match('^(\\d+).(\\d+).+', item):
+            item_major_version, item_minor_version = int(item_match.group(1)), int(item_match.group(2))
+        if item_major_version - current_major_version > major_version_threshold or \
+                item_minor_version - current_minor_version > minor_version_threshold:
+            logging.warning(f"Fail version: {item} > {version}")
+            raise AssertionError
 
 
 def service_rest(
@@ -585,8 +625,9 @@ def service_rest(
         version_elements = tree.getroot().findall('.//version')
         available_versions = list(map(lambda v: v.text, version_elements))
 
-        if check_versions(*(cache_data, config_parser, parsed_arguments, group_id, artifact_id, version, section_key,
-                            path, auth_info, verify_ssl, available_versions, response)):
+        if check_versions(
+                cache_data, config_parser, parsed_arguments, group_id, artifact_id, version,
+                section_key, path, auth_info, verify_ssl, available_versions, response):
             return True
 
     response = requests.get(path + '/', auth=auth_info, verify=verify_ssl)
@@ -597,8 +638,9 @@ def service_rest(
         available_versions = list(map(lambda v: v.text, version_links))
         path = f"{base_url}/repository/{repository_name}/{group_id.replace('.', '/')}/{artifact_id}"
 
-        if check_versions(*(cache_data, config_parser, parsed_arguments, group_id, artifact_id, version, section_key,
-                            path, auth_info, verify_ssl, available_versions, response)):
+        if check_versions(
+                cache_data, config_parser, parsed_arguments, group_id, artifact_id, version,
+                section_key, path, auth_info, verify_ssl, available_versions, response):
             return True
 
     return False
@@ -652,9 +694,7 @@ def get_config_value(
                 return value
             if env_value := os.environ.get('CV_' + key.upper()):
                 return env_value
-
         value = config_parser.get(section, key)
-
         if value_type == bool:
             return value.lower() == 'true'
         if value_type == int:
