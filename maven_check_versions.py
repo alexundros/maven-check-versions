@@ -650,9 +650,7 @@ def get_config_value(
         if section == 'base' and key in parsed_arguments:
             if value := parsed_arguments.get(key):
                 return value
-
-            env_key = 'CV_' + key.upper()
-            if env_value := os.environ.get(env_key):
+            if env_value := os.environ.get('CV_' + key.upper()):
                 return env_value
 
         value = config_parser.get(section, key)
@@ -704,8 +702,7 @@ def configure_logging(parsed_arguments: dict) -> None:
         datetime.datetime.fromtimestamp(record.created)
 
     logging.basicConfig(
-        level=logging.INFO,
-        handlers=handlers,
+        level=logging.INFO, handlers=handlers,
         format='%(asctime)s %(levelname)s: %(message)s'
     )
 
