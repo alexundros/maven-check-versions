@@ -1,3 +1,17 @@
+# general
+build/
+dist/
+*.egg-info/
+*.egg
+*.py[cod]
+__pycache__/
+*.so
+*~
+venv/
+.coverage
+coverage.xml
+
+# other
 *.cfg
 *.cache
 *.log

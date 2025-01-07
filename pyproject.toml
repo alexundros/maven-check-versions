@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "maven_check_versions"
+version = "0.0.1"
+authors = [
+    { name = "Alexander Bulgakov" },
+]
+description = "Maven check versions package"
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = ["requests", "beautifulsoup4", "python-dateutil"]
+
+[project.urls]
+Homepage = "https://github.com/alexundros/maven-check-versions"
+Issues = "https://github.com/alexundros/maven-check-versions/issues"
+Source = "https://github.com/alexundros/maven-check-versions"

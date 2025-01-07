@@ -15,22 +15,11 @@ import xml.etree.ElementTree as ET
 from configparser import ConfigParser
 from pathlib import Path, PurePath
 
+import dateutil.parser as parser
+import requests
+import urllib3
 from argparse import ArgumentParser
-
-# Modules from PACKAGES Env or local packages
-local_package_dir = os.path.dirname(__file__)
-site_packages_path = os.path.join(local_package_dir, '.site-packages')
-sys.path.append(site_packages_path)
-if packages_env := os.getenv('PACKAGES'):
-    sys.path.append(packages_env)
-    if not os.path.exists(packages_env):
-        print('Invalid PACKAGES environment')
-        sys.exit(1)
-
-import dateutil.parser as parser  # noqa: E402
-import requests  # noqa: E402
-import urllib3  # noqa: E402
-from bs4 import BeautifulSoup  # noqa: E402
+from bs4 import BeautifulSoup
 
 
 def parse_command_line_arguments() -> dict:
@@ -46,8 +35,10 @@ def parse_command_line_arguments() -> dict:
     argument_parser.add_argument('-fa', '--find_artifact', help='Artifact to find')
     # override for config file options
     argument_parser.add_argument('-co', '--cache_off', help='Disable Cache', action='store_true')
+    argument_parser.add_argument('-cf', '--cache_file', help='Path to Cache File')
     argument_parser.add_argument('-lfo', '--logfile_off', help='Disable Log file', action='store_true')
-    argument_parser.add_argument('-cf', '--config_file', help='Path to Config File')
+    argument_parser.add_argument('-lf', '--log_file', help='Path to Log File')
+    argument_parser.add_argument('-cfg', '--config_file', help='Path to Config File')
     argument_parser.add_argument('-fm', '--fail_mode', help='Enable Fail Mode', action='store_true')
     argument_parser.add_argument('-mjv', '--fail_major', help='Major version threshold for failure')
     argument_parser.add_argument('-mnv', '--fail_minor', help='Minor version threshold for failure')
@@ -69,12 +60,12 @@ def main_process(parsed_arguments: dict) -> None:
     Args:
         parsed_arguments (dict): Dictionary of parsed command line arguments.
     """
-    os.chdir(os.path.dirname(__file__))
-
     config_parser = ConfigParser()
     config_parser.optionxform = str
     if (config_file := parsed_arguments.get('config_file')) is None:
-        config_file = Path(__file__).stem + '.cfg'
+        config_file = 'maven_check_versions.cfg'
+        if not os.path.exists(config_file):
+            config_file = os.path.join(Path.home(), config_file)
     if os.path.exists(config_file):
         config_parser.read(config_file)
 
@@ -82,7 +73,8 @@ def main_process(parsed_arguments: dict) -> None:
         urllib3.disable_warnings()
 
     cache_disabled = get_config_value(config_parser, parsed_arguments, 'cache_off', value_type=bool)
-    cache_file_path = Path(__file__).stem + '.cache'
+    if (cache_file_path := parsed_arguments.get('cache_file')) is None:
+        cache_file_path = 'maven_check_versions.cache'
     cache_data = load_cache(cache_file_path) if not cache_disabled else None
 
     if pom_file := parsed_arguments.get('pom_file'):
@@ -791,8 +783,8 @@ def configure_logging(parsed_arguments: dict) -> None:
     handlers = [logging.StreamHandler(sys.stdout)]
 
     if not parsed_arguments.get('logfile_off'):
-        log_directory = os.path.dirname(__file__)
-        log_file_path = os.path.join(log_directory, Path(__file__).stem + '.log')
+        if (log_file_path := parsed_arguments.get('log_file')) is None:
+            log_file_path = 'maven_check_versions.log'
         handlers.append(logging.FileHandler(log_file_path, 'w'))
 
     logging.Formatter.formatTime = lambda self, record, fmt=None: \
