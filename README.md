@@ -119,7 +119,7 @@ python -m maven_check_versions --pom_file <path-to-pom.xml>
 
 ## Configuration
 
-You can customize the tool’s behavior using a configuration file (`maven_check_versions.cfg`) or environment variables.
+You can customize the tool’s behavior using a configuration file `maven_check_versions.cfg` or environment variables.
 The following settings can be adjusted:
 
 - **SSL Verification:** Enable or disable SSL verification for HTTP requests.
@@ -127,12 +127,12 @@ The following settings can be adjusted:
 - **Repository Settings:** Define base URLs, authentication, and paths for repositories.
 - **Logging Preferences:** Specify log levels and file paths.
 
-See [maven_check_versions.cfg.dist](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/maven_check_versions.cfg.dist) for configuration file structure.
+See the [`maven_check_versions.cfg.dist`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/maven_check_versions.cfg.dist) file configuration file structure.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE.txt` file for more details.
+This project is licensed under the MIT License. See the [`LICENSE`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/LICENSE) file for more details.
 
 ---
