@@ -29,6 +29,8 @@ You can install the tool via `pip`:
 pip install maven_check_versions
 ```
 
+See https://pypi.org/project/maven-check-versions/ for more details.
+
 ---
 
 ## Usage
