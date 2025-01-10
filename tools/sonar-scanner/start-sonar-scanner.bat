@@ -1,5 +1,5 @@
 @echo off
-cd /d "%~dp0.."
+cd /d "%~dp0../.."
 if "%SONAR_LOGIN%"=="" set SONAR_LOGIN=admin
 if "%SONAR_PASSWORD%"=="" set SONAR_PASSWORD=sonar
 if "%SONAR_HOST_URL%"=="" set SONAR_HOST_URL=http://host.docker.internal:9000
@@ -7,4 +7,5 @@ docker run --rm -v "%cd%:/usr/src" -e SONAR_HOST_URL="%SONAR_HOST_URL%" ^
  --name sonar-scanner-maven_check_versions sonarsource/sonar-scanner-cli ^
  -Dsonar.login="%SONAR_LOGIN%" -Dsonar.password="%SONAR_PASSWORD%" ^
  -Dsonar.sourceEncoding=UTF-8 -Dsonar.projectBaseDir=. -Dsonar.inclusions=**/*.py ^
+ -Dsonar.python.coverage.reportPath=/usr/src/tests/coverage.xml ^
  -Dsonar.projectKey=maven_check_versions -Dsonar.projectName="Maven Check Versions"
