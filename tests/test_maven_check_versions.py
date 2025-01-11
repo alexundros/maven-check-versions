@@ -1,9 +1,13 @@
+#!/usr/bin/python3
+"""Tests for maven_check_versions package"""
 import sys
 
+# noinspection PyUnresolvedReferences
 from pytest_mock import mocker
 
 sys.path.append('src')
 
+# noinspection PyUnresolvedReferences
 from maven_check_versions import (  # noqa: E402
     parse_command_line_arguments
 )
