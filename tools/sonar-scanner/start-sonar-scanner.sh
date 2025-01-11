@@ -7,5 +7,5 @@ docker run --rm -v "$(pwd):/usr/src" -e SONAR_HOST_URL="$SONAR_HOST_URL" \
   --name sonar-scanner-maven_check_versions sonarsource/sonar-scanner-cli \
   -Dsonar.login="$SONAR_LOGIN" -Dsonar.password="$SONAR_PASSWORD" \
   -Dsonar.sourceEncoding=UTF-8 -Dsonar.projectBaseDir=src -Dsonar.inclusions=**/*.py \
-  -Dsonar.python.coverage.reportPath=/usr/src/tests/coverage.xml \
+  -Dsonar.exclusions=**/__main__.py -Dsonar.python.coverage.reportPaths=tests/coverage.xml \
   -Dsonar.projectKey=maven_check_versions -Dsonar.projectName="Maven Check Versions"
