@@ -12,7 +12,8 @@ sys.path.append('../src')
 # noinspection PyUnresolvedReferences
 from maven_check_versions import (  # noqa: E402
     parse_command_line_arguments,
-    load_cache
+    load_cache,
+    save_cache
 )
 
 
@@ -69,3 +70,13 @@ def test_load_cache(mocker):
     mocker.patch('os.path.exists', return_value=True)
     mocker.patch('builtins.open', mocker.mock_open(read_data='{"key": "value"}'))
     assert load_cache('test_cache.cache') == {"key": "value"}
+
+
+def test_save_cache(mocker):
+    mock_open = mocker.patch('builtins.open')
+    mock_json_dump = mocker.patch('json.dump')
+    cache_data = {"key": "value"}
+    save_cache(cache_data, 'test_cache.cache')
+    mock_open.assert_called_once_with('test_cache.cache', 'w')
+    mock_open_rv = mock_open.return_value.__enter__.return_value
+    mock_json_dump.assert_called_once_with(cache_data, mock_open_rv)
