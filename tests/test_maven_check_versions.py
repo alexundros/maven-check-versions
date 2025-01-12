@@ -1,15 +1,18 @@
 #!/usr/bin/python3
 """Tests for maven_check_versions package"""
+import os
 import sys
 
 # noinspection PyUnresolvedReferences
 from pytest_mock import mocker
 
-sys.path.append('src')
+os.chdir(os.path.dirname(__file__))
+sys.path.append('../src')
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions import (  # noqa: E402
-    parse_command_line_arguments
+    parse_command_line_arguments,
+    load_cache
 )
 
 
@@ -60,3 +63,9 @@ def test_parse_command_line_arguments(mocker):
     assert args['show_invalid'] is True
     assert args['user'] == 'user'
     assert args['password'] == 'password'
+
+
+def test_load_cache(mocker):
+    mocker.patch('os.path.exists', return_value=True)
+    mocker.patch('builtins.open', mocker.mock_open(read_data='{"key": "value"}'))
+    assert load_cache('test_cache.cache') == {"key": "value"}
