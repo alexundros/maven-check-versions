@@ -102,9 +102,8 @@ def test_get_artifact_name():
         <version>1.0</version>
     </project>
     """
-    root = ET.ElementTree(ET.fromstring(xml.lstrip())).getroot()
     mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
-    result = get_artifact_name(root, mapping)
+    result = get_artifact_name(ET.fromstring(xml.lstrip()), mapping)
 
     assert result == "groupId:artifactId"
 
@@ -121,5 +120,6 @@ def test_get_dependency_identifiers():
     dependency = ET.fromstring(xml.lstrip())
     mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
     artifact_id, group_id = get_dependency_identifiers(dependency, mapping)
+
     assert artifact_id == 'artifactId'
     assert group_id == 'groupId'
