@@ -15,7 +15,7 @@ sys.path.append('../src')
 # noinspection PyUnresolvedReferences
 from maven_check_versions import (  # noqa: E402
     parse_command_line_arguments, load_cache, save_cache,
-    get_artifact_name
+    get_artifact_name, get_dependency_identifiers
 )
 
 
@@ -103,6 +103,23 @@ def test_get_artifact_name():
     </project>
     """
     root = ET.ElementTree(ET.fromstring(xml.lstrip())).getroot()
-    result = get_artifact_name(root, {'xmlns': 'http://maven.apache.org/POM/4.0.0'})
+    mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
+    result = get_artifact_name(root, mapping)
 
     assert result == "groupId:artifactId"
+
+
+def test_get_dependency_identifiers():
+    xml = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <dependency xmlns="http://maven.apache.org/POM/4.0.0">
+        <groupId>groupId</groupId>
+        <artifactId>artifactId</artifactId>
+        <version>1.0</version>
+    </dependency>
+    """
+    dependency = ET.fromstring(xml.lstrip())
+    mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
+    artifact_id, group_id = get_dependency_identifiers(dependency, mapping)
+    assert artifact_id == 'artifactId'
+    assert group_id == 'groupId'
