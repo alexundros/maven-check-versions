@@ -19,6 +19,8 @@ from maven_check_versions import (  # noqa: E402
     resolve_version, get_version
 )
 
+ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
+
 
 # noinspection PyShadowingNames
 def test_parse_command_line_arguments(mocker):
@@ -72,23 +74,19 @@ def test_parse_command_line_arguments(mocker):
 def test_load_cache(mocker):
     mocker.patch('os.path.exists', return_value=True)
     mocker.patch('builtins.open', mocker.mock_open(read_data='{"key": "value"}'))
-
     assert load_cache('test_cache.cache') == {'key': 'value'}
 
 
 def test_load_cache_if_path_not_exists(mocker):
     mocker.patch('os.path.exists', return_value=False)
-
     assert load_cache('test_cache.cache') == {}
 
 
 def test_save_cache(mocker):
     mock_open = mocker.patch('builtins.open')
     mock_json_dump = mocker.patch('json.dump')
-
     cache_data = {'key': 'value'}
     save_cache(cache_data, 'test_cache.cache')
-
     mock_open.assert_called_once_with('test_cache.cache', 'w')
     mock_open_rv = mock_open.return_value.__enter__.return_value
     mock_json_dump.assert_called_once_with(cache_data, mock_open_rv)
@@ -103,9 +101,7 @@ def test_get_artifact_name():
         <version>1.0</version>
     </project>
     """
-    mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
-    result = get_artifact_name(ET.fromstring(xml.lstrip()), mapping)
-
+    result = get_artifact_name(ET.fromstring(xml.lstrip()), ns_mappings)
     assert result == "groupId:artifactId"
 
 
@@ -119,11 +115,8 @@ def test_get_dependency_identifiers():
     </dependency>
     """
     dependency = ET.fromstring(xml.lstrip())
-    mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
-    artifact_id, group_id = get_dependency_identifiers(dependency, mapping)
-
-    assert artifact_id == 'artifactId'
-    assert group_id == 'groupId'
+    artifact, group = get_dependency_identifiers(dependency, ns_mappings)
+    assert artifact == 'artifactId' and group == 'groupId'
 
 
 def test_collect_dependencies(mocker):
@@ -151,9 +144,8 @@ def test_collect_dependencies(mocker):
     </project>
     """
     root = ET.fromstring(xml.lstrip())
-    mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
-    result = collect_dependencies(root, mapping, mocker.Mock(), {'search_plugins': True})
-
+    args = {'search_plugins': True}
+    result = collect_dependencies(root, ns_mappings, mocker.Mock(), args)
     assert len(result) == 3
 
 
@@ -166,9 +158,9 @@ def test_resolve_version():
         </properties>
     </project>
     """
-    mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
-    version_text = resolve_version('${lib.version}', ET.fromstring(xml.lstrip()), mapping)
-    assert version_text == '1.0'
+    root = ET.fromstring(xml.lstrip())
+    version = resolve_version('${lib.version}', root, ns_mappings)
+    assert version == '1.0'
 
 
 def test_get_version(mocker):
@@ -193,14 +185,10 @@ def test_get_version(mocker):
     """
     root = ET.fromstring(xml.lstrip())
     args = {'empty_version': False}
-    mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
-    deps = root.findall('.//xmlns:dependency', namespaces=mapping)
-
-    version, skip_flag = get_version(mocker.Mock(), args, mapping, root, deps[0])
+    deps = root.findall('.//xmlns:dependency', namespaces=ns_mappings)
+    version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[0])
     assert version is None and skip_flag
-
-    version, skip_flag = get_version(mocker.Mock(), args, mapping, root, deps[1])
+    version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[1])
     assert version == '1.0' and not skip_flag
-
-    version, skip_flag = get_version(mocker.Mock(), args, mapping, root, deps[2])
+    version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[2])
     assert version == '${dependency.version}' and skip_flag
