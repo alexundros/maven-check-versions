@@ -740,18 +740,17 @@ def get_config_value(
     """
     try:
         if section == 'base' and key in parsed_arguments:
-            if value := parsed_arguments.get(key):
-                return value
-            if env_value := os.environ.get('CV_' + key.upper()):
-                return env_value
-        value = config_parser.get(section, key)
+            value = parsed_arguments.get(key)
+            if 'CV_' + key.upper() in os.environ:
+                value = os.environ.get('CV_' + key.upper())
+        else:
+            value = config_parser.get(section, key)
         if value_type == bool:
-            return value.lower() == 'true'
+            return str(value).lower() == 'true'
         if value_type == int:
             return int(value)
         if value_type == float:
             return float(value)
-
         return value
     except configparser.Error:
         return None
