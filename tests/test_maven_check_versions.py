@@ -16,7 +16,7 @@ sys.path.append('../src')
 from maven_check_versions import (  # noqa: E402
     parse_command_line_arguments, load_cache, save_cache,
     get_artifact_name, get_dependency_identifiers, collect_dependencies,
-    resolve_version, get_version
+    resolve_version, get_version, get_config_value
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -192,3 +192,17 @@ def test_get_version(mocker):
     assert version == '1.0' and not skip_flag
     version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[2])
     assert version == '${dependency.version}' and skip_flag
+
+
+def test_get_config_value(mocker):
+    mock = mocker.Mock()
+    mock.get.return_value = 'true'
+    assert get_config_value(mock, {}, 'key', value_type=bool) == True
+    mock.get.return_value = 'true'
+    assert get_config_value(mock, {'key': False}, 'key', value_type=bool) == False
+    mock.get.return_value = '123'
+    assert get_config_value(mock, {}, 'key', value_type=int) == 123
+    mock.get.return_value = '123.45'
+    assert get_config_value(mock, {}, 'key', value_type=float) == 123.45
+    mock.get.return_value = 'value'
+    assert get_config_value(mock, {}, 'key') == 'value'
