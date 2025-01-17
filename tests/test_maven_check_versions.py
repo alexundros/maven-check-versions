@@ -18,7 +18,8 @@ sys.path.append('../src')
 from maven_check_versions import (  # noqa: E402
     parse_command_line_arguments, load_cache, save_cache, get_artifact_name,
     get_dependency_identifiers, collect_dependencies, resolve_version,
-    get_version, get_config_value, update_cache_data, config_items
+    get_version, get_config_value, update_cache_data, config_items,
+    log_skip_if_required, log_search_if_required, log_invalid_if_required
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -226,3 +227,24 @@ def test_config_items():
     """)
     assert config_items(config_parser, 'base') == [('key', 'value')]
     assert config_items(config_parser, 'other') == []
+
+
+def test_log_skip_if_required(mocker):
+    mock_logging = mocker.patch('logging.warning')
+    args = {'show_skip': True}
+    log_skip_if_required(mocker.Mock(), args, 'group', 'artifact', '1.0')
+    mock_logging.assert_called_once_with("Skip: group:artifact:1.0")
+
+
+def test_log_search_if_required(mocker):
+    mock_logging = mocker.patch('logging.warning')
+    args = {'show_search': True}
+    log_search_if_required(mocker.Mock(), args, 'group', 'artifact', '${version}')
+    mock_logging.assert_called_once_with("Search: group:artifact:${version}")
+
+
+def test_log_invalid_if_required(mocker):
+    mock_logging = mocker.patch('logging.warning')
+    args = {'show_invalid': True}
+    log_invalid_if_required(mocker.Mock(), args, mocker.Mock(), 'group', 'artifact', '1.0', False)
+    mock_logging.assert_called_once_with("Invalid: group:artifact:1.0")
