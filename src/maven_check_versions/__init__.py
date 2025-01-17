@@ -631,7 +631,7 @@ def fail_mode_if_required(
         item_major_version = 0
         item_minor_version = 0
 
-        if item_match := re.match('^(\\d+).(\\d+).+', item):
+        if item_match := re.match('^(\\d+).(\\d+).?', item):
             item_major_version, item_minor_version = int(item_match.group(1)), int(item_match.group(2))
 
         if item_major_version - current_major_version > major_version_threshold or \

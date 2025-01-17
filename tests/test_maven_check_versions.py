@@ -19,7 +19,8 @@ from maven_check_versions import (  # noqa: E402
     parse_command_line_arguments, load_cache, save_cache, get_artifact_name,
     get_dependency_identifiers, collect_dependencies, resolve_version,
     get_version, get_config_value, update_cache_data, config_items,
-    log_skip_if_required, log_search_if_required, log_invalid_if_required
+    log_skip_if_required, log_search_if_required, log_invalid_if_required,
+    fail_mode_if_required
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -248,3 +249,12 @@ def test_log_invalid_if_required(mocker):
     args = {'show_invalid': True}
     log_invalid_if_required(mocker.Mock(), args, mocker.Mock(), 'group', 'artifact', '1.0', False)
     mock_logging.assert_called_once_with("Invalid: group:artifact:1.0")
+
+
+def test_fail_mode_if_required(mocker):
+    mock_logging = mocker.patch('logging.warning')
+    with pytest.raises(AssertionError):
+        config_parser = ConfigParser()
+        args = {'fail_mode': True, 'fail_major': 2, 'fail_minor': 2}
+        fail_mode_if_required(config_parser, 1, 0, '4.0', 2, 2, args, '1.0')
+    mock_logging.assert_called_once_with("Fail version: 4.0 > 1.0")
