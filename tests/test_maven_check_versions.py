@@ -20,7 +20,7 @@ from maven_check_versions import (  # noqa: E402
     get_dependency_identifiers, collect_dependencies, resolve_version,
     get_version, get_config_value, update_cache_data, config_items,
     log_skip_if_required, log_search_if_required, log_invalid_if_required,
-    fail_mode_if_required
+    fail_mode_if_required, pom_data
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -258,3 +258,10 @@ def test_fail_mode_if_required(mocker):
         args = {'fail_mode': True, 'fail_major': 2, 'fail_minor': 2}
         fail_mode_if_required(config_parser, 1, 0, '4.0', 2, 2, args, '1.0')
     mock_logging.assert_called_once_with("Fail version: 4.0 > 1.0")
+
+
+def test_pom_data(mocker):
+    response = mocker.Mock(status_code=200, headers={'Last-Modified': 'Wed, 18 Jan 2025 12:00:00 GMT'})
+    mocker.patch('requests.get', return_value=response)
+    is_valid, last_modified = pom_data((), True, 'artifact', '1.0', 'http://example.com/pom.pom')
+    assert is_valid is True and last_modified == '2025-01-18'
