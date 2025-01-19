@@ -148,7 +148,7 @@ def process_pom(
         cache_data, config_parser, parsed_arguments, dependencies, namespace_mapping, root_element, verify_ssl)
 
     process_modules_if_required(
-        cache_data, config_parser, parsed_arguments, root_element, pom_path, namespace_mapping, full_artifact_name)
+        cache_data, config_parser, parsed_arguments, root_element, pom_path, namespace_mapping, prefix)
 
 
 def load_pom_tree(
@@ -346,7 +346,7 @@ def process_repositories(
 
 def process_modules_if_required(
         cache_data: dict | None, config_parser: ConfigParser, parsed_arguments: dict, root_element: ET.Element,
-        pom_path: str, namespace_mapping: dict, full_artifact_name: str
+        pom_path: str, namespace_mapping: dict, prefix: str
 ) -> None:
     """
     Process modules listed in the POM file if required.
@@ -358,7 +358,7 @@ def process_modules_if_required(
         root_element (ET.Element): Root element of the POM file.
         pom_path (str): Path to the POM file.
         namespace_mapping (dict): XML namespace mapping.
-        full_artifact_name (str): Prefix for the artifact name.
+        prefix (str): Prefix for the artifact name.
     """
     if get_config_value(config_parser, parsed_arguments, 'process_modules', value_type=bool):
         directory_path = os.path.dirname(pom_path)
@@ -367,7 +367,7 @@ def process_modules_if_required(
         for module in root_element.findall(module_xpath, namespaces=namespace_mapping):
             module_pom_path = f"{directory_path}/{module.text}/pom.xml"
             if os.path.exists(module_pom_path):
-                process_pom(cache_data, config_parser, parsed_arguments, module_pom_path, full_artifact_name)
+                process_pom(cache_data, config_parser, parsed_arguments, module_pom_path, prefix)
 
 
 def find_artifact(
