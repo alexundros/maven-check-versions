@@ -739,11 +739,12 @@ def get_config_value(
         Any: Value of the configuration option or None if not found.
     """
     try:
+        value = None
         if section == 'base' and key in parsed_arguments:
             value = parsed_arguments.get(key)
             if 'CV_' + key.upper() in os.environ:
                 value = os.environ.get('CV_' + key.upper())
-        else:
+        if value is None:
             value = config_parser.get(section, key)
         if value_type == bool:
             return str(value).lower() == 'true'
