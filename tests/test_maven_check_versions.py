@@ -110,6 +110,7 @@ def test_get_artifact_name():
     result = get_artifact_name(ET.fromstring(xml.lstrip()), ns_mappings, 'prefix')
     assert result == "prefix / groupId:artifactId"
 
+
 def test_get_dependency_identifiers():
     xml = """
     <?xml version="1.0" encoding="UTF-8"?>
