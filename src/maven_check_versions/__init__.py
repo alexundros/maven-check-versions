@@ -140,8 +140,10 @@ def process_pom(
     root_element = tree.getroot()
     namespace_mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}  # NOSONAR
 
-    full_artifact_name = get_artifact_name(root_element, namespace_mapping, prefix)
-    logging.info(f"=== Processing: {full_artifact_name} ===")
+    artifact_name = get_artifact_name(root_element, ns_mapping)
+    if prefix is not None:
+        prefix = artifact_name = f"{prefix} / {artifact_name}"
+    logging.info(f"=== Processing: {artifact_name} ===")
 
     dependencies = collect_dependencies(root_element, namespace_mapping, config_parser, parsed_arguments)
     process_dependencies(
@@ -184,24 +186,20 @@ def load_pom_tree(
         return ET.parse(pom_path)
 
 
-def get_artifact_name(root_element: ET.Element, namespace_mapping: dict, prefix: str = None) -> str:
+def get_artifact_name(root_element: ET.Element, ns_mapping: dict) -> str:
     """
     Get the full name of the artifact from the POM file.
 
     Args:
         root_element (ET.Element): Root element of the POM file.
-        namespace_mapping (dict): XML namespace mapping.
-        prefix (str, optional): Prefix for the artifact name. Defaults to None.
+        ns_mapping (dict): XML namespace mapping.
 
     Returns:
         str: Full artifact name.
     """
-    artifact_id = root_element.find('./xmlns:artifactId', namespaces=namespace_mapping).text
-    group_id_element = root_element.find('./xmlns:groupId', namespaces=namespace_mapping)
-    full_artifact_name = (group_id_element.text + ':' if group_id_element is not None else '') + artifact_id
-    if prefix is not None:
-        full_artifact_name = f"{prefix} / {full_artifact_name}"
-    return full_artifact_name
+    artifact_id = root_element.find('./xmlns:artifactId', namespaces=ns_mapping).text
+    group_id_element = root_element.find('./xmlns:groupId', namespaces=ns_mapping)
+    return (group_id_element.text + ':' if group_id_element is not None else '') + artifact_id
 
 
 def collect_dependencies(
