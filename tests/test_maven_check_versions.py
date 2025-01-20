@@ -261,7 +261,11 @@ def test_fail_mode_if_required(mocker):
 
 
 def test_pom_data(mocker):
-    response = mocker.Mock(status_code=200, headers={'Last-Modified': 'Wed, 18 Jan 2025 12:00:00 GMT'})
-    mocker.patch('requests.get', return_value=response)
-    is_valid, last_modified = pom_data((), True, 'artifact', '1.0', 'http://example.com/pom.pom')
+    pom_path = 'http://example.com/pom.pom'
+    headers = {'Last-Modified': 'Wed, 18 Jan 2025 12:00:00 GMT'}
+    mock = mocker.patch('requests.get', return_value=mocker.Mock(status_code=200, headers=headers))
+    is_valid, last_modified = pom_data((), True, 'artifact', '1.0', pom_path)
     assert is_valid is True and last_modified == '2025-01-18'
+    mock.return_value = mocker.Mock(status_code=404)
+    is_valid, last_modified = pom_data((), True, 'artifact', '1.0', pom_path)
+    assert is_valid is False and last_modified is None
