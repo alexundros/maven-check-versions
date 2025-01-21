@@ -200,13 +200,16 @@ def test_get_version(mocker):
     assert version == '${dependency.version}' and skip_flag
 
 
-def test_get_config_value(mocker):
+def test_get_config_value(mocker, monkeypatch):
     mock = mocker.Mock()
     mock.get.return_value = 'true'
     assert get_config_value(mock, {}, 'key', value_type=bool) == True
 
     mock.get.return_value = 'true'
     assert get_config_value(mock, {'key': False}, 'key', value_type=bool) == False
+
+    monkeypatch.setenv('CV_KEY', 'true')
+    assert get_config_value(mock, {'key': False}, 'key', value_type=bool) == True
 
     mock.get.return_value = '123'
     assert get_config_value(mock, {}, 'key', value_type=int) == 123
