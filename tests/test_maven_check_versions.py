@@ -244,10 +244,14 @@ def test_log_skip_if_required(mocker):
 
 
 def test_log_search_if_required(mocker):
-    mock_logging = mocker.patch('logging.warning')
     args = {'show_search': True}
+    mock_logging = mocker.patch('logging.warning')
     log_search_if_required(mocker.Mock(), args, 'group', 'artifact', '${version}')
     mock_logging.assert_called_once_with("Search: group:artifact:${version}")
+
+    mock_logging = mocker.patch('logging.info')
+    log_search_if_required(mocker.Mock(), args, 'group', 'artifact', '1.0')
+    mock_logging.assert_called_once_with("Search: group:artifact:1.0")
 
 
 def test_log_invalid_if_required(mocker):
