@@ -20,7 +20,7 @@ from maven_check_versions import (  # noqa: E402
     get_dependency_identifiers, collect_dependencies, resolve_version,
     get_version, get_config_value, update_cache_data, config_items,
     log_skip_if_required, log_search_if_required, log_invalid_if_required,
-    fail_mode_if_required, pom_data
+    fail_mode_if_required, pom_data, load_pom_tree
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -192,8 +192,10 @@ def test_get_version(mocker):
     deps = root.findall('.//xmlns:dependency', namespaces=ns_mappings)
     version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[0])
     assert version is None and skip_flag
+
     version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[1])
     assert version == '1.0' and not skip_flag
+
     version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[2])
     assert version == '${dependency.version}' and skip_flag
 
@@ -202,12 +204,16 @@ def test_get_config_value(mocker):
     mock = mocker.Mock()
     mock.get.return_value = 'true'
     assert get_config_value(mock, {}, 'key', value_type=bool) == True
+
     mock.get.return_value = 'true'
     assert get_config_value(mock, {'key': False}, 'key', value_type=bool) == False
+
     mock.get.return_value = '123'
     assert get_config_value(mock, {}, 'key', value_type=int) == 123
+
     mock.get.return_value = '123.45'
     assert get_config_value(mock, {}, 'key', value_type=float) == 123.45
+
     mock.get.return_value = 'value'
     assert get_config_value(mock, {}, 'key') == 'value'
 
@@ -266,6 +272,42 @@ def test_pom_data(mocker):
     mock = mocker.patch('requests.get', return_value=mocker.Mock(status_code=200, headers=headers))
     is_valid, last_modified = pom_data((), True, 'artifact', '1.0', pom_path)
     assert is_valid is True and last_modified == '2025-01-18'
+
     mock.return_value = mocker.Mock(status_code=404)
     is_valid, last_modified = pom_data((), True, 'artifact', '1.0', pom_path)
     assert is_valid is False and last_modified is None
+
+
+def test_load_pom_tree(mocker):
+    xml = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <project xmlns="http://maven.apache.org/POM/4.0.0">
+        <groupId>group</groupId>
+        <artifactId>artifact</artifactId>
+        <version>1.0</version>
+    </project>
+    """
+    config_parser = ConfigParser()
+    config_parser.optionxform = str
+    config_parser.read_string("""
+    [pom_http]
+    auth = true
+    """)
+    mocker.patch('os.path.exists', return_value=True)
+    mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data=xml.lstrip()))
+    tree = load_pom_tree('pom.xml', True, config_parser, {})
+    mock_open.assert_called_once_with('pom.xml', 'rb')
+    assert isinstance(tree, ET.ElementTree)
+
+    mocker.patch('os.path.exists', return_value=False)
+    with pytest.raises(FileNotFoundError):
+        load_pom_tree('pom.xml', True, config_parser, {})
+
+    pom_path = 'http://example.com/pom.pom'
+    mock_response = mocker.Mock(text=xml.lstrip(), status_code=200)
+    mock = mocker.patch('requests.get', return_value=mock_response)
+    assert isinstance(load_pom_tree(pom_path, True, config_parser, {}), ET.ElementTree)
+
+    mock.return_value.status_code = 404
+    with pytest.raises(FileNotFoundError):
+        load_pom_tree(pom_path, True, config_parser, {})
