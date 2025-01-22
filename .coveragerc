@@ -1,0 +1,14 @@
+[run]
+source =
+    src
+data_file = tests/.coverage
+omit =
+    tests/*
+    src/maven_check_versions/__main__.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if __name__ == .__main__.:
+    raise NotImplementedError

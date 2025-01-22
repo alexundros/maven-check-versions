@@ -24,20 +24,3 @@ dependencies = ["requests", "beautifulsoup4", "python-dateutil"]
 Homepage = "https://github.com/alexundros/maven-check-versions"
 Issues = "https://github.com/alexundros/maven-check-versions/issues"
 Source = "https://github.com/alexundros/maven-check-versions"
-
-[tool.coverage.run]
-source = ["src"]
-relative_files = true
-data_file = "tests/.coverage"
-omit = [
-    "tests/*",
-    "src/maven_check_versions/__main__.py"
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if __name__ == .__main__.:",
-    "raise NotImplementedError",
-]
