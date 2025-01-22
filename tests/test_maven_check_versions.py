@@ -80,8 +80,6 @@ def test_load_cache(mocker):
     mocker.patch('builtins.open', mocker.mock_open(read_data='{"key": "value"}'))
     assert load_cache('test_cache.cache') == {'key': 'value'}
 
-
-def test_load_cache_if_path_not_exists(mocker):
     mocker.patch('os.path.exists', return_value=False)
     assert load_cache('test_cache.cache') == {}
 

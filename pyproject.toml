@@ -30,6 +30,7 @@ source = ["src"]
 relative_files = true
 data_file = "tests/.coverage"
 omit = [
+    "tests/*",
     "src/maven_check_versions/__main__.py"
 ]
 
