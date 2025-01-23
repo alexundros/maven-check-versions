@@ -1,11 +1,13 @@
 #!/usr/bin/python3
 """Tests for maven_check_versions package"""
+import logging
 import os
 import sys
 import time
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from configparser import ConfigParser
+from pathlib import PurePath
 
 import pytest
 # noinspection PyUnresolvedReferences
@@ -20,7 +22,7 @@ from maven_check_versions import (  # noqa: E402
     get_dependency_identifiers, collect_dependencies, resolve_version,
     get_version, get_config_value, update_cache_data, config_items,
     log_skip_if_required, log_search_if_required, log_invalid_if_required,
-    fail_mode_if_required, pom_data, load_pom_tree
+    fail_mode_if_required, pom_data, load_pom_tree, configure_logging
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -316,3 +318,16 @@ def test_load_pom_tree(mocker):
     mock.return_value.status_code = 404
     with pytest.raises(FileNotFoundError):
         load_pom_tree(pom_path, True, config_parser, {})
+
+
+def test_configure_logging(mocker):
+    mock = mocker.patch('logging.basicConfig')
+    configure_logging({'logfile_off': False})
+    mock.assert_called_once_with(
+        level=logging.INFO, handlers=[mocker.ANY, mocker.ANY],
+        format='%(asctime)s %(levelname)s: %(message)s'
+    )
+    handlers = mock.call_args[1]['handlers']
+    assert isinstance(handlers[0], logging.StreamHandler)
+    assert isinstance(handlers[1], logging.FileHandler)
+    assert PurePath(handlers[1].baseFilename).name == 'maven_check_versions.log'
