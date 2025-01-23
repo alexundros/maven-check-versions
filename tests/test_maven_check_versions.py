@@ -229,14 +229,15 @@ def test_update_cache_data():
     assert cache_data == {'group:artifact': data}
 
 
-def test_process_cached_data():
-    args = {'cache_time': 0}
+def test_process_cached_data(mocker):
     config_parser = ConfigParser()
     data = {'group:artifact': (time.time() - 100, '1.0', 'key', '23.01.2025', ['1.0', '1.1'])}
-    assert process_cached_data(args, data, config_parser, 'artifact', 'group', '1.0')
-    assert process_cached_data(args, data, config_parser, 'artifact', 'group', '1.1')
-    args = {'cache_time': 50}
-    assert not process_cached_data(args, data, config_parser, 'artifact', 'group', '1.1')
+    assert process_cached_data({'cache_time': 0}, data, config_parser, 'artifact', 'group', '1.0')
+    assert not process_cached_data({'cache_time': 50}, data, config_parser, 'artifact', 'group', '1.1')
+
+    mock = mocker.patch('logging.info')
+    assert process_cached_data({'cache_time': 0}, data, config_parser, 'artifact', 'group', '1.1')
+    mock.assert_called_once_with('*key: group:artifact, current:1.1 versions: 1.0, 1.1 updated: 23.01.2025')
 
 
 def test_config_items():
