@@ -20,9 +20,10 @@ sys.path.append('../src')
 from maven_check_versions import (  # noqa: E402
     parse_command_line_arguments, load_cache, save_cache, get_artifact_name,
     get_dependency_identifiers, collect_dependencies, resolve_version,
-    get_version, get_config_value, update_cache_data, config_items,
-    log_skip_if_required, log_search_if_required, log_invalid_if_required,
-    fail_mode_if_required, pom_data, load_pom_tree, configure_logging
+    get_version, get_config_value, update_cache_data, process_cached_data,
+    config_items, log_skip_if_required, log_search_if_required,
+    log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
+    configure_logging
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -226,6 +227,16 @@ def test_update_cache_data():
     update_cache_data(cache_data, ['1.0'], 'artifact', 'group', '1.0', '16.01.2025', 'key')
     data = (pytest.approx(time.time()), '1.0', 'key', '16.01.2025', ['1.0'])
     assert cache_data == {'group:artifact': data}
+
+
+def test_process_cached_data():
+    args = {'cache_time': 0}
+    config_parser = ConfigParser()
+    data = {'group:artifact': (time.time() - 100, '1.0', 'key', '23.01.2025', ['1.0', '1.1'])}
+    assert process_cached_data(args, data, config_parser, 'artifact', 'group', '1.0')
+    assert process_cached_data(args, data, config_parser, 'artifact', 'group', '1.1')
+    args = {'cache_time': 50}
+    assert not process_cached_data(args, data, config_parser, 'artifact', 'group', '1.1')
 
 
 def test_config_items():
