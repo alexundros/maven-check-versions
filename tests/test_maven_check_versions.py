@@ -23,7 +23,7 @@ from maven_check_versions import (  # noqa: E402
     get_version, get_config_value, update_cache_data, process_cached_data,
     config_items, log_skip_if_required, log_search_if_required,
     log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
-    configure_logging
+    configure_logging, check_versions
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -343,3 +343,13 @@ def test_configure_logging(mocker):
     assert isinstance(handlers[0], logging.StreamHandler)
     assert isinstance(handlers[1], logging.FileHandler)
     assert PurePath(handlers[1].baseFilename).name == 'maven_check_versions.log'
+
+
+def test_check_versions(mocker):
+    mocker.patch('maven_check_versions.pom_data', return_value=(True, '2025-01-18'))
+    cache_data = {}
+    assert check_versions(
+        cache_data, mocker.Mock(), {}, 'group', 'artifact', '1.0',
+        'repo_section', 'path', (), True, ['1.0', '1.1'], mocker.Mock())
+    assert 'group:artifact' in cache_data
+    assert cache_data['group:artifact'][1] == '1.1'
