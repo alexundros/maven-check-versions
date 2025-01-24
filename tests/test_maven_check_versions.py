@@ -89,44 +89,40 @@ def test_load_cache(mocker):
 
 def test_save_cache(mocker):
     mock_open = mocker.patch('builtins.open')
-    mock_json_dump = mocker.patch('json.dump')
-    cache_data = {'key': 'value'}
-    save_cache(cache_data, 'test_cache.cache')
+    mock_json = mocker.patch('json.dump')
+    save_cache({'key': 'value'}, 'test_cache.cache')
     mock_open.assert_called_once_with('test_cache.cache', 'w')
     mock_open_rv = mock_open.return_value.__enter__.return_value
-    mock_json_dump.assert_called_once_with(cache_data, mock_open_rv)
+    mock_json.assert_called_once_with({'key': 'value'}, mock_open_rv)
 
 
 def test_get_artifact_name():
-    xml = """
-    <?xml version="1.0" encoding="UTF-8"?>
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <groupId>groupId</groupId>
         <artifactId>artifactId</artifactId>
         <version>1.0</version>
     </project>
     """
-    result = get_artifact_name(ET.fromstring(xml.lstrip()), ns_mappings)
+    result = get_artifact_name(ET.fromstring(xml), ns_mappings)
     assert result == "groupId:artifactId"
 
 
 def test_get_dependency_identifiers():
-    xml = """
-    <?xml version="1.0" encoding="UTF-8"?>
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
     <dependency xmlns="http://maven.apache.org/POM/4.0.0">
         <groupId>groupId</groupId>
         <artifactId>artifactId</artifactId>
         <version>1.0</version>
     </dependency>
     """
-    dependency = ET.fromstring(xml.lstrip())
+    dependency = ET.fromstring(xml)
     artifact, group = get_dependency_identifiers(dependency, ns_mappings)
     assert artifact == 'artifactId' and group == 'groupId'
 
 
 def test_collect_dependencies(mocker):
-    xml = """
-    <?xml version="1.0" encoding="UTF-8"?>
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <dependencies>
             <dependency>
@@ -148,29 +144,27 @@ def test_collect_dependencies(mocker):
         </build>
     </project>
     """
-    root = ET.fromstring(xml.lstrip())
+    root = ET.fromstring(xml)
     args = {'search_plugins': True}
     result = collect_dependencies(root, ns_mappings, mocker.Mock(), args)
     assert len(result) == 3
 
 
 def test_resolve_version():
-    xml = """
-    <?xml version="1.0" encoding="UTF-8"?>
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <properties>
             <lib.version>1.0</lib.version>
         </properties>
     </project>
     """
-    root = ET.fromstring(xml.lstrip())
+    root = ET.fromstring(xml)
     version = resolve_version('${lib.version}', root, ns_mappings)
     assert version == '1.0'
 
 
 def test_get_version(mocker):
-    xml = """
-    <?xml version="1.0" encoding="UTF-8"?>
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <version>1.0</version>
         <dependencies>
@@ -188,7 +182,7 @@ def test_get_version(mocker):
         </dependencies> 
     </project>
     """
-    root = ET.fromstring(xml.lstrip())
+    root = ET.fromstring(xml)
     args = {'empty_version': False}
     deps = root.findall('.//xmlns:dependency', namespaces=ns_mappings)
     version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[0])
@@ -288,18 +282,18 @@ def test_fail_mode_if_required(mocker):
 def test_pom_data(mocker):
     pom_path = 'http://example.com/pom.pom'
     headers = {'Last-Modified': 'Wed, 18 Jan 2025 12:00:00 GMT'}
-    mock = mocker.patch('requests.get', return_value=mocker.Mock(status_code=200, headers=headers))
+    mock_response = mocker.Mock(status_code=200, headers=headers)
+    mock_requests = mocker.patch('requests.get', return_value=mock_response)
     is_valid, last_modified = pom_data((), True, 'artifact', '1.0', pom_path)
     assert is_valid is True and last_modified == '2025-01-18'
 
-    mock.return_value = mocker.Mock(status_code=404)
+    mock_requests.return_value = mocker.Mock(status_code=404)
     is_valid, last_modified = pom_data((), True, 'artifact', '1.0', pom_path)
     assert is_valid is False and last_modified is None
 
 
 def test_load_pom_tree(mocker):
-    xml = """
-    <?xml version="1.0" encoding="UTF-8"?>
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <groupId>group</groupId>
         <artifactId>artifact</artifactId>
@@ -313,7 +307,7 @@ def test_load_pom_tree(mocker):
     auth = true
     """)
     mocker.patch('os.path.exists', return_value=True)
-    mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data=xml.lstrip()))
+    mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data=xml))
     tree = load_pom_tree('pom.xml', True, config_parser, {})
     mock_open.assert_called_once_with('pom.xml', 'rb')
     assert isinstance(tree, ET.ElementTree)
@@ -323,31 +317,31 @@ def test_load_pom_tree(mocker):
         load_pom_tree('pom.xml', True, config_parser, {})
 
     pom_path = 'http://example.com/pom.pom'
-    mock_response = mocker.Mock(text=xml.lstrip(), status_code=200)
-    mock = mocker.patch('requests.get', return_value=mock_response)
+    mock_response = mocker.Mock(text=xml, status_code=200)
+    mock_requests = mocker.patch('requests.get', return_value=mock_response)
     assert isinstance(load_pom_tree(pom_path, True, config_parser, {}), ET.ElementTree)
 
-    mock.return_value.status_code = 404
+    mock_requests.return_value.status_code = 404
     with pytest.raises(FileNotFoundError):
         load_pom_tree(pom_path, True, config_parser, {})
 
 
 def test_configure_logging(mocker):
-    mock = mocker.patch('logging.basicConfig')
+    mock_logging = mocker.patch('logging.basicConfig')
     configure_logging({'logfile_off': False})
-    mock.assert_called_once_with(
+    mock_logging.assert_called_once_with(
         level=logging.INFO, handlers=[mocker.ANY, mocker.ANY],
         format='%(asctime)s %(levelname)s: %(message)s'
     )
-    handlers = mock.call_args[1]['handlers']
+    handlers = mock_logging.call_args[1]['handlers']
     assert isinstance(handlers[0], logging.StreamHandler)
     assert isinstance(handlers[1], logging.FileHandler)
     assert PurePath(handlers[1].baseFilename).name == 'maven_check_versions.log'
 
 
 def test_check_versions(mocker):
-    mock = mocker.patch('maven_check_versions.pom_data')
-    mock.return_value = (True, '2025-01-25')
+    mock_pom_data = mocker.patch('maven_check_versions.pom_data')
+    mock_pom_data.return_value = (True, '2025-01-25')
     _check_versions = lambda pa, data, item, vers: check_versions(
         data, mocker.Mock(), pa, 'group', 'artifact', item,
         'repo_section', 'path', (), True, vers, mocker.Mock()
@@ -367,5 +361,5 @@ def test_check_versions(mocker):
     args['fail_mode'] = False
     assert _check_versions(args, cache_data, '1.1', ['1.2'])
 
-    mock.return_value = (False, None)
+    mock_pom_data.return_value = (False, None)
     assert not _check_versions(args, cache_data, '1.1', ['1.2'])
