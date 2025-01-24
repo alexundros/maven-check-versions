@@ -537,44 +537,38 @@ def check_versions(
         bool: True if the current version is valid, False otherwise.
     """
     available_versions = list(filter(lambda v: re.match('^\\d+.+', v), available_versions))
-    latest_version = available_versions[-1]
     available_versions.reverse()
 
-    if available_versions[0] != latest_version:
-        logging.warning(f"Last versions: {available_versions[:5]}")
-
-    major_version_threshold = 0
-    minor_version_threshold = 0
-    current_major_version = 0
-    current_minor_version = 0
+    major_threshold = minor_threshold = 0
+    current_major = current_minor = 0
 
     if get_config_value(config_parser, parsed_arguments, 'fail_mode', value_type=bool):
-        major_version_threshold = int(get_config_value(config_parser, parsed_arguments, 'fail_major'))
-        minor_version_threshold = int(get_config_value(config_parser, parsed_arguments, 'fail_minor'))
+        major_threshold = int(get_config_value(config_parser, parsed_arguments, 'fail_major'))
+        minor_threshold = int(get_config_value(config_parser, parsed_arguments, 'fail_minor'))
 
-        if version_match := re.match('^(\\d+).(\\d+).+', version):
-            current_major_version, current_minor_version = int(version_match.group(1)), int(version_match.group(2))
+        if version_match := re.match('^(\\d+)\.(\\d+).?', version):
+            current_major, current_minor = int(version_match.group(1)), int(version_match.group(2))
 
-    skip_current_version = get_config_value(config_parser, parsed_arguments, 'skip_current', value_type=bool)
+    skip_current = get_config_value(config_parser, parsed_arguments, 'skip_current', value_type=bool)
     invalid_flag = False
 
     for item in available_versions:
-        if item == version and skip_current_version:
+        if item == version and skip_current:
             update_cache_data(
                 cache_data, available_versions, artifact_id, group_id, item, None, section_key)
             return True
 
-        is_valid, last_modified_date = pom_data(auth_info, verify_ssl, artifact_id, item, path)
+        is_valid, last_modified = pom_data(auth_info, verify_ssl, artifact_id, item, path)
         if is_valid:
             logging.info('{}: {}:{}, current:{} {} {}'.format(
-                section_key, group_id, artifact_id, version, available_versions[:3], last_modified_date).rstrip())
+                section_key, group_id, artifact_id, version, available_versions[:3], last_modified).rstrip())
 
             update_cache_data(
-                cache_data, available_versions, artifact_id, group_id, item, last_modified_date, section_key)
+                cache_data, available_versions, artifact_id, group_id, item, last_modified, section_key)
 
             fail_mode_if_required(
-                config_parser, current_major_version, current_minor_version, item,
-                major_version_threshold, minor_version_threshold, parsed_arguments, version)
+                config_parser, current_major, current_minor, item,
+                major_threshold, minor_threshold, parsed_arguments, version)
             return True
 
         else:
