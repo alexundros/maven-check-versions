@@ -23,7 +23,7 @@ from maven_check_versions import (  # noqa: E402
     get_version, get_config_value, update_cache_data, process_cached_data,
     config_items, log_skip_if_required, log_search_if_required,
     log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
-    configure_logging, check_versions
+    configure_logging, check_versions, service_rest
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -340,12 +340,12 @@ def test_configure_logging(mocker):
 
 
 def test_check_versions(mocker):
-    mock_pom_data = mocker.patch('maven_check_versions.pom_data')
-    mock_pom_data.return_value = (True, '2025-01-25')
     _check_versions = lambda pa, data, item, vers: check_versions(
         data, mocker.Mock(), pa, 'group', 'artifact', item,
         'repo_section', 'path', (), True, vers, mocker.Mock()
     )
+    mock_pom_data = mocker.patch('maven_check_versions.pom_data')
+    mock_pom_data.return_value = (True, '2025-01-25')
     args = {
         'skip_current': True, 'fail_mode': True,
         'fail_major': 0, 'fail_minor': 1
@@ -363,3 +363,31 @@ def test_check_versions(mocker):
 
     mock_pom_data.return_value = (False, None)
     assert not _check_versions(args, cache_data, '1.1', ['1.2'])
+
+
+def test_service_rest(mocker):
+    _service_rest = lambda: service_rest(
+        {}, mocker.Mock(), {}, 'group', 'artifact', '1.0', 'section',
+        'repository', 'http://example.com/pom.pom', (), True
+    )
+    mock_check_versions = mocker.patch('maven_check_versions.check_versions')
+    mock_check_versions.return_value = True
+    mock_requests = mocker.patch('requests.get')
+    mock_requests.return_value = mocker.Mock(status_code=200)
+    mock_requests.return_value.text = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <root>
+        <version>1.0</version>
+        <version>1.1</version>
+    </root>
+    """.lstrip()
+    assert _service_rest()
+
+    text = '<html><body><table><a>1.0</a><a>1.1</a></table></body></html>'
+    mock_response = mocker.Mock(status_code=200, text=text)
+    mock_requests.side_effect = [mocker.Mock(status_code=404), mock_response]
+    assert _service_rest()
+
+    mock_response = mocker.Mock(status_code=404)
+    mock_requests.side_effect = [mock_response, mock_response]
+    assert not _service_rest()
