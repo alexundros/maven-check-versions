@@ -97,32 +97,34 @@ def test_save_cache(mocker):
 
 
 def test_get_artifact_name():
-    xml = """<?xml version="1.0" encoding="UTF-8"?>
+    root = ET.fromstring("""
+    <?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <groupId>groupId</groupId>
         <artifactId>artifactId</artifactId>
         <version>1.0</version>
     </project>
-    """
-    result = get_artifact_name(ET.fromstring(xml), ns_mappings)
+    """.lstrip())
+    result = get_artifact_name(root, ns_mappings)
     assert result == "groupId:artifactId"
 
 
 def test_get_dependency_identifiers():
-    xml = """<?xml version="1.0" encoding="UTF-8"?>
+    dependency = ET.fromstring("""
+    <?xml version="1.0" encoding="UTF-8"?>
     <dependency xmlns="http://maven.apache.org/POM/4.0.0">
         <groupId>groupId</groupId>
         <artifactId>artifactId</artifactId>
         <version>1.0</version>
     </dependency>
-    """
-    dependency = ET.fromstring(xml)
+    """.lstrip())
     artifact, group = get_dependency_identifiers(dependency, ns_mappings)
     assert artifact == 'artifactId' and group == 'groupId'
 
 
 def test_collect_dependencies(mocker):
-    xml = """<?xml version="1.0" encoding="UTF-8"?>
+    root = ET.fromstring("""
+    <?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <dependencies>
             <dependency>
@@ -143,28 +145,28 @@ def test_collect_dependencies(mocker):
             </plugins>
         </build>
     </project>
-    """
-    root = ET.fromstring(xml)
+    """.lstrip())
     args = {'search_plugins': True}
     result = collect_dependencies(root, ns_mappings, mocker.Mock(), args)
     assert len(result) == 3
 
 
 def test_resolve_version():
-    xml = """<?xml version="1.0" encoding="UTF-8"?>
+    root = ET.fromstring("""
+    <?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <properties>
             <lib.version>1.0</lib.version>
         </properties>
     </project>
-    """
-    root = ET.fromstring(xml)
+    """.lstrip())
     version = resolve_version('${lib.version}', root, ns_mappings)
     assert version == '1.0'
 
 
 def test_get_version(mocker):
-    xml = """<?xml version="1.0" encoding="UTF-8"?>
+    root = ET.fromstring("""
+    <?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <version>1.0</version>
         <dependencies>
@@ -181,8 +183,7 @@ def test_get_version(mocker):
             </dependency>
         </dependencies> 
     </project>
-    """
-    root = ET.fromstring(xml)
+    """.lstrip())
     args = {'empty_version': False}
     deps = root.findall('.//xmlns:dependency', namespaces=ns_mappings)
     version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[0])
@@ -317,7 +318,7 @@ def test_load_pom_tree(mocker):
         load_pom_tree('pom.xml', True, config_parser, {})
 
     pom_path = 'http://example.com/pom.pom'
-    mock_response = mocker.Mock(text=xml, status_code=200)
+    mock_response = mocker.Mock(status_code=200, text=xml)
     mock_requests = mocker.patch('requests.get', return_value=mock_response)
     assert isinstance(load_pom_tree(pom_path, True, config_parser, {}), ET.ElementTree)
 
@@ -344,6 +345,7 @@ def test_check_versions(mocker):
         data, mocker.Mock(), pa, 'group', 'artifact', item,
         'repo_section', 'path', (), True, vers, mocker.Mock()
     )
+
     mock_pom_data = mocker.patch('maven_check_versions.pom_data')
     mock_pom_data.return_value = (True, '2025-01-25')
     args = {
@@ -370,17 +372,17 @@ def test_service_rest(mocker):
         {}, mocker.Mock(), {}, 'group', 'artifact', '1.0', 'section',
         'repository', 'http://example.com/pom.pom', (), True
     )
+
     mock_check_versions = mocker.patch('maven_check_versions.check_versions')
     mock_check_versions.return_value = True
     mock_requests = mocker.patch('requests.get')
-    mock_requests.return_value = mocker.Mock(status_code=200)
-    mock_requests.return_value.text = """
+    mock_requests.return_value = mocker.Mock(status_code=200, text="""
     <?xml version="1.0" encoding="UTF-8"?>
     <root>
         <version>1.0</version>
         <version>1.1</version>
     </root>
-    """.lstrip()
+    """.lstrip())
     assert _service_rest()
 
     text = '<html><body><table><a>1.0</a><a>1.1</a></table></body></html>'
