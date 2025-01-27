@@ -23,7 +23,7 @@ from maven_check_versions import (  # noqa: E402
     get_version, get_config_value, update_cache_data, process_cached_data,
     config_items, log_skip_if_required, log_search_if_required,
     log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
-    configure_logging, check_versions, service_rest
+    configure_logging, check_versions, service_rest, process_repository
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -393,3 +393,44 @@ def test_service_rest(mocker):
     mock_response = mocker.Mock(status_code=404)
     mock_requests.side_effect = [mock_response, mock_response]
     assert not _service_rest()
+
+
+def test_process_repository(mocker):
+    _process_repository = lambda cp, pa: process_repository(
+        {}, cp, pa, 'group', 'artifact', '1.0', 'repository', 'section', True
+    )
+
+    config_parser = ConfigParser()
+    config_parser.optionxform = str
+    config_parser.read_string("""
+    [section]
+    base = https://repo1.maven.org
+    path = maven2
+    repo = maven-central
+    service_rest = true
+    auth = true
+    """)
+    args = {'user': 'user', 'password': 'pass'}
+    mock_requests = mocker.patch('requests.get')
+    mock_requests.return_value = mocker.Mock(status_code=200, text="""
+    <?xml version="1.0" encoding="UTF-8"?>
+    <metadata>
+        <versioning>
+            <versions>
+                <version>1.0</version>
+                <version>1.1</version>
+            </versions>
+        </versioning>
+    </metadata>
+    """.lstrip())
+    mock_check_versions = mocker.patch('maven_check_versions.check_versions')
+    mock_check_versions.return_value = True
+    assert _process_repository(config_parser, args)
+
+    mock_requests.return_value = mocker.Mock(status_code=404)
+    mock_service_rest = mocker.patch('maven_check_versions.service_rest')
+    mock_service_rest.return_value = True
+    assert _process_repository(config_parser, args)
+
+    config_parser.set('section', 'service_rest', 'false')
+    assert not _process_repository(config_parser, args)
