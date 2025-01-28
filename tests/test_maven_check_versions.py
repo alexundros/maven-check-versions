@@ -395,10 +395,6 @@ def test_service_rest(mocker):
 
 
 def test_process_repository(mocker):
-    _process_repository = lambda cp, pa: process_repository(
-        {}, cp, pa, 'group', 'artifact', '1.0', 'repository', 'section', True
-    )
-
     config_parser = ConfigParser()
     config_parser.optionxform = str
     config_parser.read_string("""
@@ -410,6 +406,11 @@ def test_process_repository(mocker):
     auth = true
     """)
     args = {'user': 'user', 'password': 'pass'}
+    _process_repository = lambda: process_repository(
+        {}, config_parser, args, 'group', 'artifact', '1.0',
+        'repository', 'section', True
+    )
+
     mock_requests = mocker.patch('requests.get')
     mock_requests.return_value = mocker.Mock(status_code=200, text="""
     <?xml version="1.0" encoding="UTF-8"?>
@@ -424,15 +425,15 @@ def test_process_repository(mocker):
     """.lstrip())
     mock_check_versions = mocker.patch('maven_check_versions.check_versions')
     mock_check_versions.return_value = True
-    assert _process_repository(config_parser, args)
+    assert _process_repository()
 
     mock_requests.return_value = mocker.Mock(status_code=404)
     mock_service_rest = mocker.patch('maven_check_versions.service_rest')
     mock_service_rest.return_value = True
-    assert _process_repository(config_parser, args)
+    assert _process_repository()
 
     config_parser.set('section', 'service_rest', 'false')
-    assert not _process_repository(config_parser, args)
+    assert not _process_repository()
 
 
 def test_process_repositories(mocker):

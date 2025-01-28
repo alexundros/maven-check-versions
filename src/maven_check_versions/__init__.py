@@ -344,7 +344,7 @@ def process_repositories(
 
 def process_modules_if_required(
         cache_data: dict | None, config_parser: ConfigParser, parsed_arguments: dict, root_element: ET.Element,
-        pom_path: str, ns_mapping: dict, prefix: str
+        pom_path: str, ns_mapping: dict, prefix: str = None
 ) -> None:
     """
     Process modules listed in the POM file if required.
@@ -883,9 +883,7 @@ def main() -> None:
     try:
         if not ci_mode_enabled:
             input('Press Enter to continue')
-    except KeyboardInterrupt:
-        pass
-    except UnicodeDecodeError:
+    except KeyboardInterrupt or UnicodeDecodeError:
         pass
     sys.exit(1 if exception_occurred else 0)
 
