@@ -23,7 +23,8 @@ from maven_check_versions import (  # noqa: E402
     get_version, get_config_value, update_cache_data, process_cached_data,
     config_items, log_skip_if_required, log_search_if_required,
     log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
-    configure_logging, check_versions, service_rest, process_repository
+    configure_logging, check_versions, service_rest, process_repository,
+    process_repositories
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -434,3 +435,25 @@ def test_process_repository(mocker):
 
     config_parser.set('section', 'service_rest', 'false')
     assert not _process_repository(config_parser, args)
+
+
+def test_process_repositories(mocker):
+    config_parser = ConfigParser()
+    config_parser.optionxform = str
+    config_parser.read_string("""
+    [repositories]
+        repo1 = maven-central
+        repo2 = custom-repo
+    [maven-central]
+        base = https://repo1.maven.org
+        path = maven2
+    [custom-repo]
+        base = https://custom.repo
+        path = maven2
+    """)
+    mock_process_repository = mocker.patch('maven_check_versions.process_repository')
+    mock_process_repository.return_value = True
+    assert process_repositories('artifact', {}, config_parser, 'group', {}, True, '1.0')
+
+    mock_process_repository.return_value = False
+    assert not process_repositories('artifact', {}, config_parser, 'group', {}, True, '1.0')
