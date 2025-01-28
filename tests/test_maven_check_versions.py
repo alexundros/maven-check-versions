@@ -239,12 +239,10 @@ def test_process_cached_data(mocker):
 def test_config_items():
     config_parser = ConfigParser()
     config_parser.optionxform = str
-    config_parser.read_string("""
-    [base]
-    key = value
-    """)
+    config_parser.read_string("[base]\nkey = value\n[empty]")
     assert config_items(config_parser, 'base') == [('key', 'value')]
     assert config_items(config_parser, 'other') == []
+    assert config_items(config_parser, 'empty') == []
 
 
 def test_log_skip_if_required(mocker):
@@ -455,5 +453,6 @@ def test_process_repositories(mocker):
     mock_process_repository.return_value = True
     assert process_repositories('artifact', {}, config_parser, 'group', {}, True, '1.0')
 
-    mock_process_repository.return_value = False
+    config_parser.remove_section('repositories')
+    config_parser.read_string("[repositories]")
     assert not process_repositories('artifact', {}, config_parser, 'group', {}, True, '1.0')
