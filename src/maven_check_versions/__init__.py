@@ -333,11 +333,12 @@ def process_repositories(
     Returns:
         bool: True if the dependency is found in any repository, False otherwise.
     """
-    for section_key, repository_section in config_items(config_parser, 'repositories'):
-        if (process_repository(
-                cache_data, config_parser, parsed_arguments, group_id_text, artifact_id_text, version,
-                section_key, repository_section, verify_ssl)):
-            return True
+    if len(items := config_items(config_parser, 'repositories')):
+        for section_key, repository_section in items:
+            if (process_repository(
+                    cache_data, config_parser, parsed_arguments, group_id_text, artifact_id_text, version,
+                    section_key, repository_section, verify_ssl)):
+                return True
     return False
 
 
