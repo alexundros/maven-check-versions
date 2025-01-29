@@ -24,7 +24,7 @@ from maven_check_versions import (  # noqa: E402
     config_items, log_skip_if_required, log_search_if_required,
     log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
     configure_logging, check_versions, service_rest, process_repository,
-    process_repositories, process_modules_if_required
+    process_repositories, process_modules_if_required, find_artifact
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -476,3 +476,32 @@ def test_process_modules_if_required(mocker):
     mock_process_pom = mocker.patch('maven_check_versions.process_pom')
     process_modules_if_required({}, config_parser, {}, root, 'pom.xml', ns_mappings)
     assert mock_process_pom.call_count == 2
+
+
+def test_find_artifact(mocker):
+    config_parser = ConfigParser()
+    config_parser.optionxform = str
+    config_parser.read_string("""
+    [base]
+        show_search = true
+    [repositories]
+        repo1 = maven-central
+        repo2 = custom-repo
+    [maven-central]
+        base = https://repo1.maven.org
+        path = maven2
+    [custom-repo]
+        base = https://custom.repo
+        path = maven2
+    """)
+    mock_logging = mocker.patch('logging.info')
+    mock_process_repository = mocker.patch('maven_check_versions.process_repository')
+    mock_process_repository.return_value = True
+    find_artifact(None, config_parser, {}, 'group:artifact:1.0')
+    mock_logging.assert_called_once_with('Search: group:artifact:1.0')
+    mock_process_repository.assert_called_once()
+
+    mock_logging = mocker.patch('logging.warning')
+    mock_process_repository.return_value = False
+    find_artifact(None, config_parser, {}, 'group:artifact:1.0')
+    mock_logging.assert_called_once_with('Not Found: group:artifact, current:1.0')
