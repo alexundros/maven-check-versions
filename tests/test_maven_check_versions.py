@@ -24,7 +24,7 @@ from maven_check_versions import (  # noqa: E402
     config_items, log_skip_if_required, log_search_if_required,
     log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
     configure_logging, check_versions, service_rest, process_repository,
-    process_repositories
+    process_repositories, process_modules_if_required
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -457,3 +457,22 @@ def test_process_repositories(mocker):
     config_parser.remove_section('repositories')
     config_parser.read_string("[repositories]")
     assert not process_repositories('artifact', {}, config_parser, 'group', {}, True, '1.0')
+
+
+def test_process_modules_if_required(mocker):
+    config_parser = ConfigParser()
+    config_parser.optionxform = str
+    config_parser.read_string("[base]\nprocess_modules = true")
+    root = ET.fromstring("""
+    <?xml version="1.0" encoding="UTF-8"?>
+    <project xmlns="http://maven.apache.org/POM/4.0.0">
+        <modules>
+            <module>module1</module>
+            <module>module2</module>
+        </modules>
+    </project>
+    """.lstrip())
+    mocker.patch('os.path.exists', return_value=True)
+    mock_process_pom = mocker.patch('maven_check_versions.process_pom')
+    process_modules_if_required({}, config_parser, {}, root, 'pom.xml', ns_mappings)
+    assert mock_process_pom.call_count == 2
