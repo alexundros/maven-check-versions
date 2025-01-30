@@ -24,7 +24,8 @@ from maven_check_versions import (  # noqa: E402
     config_items, log_skip_if_required, log_search_if_required,
     log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
     configure_logging, check_versions, service_rest, process_repository,
-    process_repositories, process_modules_if_required, find_artifact
+    process_repositories, process_modules_if_required, find_artifact,
+    process_dependencies
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -505,3 +506,51 @@ def test_find_artifact(mocker):
     mock_process_repository.return_value = False
     find_artifact(None, config_parser, {}, 'group:artifact:1.0')
     mock_logging.assert_called_once_with('Not Found: group:artifact, current:1.0')
+
+
+def test_process_dependencies(mocker):
+    config_parser = ConfigParser()
+    config_parser.optionxform = str
+    config_parser.read_string("""
+    [base]
+        empty_version = true
+        show_skip = true
+    """)
+    root = ET.fromstring("""
+        <?xml version="1.0" encoding="UTF-8"?>
+        <project xmlns="http://maven.apache.org/POM/4.0.0">
+            <dependencies>
+                <dependency xmlns="http://maven.apache.org/POM/4.0.0">
+                    <artifactId>artifact</artifactId>
+                    <groupId>group</groupId>
+                    <version>1.0</version>
+                </dependency>
+            </dependencies>
+        </project>
+        """.lstrip())
+    dependencies = collect_dependencies(root, ns_mappings, config_parser, {})
+    _process_dependencies = lambda data=None: process_dependencies(
+        data, config_parser, {}, dependencies, ns_mappings, root, True
+    )
+
+    mock_gdi = mocker.patch('maven_check_versions.get_dependency_identifiers')
+    mock_gdi.return_value = ('artifact', None)
+    mock_logging = mocker.patch('logging.error')
+    _process_dependencies()
+    mock_logging.assert_called_once()
+
+    mock_gdi.return_value = ('artifact', 'group')
+    mock_get_version = mocker.patch('maven_check_versions.get_version')
+    mock_get_version.return_value = ('1.0', True)
+    mock_logging = mocker.patch('logging.warning')
+    _process_dependencies()
+    mock_logging.assert_called_once()
+
+    mock_get_version.return_value = ('1.0', False)
+    mocker.patch('maven_check_versions.process_cached_data', return_value=True)
+    _process_dependencies({'group:artifact': ()})
+
+    mocker.patch('maven_check_versions.process_repositories', return_value=False)
+    mock_logging = mocker.patch('logging.warning')
+    _process_dependencies()
+    mock_logging.assert_called_once()
