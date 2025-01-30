@@ -1,3 +1,5 @@
+![coverage](https://coveralls.io/repos/github/alexundros/maven-check-versions/badge.svg?branch=main)
+
 ---
 # Maven Check Versions
 
