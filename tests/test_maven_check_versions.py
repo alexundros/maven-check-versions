@@ -25,7 +25,7 @@ from maven_check_versions import (  # noqa: E402
     log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
     configure_logging, check_versions, service_rest, process_repository,
     process_repositories, process_modules_if_required, find_artifact,
-    process_dependencies
+    process_dependencies, process_pom
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -574,3 +574,29 @@ def test_process_dependencies(mocker):
     mock_logging = mocker.patch('logging.warning')
     _process_dependencies()
     mock_logging.assert_called_once()
+
+
+def test_process_pom(mocker):
+    mock_load_pom_tree = mocker.patch('maven_check_versions.load_pom_tree')
+    mock_load_pom_tree.return_value = ET.ElementTree(ET.fromstring("""
+    <project xmlns="http://maven.apache.org/POM/4.0.0">
+        <artifactId>artifact</artifactId>
+        <groupId>group</groupId>
+        <version>1.0</version>
+        <dependencies>
+            <dependency>
+                <artifactId>artifact</artifactId>
+                <groupId>group</groupId>
+                <version>1.0</version>
+            </dependency>
+        </dependencies>
+    </project>
+    """))
+    mock_cd = mocker.patch('maven_check_versions.collect_dependencies')
+    mock_pd = mocker.patch('maven_check_versions.process_dependencies')
+    mock_pmir = mocker.patch('maven_check_versions.process_modules_if_required')
+    process_pom({}, mocker.Mock(), {}, 'pom.xml', 'prefix')
+    mock_load_pom_tree.assert_called_once()
+    mock_cd.assert_called_once()
+    mock_pd.assert_called_once()
+    mock_pmir.assert_called_once()
