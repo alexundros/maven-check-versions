@@ -25,7 +25,7 @@ from maven_check_versions import (  # noqa: E402
     log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
     configure_logging, check_versions, service_rest, process_repository,
     process_repositories, process_modules_if_required, find_artifact,
-    process_dependencies, process_pom
+    process_dependencies, process_pom, main_process
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -600,3 +600,22 @@ def test_process_pom(mocker):
     mock_cd.assert_called_once()
     mock_pd.assert_called_once()
     mock_pmir.assert_called_once()
+
+
+def test_main_process(mocker, monkeypatch):
+    monkeypatch.setenv('HOME', os.path.dirname(__file__))
+    mock_exists = mocker.patch('os.path.exists')
+    mock_exists.side_effect = [False, True]
+    mocker.patch('maven_check_versions.load_cache', return_value={})
+    mocker.patch('maven_check_versions.process_pom')
+    mocker.patch('maven_check_versions.save_cache')
+    main_process({'pom_file': 'pom.xml', 'cache_off': False})
+
+    mock_exists.side_effect = [False, True]
+    mocker.patch('maven_check_versions.find_artifact')
+    main_process({'find_artifact': 'pom.xml'})
+
+    mock_exists.side_effect = [False, True]
+    mock_config_items = mocker.patch('maven_check_versions.config_items')
+    mock_config_items.return_value = [('key', 'pom.xml')]
+    main_process({})
