@@ -38,9 +38,9 @@ jobs:
         args: >
           -Dsonar.organization=alexundros
           -Dsonar.projectKey=alexundros_maven-check-versions
+          -Dsonar.projectBaseDir=.
           -Dsonar.python.coverage.reportPaths=coverage.xml
-          -Dsonar.tests=tests/
-          -Dsonar.test.exclusions=tests/**
+          -Dsonar.tests=tests/ -Dsonar.test.exclusions=tests/**
           -Dsonar.verbose=true
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
