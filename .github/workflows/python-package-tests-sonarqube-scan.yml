@@ -1,0 +1,63 @@
+name: Python package Tests SonarQube Scan
+
+on:
+  workflow_dispatch:
+  #push:
+  #  branches: [ "main" ]
+  #pull_request:
+  #  branches: [ "main" ]
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.12
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install flake8 pytest pytest-cov pytest-mock coveralls
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Lint with flake8
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Test with pytest
+      run: |
+        pytest --cov=src --cov-report=xml:coverage.xml --cov-config=tests/start-tests/.coveragerc
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: pytest-results
+        path: coverage.xml
+        if-no-files-found: error
+
+    - name: Upload coverage data to coveralls.io
+      run: coveralls --rcfile=tests/start-tests/.coveragerc
+      env:
+        COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+
+    - name: Read VERSION file
+      id: getversion
+      run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@v4
+      with:
+        args: >
+          -Dsonar.projectVersion=${{ steps.getversion.outputs.version }}
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
