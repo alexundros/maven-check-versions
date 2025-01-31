@@ -883,7 +883,7 @@ def main() -> None:
     try:
         if not ci_mode_enabled:
             input('Press Enter to continue')
-    except KeyboardInterrupt or UnicodeDecodeError:
+    except (KeyboardInterrupt, UnicodeDecodeError):
         pass
     sys.exit(1 if exception_occurred else 0)
 

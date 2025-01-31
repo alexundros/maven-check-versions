@@ -80,6 +80,7 @@ def test_parse_command_line_arguments(mocker):
     assert args['password'] == 'password'
 
 
+# noinspection PyShadowingNames
 def test_load_cache(mocker):
     mocker.patch('os.path.exists', return_value=True)
     mocker.patch('builtins.open', mocker.mock_open(read_data='{"key": "value"}'))
@@ -89,6 +90,7 @@ def test_load_cache(mocker):
     assert load_cache('test_cache.cache') == {}
 
 
+# noinspection PyShadowingNames
 def test_save_cache(mocker):
     mock_open = mocker.patch('builtins.open')
     mock_json = mocker.patch('json.dump')
@@ -124,6 +126,7 @@ def test_get_dependency_identifiers():
     assert artifact == 'artifactId' and group == 'groupId'
 
 
+# noinspection PyShadowingNames
 def test_collect_dependencies(mocker):
     root = ET.fromstring("""
     <?xml version="1.0" encoding="UTF-8"?>
@@ -166,6 +169,7 @@ def test_resolve_version():
     assert version == '1.0'
 
 
+# noinspection PyShadowingNames
 def test_get_version(mocker):
     root = ET.fromstring("""
     <?xml version="1.0" encoding="UTF-8"?>
@@ -198,6 +202,7 @@ def test_get_version(mocker):
     assert version == '${dependency.version}' and skip_flag
 
 
+# noinspection PyShadowingNames
 def test_get_config_value(mocker, monkeypatch):
     mock = mocker.Mock()
     mock.get.return_value = 'true'
@@ -213,7 +218,7 @@ def test_get_config_value(mocker, monkeypatch):
     assert get_config_value(mock, {}, 'key', value_type=int) == 123
 
     mock.get.return_value = '123.45'
-    assert get_config_value(mock, {}, 'key', value_type=float) == 123.45
+    assert get_config_value(mock, {}, 'key', value_type=float) == 123.45 # NOSONAR
 
     mock.get.return_value = 'value'
     assert get_config_value(mock, {}, 'key') == 'value'
@@ -221,11 +226,12 @@ def test_get_config_value(mocker, monkeypatch):
 
 def test_update_cache_data():
     cache_data = {}
-    update_cache_data(cache_data, ['1.0'], 'artifact', 'group', '1.0', '16.01.2025', 'key')
+    update_cache_data(cache_data, ['1.0'], 'artifact', 'group', '1.0', '16.01.2025', 'key') # NOSONAR
     data = (pytest.approx(time.time()), '1.0', 'key', '16.01.2025', ['1.0'])
     assert cache_data == {'group:artifact': data}
 
 
+# noinspection PyShadowingNames
 def test_process_cached_data(mocker):
     config_parser = ConfigParser()
     data = {'group:artifact': (time.time() - 100, '1.0', 'key', '23.01.2025', ['1.0', '1.1'])}
@@ -246,6 +252,7 @@ def test_config_items():
     assert config_items(config_parser, 'empty') == []
 
 
+# noinspection PyShadowingNames
 def test_log_skip_if_required(mocker):
     mock_logging = mocker.patch('logging.warning')
     args = {'show_skip': True}
@@ -253,6 +260,7 @@ def test_log_skip_if_required(mocker):
     mock_logging.assert_called_once_with("Skip: group:artifact:1.0")
 
 
+# noinspection PyShadowingNames
 def test_log_search_if_required(mocker):
     args = {'show_search': True}
     mock_logging = mocker.patch('logging.warning')
@@ -264,6 +272,7 @@ def test_log_search_if_required(mocker):
     mock_logging.assert_called_once_with("Search: group:artifact:1.0")
 
 
+# noinspection PyShadowingNames
 def test_log_invalid_if_required(mocker):
     mock_logging = mocker.patch('logging.warning')
     args = {'show_invalid': True}
@@ -271,6 +280,7 @@ def test_log_invalid_if_required(mocker):
     mock_logging.assert_called_once_with("Invalid: group:artifact:1.0")
 
 
+# noinspection PyShadowingNames
 def test_fail_mode_if_required(mocker):
     mock_logging = mocker.patch('logging.warning')
     with pytest.raises(AssertionError):
@@ -280,6 +290,7 @@ def test_fail_mode_if_required(mocker):
     mock_logging.assert_called_once_with("Fail version: 4.0 > 1.0")
 
 
+# noinspection PyShadowingNames
 def test_pom_data(mocker):
     pom_path = 'http://example.com/pom.pom'
     headers = {'Last-Modified': 'Wed, 18 Jan 2025 12:00:00 GMT'}
@@ -293,6 +304,7 @@ def test_pom_data(mocker):
     assert is_valid is False and last_modified is None
 
 
+# noinspection PyShadowingNames
 def test_load_pom_tree(mocker):
     xml = """<?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
@@ -327,6 +339,7 @@ def test_load_pom_tree(mocker):
         load_pom_tree(pom_path, True, config_parser, {})
 
 
+# noinspection PyShadowingNames
 def test_configure_logging(mocker):
     mock_logging = mocker.patch('logging.basicConfig')
     configure_logging({'logfile_off': False})
@@ -340,6 +353,7 @@ def test_configure_logging(mocker):
     assert PurePath(handlers[1].baseFilename).name == 'maven_check_versions.log'
 
 
+# noinspection PyShadowingNames
 def test_check_versions(mocker):
     _check_versions = lambda pa, data, item, vers: check_versions(
         data, mocker.Mock(), pa, 'group', 'artifact', item,
@@ -367,6 +381,7 @@ def test_check_versions(mocker):
     assert not _check_versions(args, cache_data, '1.1', ['1.2'])
 
 
+# noinspection PyShadowingNames
 def test_service_rest(mocker):
     _service_rest = lambda: service_rest(
         {}, mocker.Mock(), {}, 'group', 'artifact', '1.0', 'section',
@@ -395,6 +410,7 @@ def test_service_rest(mocker):
     assert not _service_rest()
 
 
+# noinspection PyShadowingNames
 def test_process_repository(mocker):
     config_parser = ConfigParser()
     config_parser.optionxform = str
@@ -437,6 +453,7 @@ def test_process_repository(mocker):
     assert not _process_repository()
 
 
+# noinspection PyShadowingNames
 def test_process_repositories(mocker):
     config_parser = ConfigParser()
     config_parser.optionxform = str
@@ -460,6 +477,7 @@ def test_process_repositories(mocker):
     assert not process_repositories('artifact', {}, config_parser, 'group', {}, True, '1.0')
 
 
+# noinspection PyShadowingNames
 def test_process_modules_if_required(mocker):
     config_parser = ConfigParser()
     config_parser.optionxform = str
@@ -479,6 +497,7 @@ def test_process_modules_if_required(mocker):
     assert mock_process_pom.call_count == 2
 
 
+# noinspection PyShadowingNames
 def test_find_artifact(mocker):
     config_parser = ConfigParser()
     config_parser.optionxform = str
@@ -508,6 +527,7 @@ def test_find_artifact(mocker):
     mock_logging.assert_called_once_with('Not Found: group:artifact, current:1.0')
 
 
+# noinspection PyShadowingNames
 def test_process_dependencies(mocker):
     config_parser = ConfigParser()
     config_parser.optionxform = str
