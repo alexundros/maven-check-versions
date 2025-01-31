@@ -25,7 +25,7 @@ from maven_check_versions import (  # noqa: E402
     log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
     configure_logging, check_versions, service_rest, process_repository,
     process_repositories, process_modules_if_required, find_artifact,
-    process_dependencies, process_pom, main_process
+    process_dependencies, process_pom, main_process, main
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -619,3 +619,24 @@ def test_main_process(mocker, monkeypatch):
     mock_config_items = mocker.patch('maven_check_versions.config_items')
     mock_config_items.return_value = [('key', 'pom.xml')]
     main_process({})
+
+def test_main(mocker):
+    mock_pcla = mocker.patch('maven_check_versions.parse_command_line_arguments')
+    mock_pcla.return_value = {'ci_mode': False}
+    mock_main_process = mocker.patch('maven_check_versions.main_process')
+    mock_input = mocker.patch('builtins.input', return_value='')
+    mocker.patch('maven_check_versions.configure_logging')
+    mocker.patch('sys.exit')
+    main()
+    mock_main_process.side_effect = FileNotFoundError
+    main()
+    mock_main_process.side_effect = AssertionError
+    main()
+    mock_main_process.side_effect = KeyboardInterrupt
+    main()
+    mock_main_process.side_effect = SystemExit
+    main()
+    mock_main_process.side_effect = Exception
+    main()
+    mock_input.side_effect = KeyboardInterrupt
+    main()
