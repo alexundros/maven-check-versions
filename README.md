@@ -5,12 +5,12 @@
   <img alt="Sonar Quality Gate" src="https://img.shields.io/sonar/quality_gate/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
   <img alt="Sonar Tech Debt" src="https://img.shields.io/sonar/tech_debt/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
   <img alt="Sonar Violations" src="https://img.shields.io/sonar/violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
-  <!-- Violations Details:
-  <img alt="Sonar Blocker Violations" src="https://img.shields.io/sonar/blocker_violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
-  <img alt="Sonar Critical Violations" src="https://img.shields.io/sonar/critical_violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
-  <img alt="Sonar Major Violations" src="https://img.shields.io/sonar/major_violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
-  <img alt="Sonar Minor Violations" src="https://img.shields.io/sonar/minor_violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
-  <img alt="Sonar Info Violations" src="https://img.shields.io/sonar/info_violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
+  <!-- Sonar Violations Details:
+  <img alt="Blocker Violations" src="https://img.shields.io/sonar/blocker_violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
+  <img alt="Critical Violations" src="https://img.shields.io/sonar/critical_violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
+  <img alt="Major Violations" src="https://img.shields.io/sonar/major_violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
+  <img alt="Minor Violations" src="https://img.shields.io/sonar/minor_violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
+  <img alt="Info Violations" src="https://img.shields.io/sonar/info_violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
   -->
 </p>
 
