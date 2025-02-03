@@ -547,7 +547,7 @@ def check_versions(
         major_threshold = int(get_config_value(config_parser, parsed_arguments, 'fail_major'))
         minor_threshold = int(get_config_value(config_parser, parsed_arguments, 'fail_minor'))
 
-        if version_match := re.match('^(\\d+)\.(\\d+).?', version):
+        if version_match := re.match('^(\\d+)\\.(\\d+).?', version):
             current_major, current_minor = int(version_match.group(1)), int(version_match.group(2))
 
     skip_current = get_config_value(config_parser, parsed_arguments, 'skip_current', value_type=bool)
