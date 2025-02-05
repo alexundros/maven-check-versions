@@ -1,4 +1,4 @@
-name: Python package Build Docker image Local
+name: Build and Push Docker image to Local
 
 on:
   workflow_dispatch:
