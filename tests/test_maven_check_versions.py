@@ -6,6 +6,7 @@ import sys
 import time
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
+from argparse import ArgumentTypeError
 from configparser import ConfigParser
 from pathlib import PurePath
 
@@ -25,7 +26,7 @@ from maven_check_versions import (  # noqa: E402
     log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
     configure_logging, check_versions, service_rest, process_repository,
     process_repositories, process_modules_if_required, find_artifact,
-    process_dependencies, process_pom, main_process, main
+    process_dependencies, process_pom, main_process, main, str_to_bool
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -78,6 +79,27 @@ def test_parse_command_line_arguments(mocker):
     assert args['show_invalid'] is True
     assert args['user'] == 'user'
     assert args['password'] == 'password'
+
+
+def test_str_to_bool():
+    assert str_to_bool('true') is True
+    assert str_to_bool('TRUE') is True
+    assert str_to_bool('t') is True
+    assert str_to_bool('yes') is True
+    assert str_to_bool('y') is True
+    assert str_to_bool('1') is True
+
+    assert str_to_bool('false') is False
+    assert str_to_bool('FALSE') is False
+    assert str_to_bool('f') is False
+    assert str_to_bool('no') is False
+    assert str_to_bool('n') is False
+    assert str_to_bool('0') is False
+
+    with pytest.raises(ArgumentTypeError):
+        str_to_bool('invalid')
+    with pytest.raises(ArgumentTypeError):
+        str_to_bool('')
 
 
 # noinspection PyShadowingNames
@@ -218,7 +240,7 @@ def test_get_config_value(mocker, monkeypatch):
     assert get_config_value(mock, {}, 'key', value_type=int) == 123
 
     mock.get.return_value = '123.45'
-    assert get_config_value(mock, {}, 'key', value_type=float) == 123.45 # NOSONAR
+    assert get_config_value(mock, {}, 'key', value_type=float) == 123.45  # NOSONAR
 
     mock.get.return_value = 'value'
     assert get_config_value(mock, {}, 'key') == 'value'
@@ -226,7 +248,7 @@ def test_get_config_value(mocker, monkeypatch):
 
 def test_update_cache_data():
     cache_data = {}
-    update_cache_data(cache_data, ['1.0'], 'artifact', 'group', '1.0', '16.01.2025', 'key') # NOSONAR
+    update_cache_data(cache_data, ['1.0'], 'artifact', 'group', '1.0', '16.01.2025', 'key')  # NOSONAR
     data = (pytest.approx(time.time()), '1.0', 'key', '16.01.2025', ['1.0'])
     assert cache_data == {'group:artifact': data}
 
@@ -619,6 +641,7 @@ def test_main_process(mocker, monkeypatch):
     mock_config_items = mocker.patch('maven_check_versions.config_items')
     mock_config_items.return_value = [('key', 'pom.xml')]
     main_process({})
+
 
 def test_main(mocker):
     mock_pcla = mocker.patch('maven_check_versions.parse_command_line_arguments')
