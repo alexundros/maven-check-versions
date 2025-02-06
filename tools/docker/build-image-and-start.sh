@@ -1,4 +1,5 @@
 #!/bin/bash
-cd "$(dirname "$0")/../.."
-docker build --progress=plain --tag maven_check_versions .
-docker run --name maven_check_versions -d maven_check_versions:latest
+cd "$(dirname "$0")/../.." || exit 1
+docker build --progress=plain --tag maven-check-versions:dev .
+nm="maven-check-versions_$(date +%Y-%m-%d_%H%M%S)"
+docker run --name "$nm" maven-check-versions:dev

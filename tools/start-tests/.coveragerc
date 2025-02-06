@@ -2,7 +2,7 @@
 source =
     src
 relative_files = true
-data_file = tests/start-tests/.coverage
+data_file = tools/start-tests/.coverage
 omit =
     tests/*
     src/maven_check_versions/__main__.py
