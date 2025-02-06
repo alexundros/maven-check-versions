@@ -27,3 +27,6 @@ version = { file = "VERSION" }
 Homepage = "https://github.com/alexundros/maven-check-versions"
 Issues = "https://github.com/alexundros/maven-check-versions/issues"
 Source = "https://github.com/alexundros/maven-check-versions"
+
+[project.scripts]
+maven_check_versions = "maven_check_versions.__init__:main"
