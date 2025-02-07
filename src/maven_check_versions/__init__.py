@@ -30,7 +30,7 @@ def parse_command_line_arguments() -> dict:
         dict: A dictionary containing parsed command line arguments.
     """
     argument_parser = ArgumentParser(prog='maven_check_versions')
-    argument_parser.add_argument('-ci', '--ci_mode', help='Enable CI Mode', type=str_to_bool, default=False)
+    argument_parser.add_argument('-ci', '--ci_mode', help='Enable CI Mode', action='store_true', default=False)
     argument_parser.add_argument('-pf', '--pom_file', help='Path to POM File')
     argument_parser.add_argument('-fa', '--find_artifact', help='Artifact to find')
     # override for config file options
@@ -53,24 +53,6 @@ def parse_command_line_arguments() -> dict:
     argument_parser.add_argument('-un', '--user', help='Basic Auth user')
     argument_parser.add_argument('-up', '--password', help='Basic Auth password')
     return vars(argument_parser.parse_args())
-
-
-def str_to_bool(value: str) -> bool:
-    """
-    Convert string value to boolean.
-
-    Args:
-        value (str): String value.
-
-    Returns:
-        bool: A boolean value.
-    """
-    if value.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif value.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise ArgumentTypeError('Boolean value expected.')
 
 
 def main_process(arguments: dict) -> None:

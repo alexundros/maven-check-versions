@@ -26,7 +26,7 @@ from maven_check_versions import (  # noqa: E402
     log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
     configure_logging, check_versions, service_rest, process_repository,
     process_repositories, process_modules_if_required, find_artifact,
-    process_dependencies, process_pom, main_process, main, str_to_bool
+    process_dependencies, process_pom, main_process, main
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -79,27 +79,6 @@ def test_parse_command_line_arguments(mocker):
     assert args['show_invalid'] is True
     assert args['user'] == 'user'
     assert args['password'] == 'password'
-
-
-def test_str_to_bool():
-    assert str_to_bool('true') is True
-    assert str_to_bool('TRUE') is True
-    assert str_to_bool('t') is True
-    assert str_to_bool('yes') is True
-    assert str_to_bool('y') is True
-    assert str_to_bool('1') is True
-
-    assert str_to_bool('false') is False
-    assert str_to_bool('FALSE') is False
-    assert str_to_bool('f') is False
-    assert str_to_bool('no') is False
-    assert str_to_bool('n') is False
-    assert str_to_bool('0') is False
-
-    with pytest.raises(ArgumentTypeError):
-        str_to_bool('invalid')
-    with pytest.raises(ArgumentTypeError):
-        str_to_bool('')
 
 
 # noinspection PyShadowingNames
@@ -628,10 +607,14 @@ def test_main_process(mocker, monkeypatch):
     monkeypatch.setenv('HOME', os.path.dirname(__file__))
     mock_exists = mocker.patch('os.path.exists')
     mock_exists.side_effect = [False, True]
+    mocker.patch('builtins.open', mocker.mock_open(read_data="""
+    [base]
+        cache_off = false
+    """))
     mocker.patch('maven_check_versions.load_cache', return_value={})
     mocker.patch('maven_check_versions.process_pom')
     mocker.patch('maven_check_versions.save_cache')
-    main_process({'pom_file': 'pom.xml', 'cache_off': False})
+    main_process({'pom_file': 'pom.xml'})
 
     mock_exists.side_effect = [False, True]
     mocker.patch('maven_check_versions.find_artifact')
