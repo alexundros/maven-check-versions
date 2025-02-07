@@ -14,7 +14,7 @@ import time
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser, ArgumentTypeError
 from configparser import ConfigParser
-from pathlib import Path, PurePath
+from pathlib import Path
 
 import dateutil.parser as parser
 import requests
@@ -87,7 +87,8 @@ def main_process(arguments: dict) -> None:
         if not os.path.exists(config_file):
             config_file = os.path.join(Path.home(), config_file)
     if os.path.exists(config_file):
-        config_parser.read(config_file)
+        logging.info(f"Load Config: {Path(config_file).absolute()}")
+        config_parser.read_file(open(config_file))
 
     if not get_config_value(config_parser, arguments, 'warnings', 'urllib3', value_type=bool):
         urllib3.disable_warnings()
@@ -120,7 +121,7 @@ def load_cache(cache_file: str) -> dict:
         dict: A dictionary representing the loaded cache.
     """
     if os.path.exists(cache_file):
-        logging.info(f"Load Cache: {PurePath(cache_file).name}")
+        logging.info(f"Load Cache: {Path(cache_file).absolute()}")
         with open(cache_file) as cf:
             return json.load(cf)
     return {}
@@ -135,7 +136,7 @@ def save_cache(cache_data: dict, cache_file: str) -> None:
         cache_file (str): Path to the file where the cache will be saved.
     """
     if cache_data is not None:
-        logging.info(f"Save Cache: {PurePath(cache_file).name}")
+        logging.info(f"Save Cache: {Path(cache_file).absolute()}")
         with open(cache_file, 'w') as cf:
             json.dump(cache_data, cf)
 
