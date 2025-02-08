@@ -1,7 +1,8 @@
 [run]
 source =
     src
-data_file = tests/.coverage
+relative_files = false
+data_file = .coverage
 omit =
     tests/*
     src/maven_check_versions/__main__.py
