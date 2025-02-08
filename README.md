@@ -1,7 +1,5 @@
 <p>
-  <a href="https://coveralls.io/github/alexundros/maven-check-versions?branch=main">
-    <img alt="Coverage Status" src="https://img.shields.io/coverallsCoverage/github/alexundros/maven-check-versions">
-  </a>
+  <img alt="Coverage Status" src="https://img.shields.io/coverallsCoverage/github/alexundros/maven-check-versions">
   <img alt="Sonar Quality Gate" src="https://img.shields.io/sonar/quality_gate/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
   <img alt="Sonar Tech Debt" src="https://img.shields.io/sonar/tech_debt/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
   <img alt="Sonar Violations" src="https://img.shields.io/sonar/violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
@@ -45,34 +43,54 @@ You can install the tool via `pip`:
 pip install maven_check_versions
 ```
 
-See https://pypi.org/project/maven-check-versions/ for more details.
+See https://pypi.org/project/maven-check-versions for more details.
 
 ---
 
 ## Usage
 
-Run the script directly from the command line:
-
+- Analyze a specific pom file:
 ```bash
-python -m maven_check_versions --pom_file <path-to-pom.xml>
+maven_check_versions --pom_file <path-to-pom.xml>
 ```
 
-### Example Commands:
-
-- Analyze a specific POM file:
-  ```bash
-  python -m maven_check_versions --pom_file <path-to-pom.xml>
-  ```
-
 - Search for a specific artifact:
-  ```bash
-  python -m maven_check_versions --find_artifact com.example:my-lib:1.0
-  ```
+```bash
+maven_check_versions --find_artifact com.example:my-lib:1.0
+```
 
 - Enable CI mode to suppress prompts:
-  ```bash
-  python -m maven_check_versions --ci_mode
-  ```
+```bash
+maven_check_versions --ci_mode
+```
+
+### Docker image
+
+Pull image from GitHub:
+
+```bash
+docker pull ghcr.io/alexundros/maven-check-versions
+```
+Or pull image from DockerHub:
+
+```bash
+docker pull alexundros/maven-check-versions
+```
+
+- Analyze a specific pom file:
+```bash
+docker run --rm -v '<path-to-pom.xml>:/app/pom.xml' alexundros/maven_check_versions -pf /app/pom.xml
+```
+
+- Search for a specific artifact:
+```bash
+docker run --rm alexundros/maven_check_versions -fa com.example:my-lib:1.0
+```
+
+- Enable CI mode to suppress prompts:
+```bash
+docker run --rm alexundros/maven_check_versions -ci
+```
 
 ---
 

@@ -577,6 +577,7 @@ def test_process_dependencies(mocker):
     mock_logging.assert_called_once()
 
 
+# noinspection PyShadowingNames
 def test_process_pom(mocker):
     mock_load_pom_tree = mocker.patch('maven_check_versions.load_pom_tree')
     mock_load_pom_tree.return_value = ET.ElementTree(ET.fromstring("""
@@ -603,6 +604,7 @@ def test_process_pom(mocker):
     mock_pmir.assert_called_once()
 
 
+# noinspection PyShadowingNames
 def test_main_process(mocker, monkeypatch):
     monkeypatch.setenv('HOME', os.path.dirname(__file__))
     mock_exists = mocker.patch('os.path.exists')
@@ -626,6 +628,7 @@ def test_main_process(mocker, monkeypatch):
     main_process({})
 
 
+# noinspection PyShadowingNames
 def test_main(mocker):
     mock_pcla = mocker.patch('maven_check_versions.parse_command_line_arguments')
     mock_pcla.return_value = {'ci_mode': False}
