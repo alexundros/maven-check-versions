@@ -1,8 +1,7 @@
 #!/usr/bin/python3
-"""This script processes Maven POM files and checks for dependencies versions"""
+"""Main entry point for the module"""
 
 import configparser
-import datetime
 import json
 import logging
 import math
@@ -12,7 +11,7 @@ import sys
 import time
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
-from argparse import ArgumentParser, ArgumentTypeError
+from argparse import ArgumentParser
 from configparser import ConfigParser
 from pathlib import Path
 
@@ -20,6 +19,15 @@ import dateutil.parser as parser
 import requests
 import urllib3
 from bs4 import BeautifulSoup
+from .logutils import (
+    log_skip_if_required,
+    log_search_if_required,
+    log_invalid_if_required,
+    configure_logging
+)
+from .utils import (
+    get_config_value
+)
 
 
 def parse_command_line_arguments() -> dict:
@@ -715,41 +723,6 @@ def pom_data(auth_info: tuple, verify_ssl: bool, artifact_id: str, version: str,
     return False, None
 
 
-def get_config_value(
-        config_parser: ConfigParser, arguments: dict, key: str, section: str = 'base', value_type=None
-) -> any:
-    """
-    Get configuration value with optional type conversion.
-
-    Args:
-        config_parser (ConfigParser): Configuration data.
-        arguments (dict): Command line arguments.
-        key (str): Configuration section name.
-        section (str, optional): Configuration option name. Defaults to None.
-        value_type (type, optional): Value type for conversion. Defaults to str.
-
-    Returns:
-        Any: Value of the configuration option or None if not found.
-    """
-    try:
-        value = None
-        if section == 'base' and key in arguments:
-            value = arguments.get(key)
-            if 'CV_' + key.upper() in os.environ:
-                value = os.environ.get('CV_' + key.upper())
-        if value is None:
-            value = config_parser.get(section, key)
-        if value_type == bool:
-            value = str(value).lower() == 'true'
-        if value_type == int:
-            value = int(value)
-        if value_type == float:
-            value = float(value)
-        return value
-    except configparser.Error:
-        return None
-
-
 def config_items(config_parser: ConfigParser, section: str) -> list[tuple[str, str]]:
     """
     Retrieve all items from a configuration section.
@@ -765,86 +738,6 @@ def config_items(config_parser: ConfigParser, section: str) -> list[tuple[str, s
         return config_parser.items(section)
     except configparser.Error:
         return []
-
-
-def configure_logging(arguments: dict) -> None:
-    """
-    Configure logging.
-
-    Args:
-        arguments (dict): Dictionary containing the parsed command line arguments.
-    """
-    handlers = [logging.StreamHandler(sys.stdout)]
-
-    if not arguments.get('logfile_off'):
-        if (log_file_path := arguments.get('log_file')) is None:
-            log_file_path = 'maven_check_versions.log'
-        handlers.append(logging.FileHandler(log_file_path, 'w'))
-
-    logging.Formatter.formatTime = lambda self, record, fmt=None: \
-        datetime.datetime.fromtimestamp(record.created)
-
-    frm = '%(asctime)s %(levelname)s: %(message)s'
-    logging.basicConfig(level=logging.INFO, handlers=handlers, format=frm)  # NOSONAR
-
-
-def log_skip_if_required(
-        config_parser: ConfigParser, arguments: dict, group_id: str, artifact_id: str, version: str
-) -> None:
-    """
-    Logs a warning message if a dependency is skipped based on configuration or command-line argument settings.
-
-    Args:
-        config_parser (ConfigParser): Configuration parser to fetch values from configuration files.
-        arguments (dict): Dictionary of parsed command-line arguments to check runtime options.
-        group_id (str): The group ID of the Maven artifact being processed.
-        artifact_id (str): The artifact ID of the Maven artifact being processed.
-        version (str): The version of the Maven artifact being processed.
-    """
-    if get_config_value(config_parser, arguments, 'show_skip', value_type=bool):
-        logging.warning(f"Skip: {group_id}:{artifact_id}:{version}")
-
-
-def log_search_if_required(
-        config_parser: ConfigParser, arguments: dict, group_id: str, artifact_id: str, version: str
-) -> None:
-    """
-    Logs a message indicating a search action for a dependency if specific conditions are met.
-
-    Args:
-        config_parser (ConfigParser): Configuration parser to fetch values from configuration files.
-        arguments (dict): Dictionary of parsed command-line arguments to check runtime options.
-        group_id (str): The group ID of the Maven artifact being processed.
-        artifact_id (str): The artifact ID of the Maven artifact being processed.
-        version (str): The version of the Maven artifact being processed; can be None or a property placeholder.
-    """
-    if get_config_value(config_parser, arguments, 'show_search', value_type=bool):
-        if version is None or re.match('^\\${([^}]+)}$', version):
-            logging.warning(f"Search: {group_id}:{artifact_id}:{version}")
-        else:
-            logging.info(f"Search: {group_id}:{artifact_id}:{version}")
-
-
-def log_invalid_if_required(
-        config_parser: ConfigParser, arguments: dict, response: requests.Response, group_id: str,
-        artifact_id: str, item: str, invalid_flag: bool
-) -> None:
-    """
-        Log invalid versions if required.
-
-        Args:
-            config_parser (ConfigParser): Configuration parser to fetch values from configuration files.
-            arguments (dict): Dictionary of parsed command-line arguments to check runtime options.
-            response (requests.Response): The response object from the repository.
-            group_id (str): The group ID of the Maven artifact being processed.
-            artifact_id (str): TThe artifact ID of the Maven artifact being processed.
-            item (str): The version item.
-            invalid_flag (bool): Flag indicating if invalid versions have been logged.
-        """
-    if get_config_value(config_parser, arguments, 'show_invalid', value_type=bool):
-        if not invalid_flag:
-            logging.info(response.url)
-        logging.warning(f"Invalid: {group_id}:{artifact_id}:{item}")
 
 
 # noinspection PyMissingOrEmptyDocstring

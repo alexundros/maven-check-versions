@@ -6,7 +6,6 @@ import sys
 import time
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
-from argparse import ArgumentTypeError
 from configparser import ConfigParser
 from pathlib import PurePath
 
@@ -21,12 +20,24 @@ sys.path.append('../src')
 from maven_check_versions import (  # noqa: E402
     parse_command_line_arguments, load_cache, save_cache, get_artifact_name,
     get_dependency_identifiers, collect_dependencies, resolve_version,
-    get_version, get_config_value, update_cache_data, process_cached_data,
-    config_items, log_skip_if_required, log_search_if_required,
-    log_invalid_if_required, fail_mode_if_required, pom_data, load_pom_tree,
-    configure_logging, check_versions, service_rest, process_repository,
+    get_version, update_cache_data, process_cached_data,
+    config_items, fail_mode_if_required, pom_data, load_pom_tree,
+    check_versions, service_rest, process_repository,
     process_repositories, process_modules_if_required, find_artifact,
     process_dependencies, process_pom, main_process, main
+)
+
+# noinspection PyUnresolvedReferences
+from maven_check_versions.logutils import (  # noqa: E402
+    configure_logging,
+    log_skip_if_required,
+    log_search_if_required,
+    log_invalid_if_required
+)
+
+# noinspection PyUnresolvedReferences
+from maven_check_versions.utils import (  # noqa: E402
+    get_config_value
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
