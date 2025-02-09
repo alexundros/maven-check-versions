@@ -1,13 +1,12 @@
 #!/usr/bin/python3
 """Tests for maven_check_versions package"""
-import logging
+
 import os
 import sys
 import time
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from configparser import ConfigParser
-from pathlib import PurePath
 
 import pytest
 # noinspection PyUnresolvedReferences
@@ -214,28 +213,6 @@ def test_get_version(mocker):
     assert version == '${dependency.version}' and skip_flag
 
 
-# noinspection PyShadowingNames
-def test_get_config_value(mocker, monkeypatch):
-    mock = mocker.Mock()
-    mock.get.return_value = 'true'
-    assert get_config_value(mock, {}, 'key', value_type=bool) == True
-
-    mock.get.return_value = 'true'
-    assert get_config_value(mock, {'key': False}, 'key', value_type=bool) == False
-
-    monkeypatch.setenv('CV_KEY', 'true')
-    assert get_config_value(mock, {'key': False}, 'key', value_type=bool) == True
-
-    mock.get.return_value = '123'
-    assert get_config_value(mock, {}, 'key', value_type=int) == 123
-
-    mock.get.return_value = '123.45'
-    assert get_config_value(mock, {}, 'key', value_type=float) == 123.45  # NOSONAR
-
-    mock.get.return_value = 'value'
-    assert get_config_value(mock, {}, 'key') == 'value'
-
-
 def test_update_cache_data():
     cache_data = {}
     update_cache_data(cache_data, ['1.0'], 'artifact', 'group', '1.0', '16.01.2025', 'key')  # NOSONAR
@@ -262,34 +239,6 @@ def test_config_items():
     assert config_items(config_parser, 'base') == [('key', 'value')]
     assert config_items(config_parser, 'other') == []
     assert config_items(config_parser, 'empty') == []
-
-
-# noinspection PyShadowingNames
-def test_log_skip_if_required(mocker):
-    mock_logging = mocker.patch('logging.warning')
-    args = {'show_skip': True}
-    log_skip_if_required(mocker.Mock(), args, 'group', 'artifact', '1.0')
-    mock_logging.assert_called_once_with("Skip: group:artifact:1.0")
-
-
-# noinspection PyShadowingNames
-def test_log_search_if_required(mocker):
-    args = {'show_search': True}
-    mock_logging = mocker.patch('logging.warning')
-    log_search_if_required(mocker.Mock(), args, 'group', 'artifact', '${version}')
-    mock_logging.assert_called_once_with("Search: group:artifact:${version}")
-
-    mock_logging = mocker.patch('logging.info')
-    log_search_if_required(mocker.Mock(), args, 'group', 'artifact', '1.0')
-    mock_logging.assert_called_once_with("Search: group:artifact:1.0")
-
-
-# noinspection PyShadowingNames
-def test_log_invalid_if_required(mocker):
-    mock_logging = mocker.patch('logging.warning')
-    args = {'show_invalid': True}
-    log_invalid_if_required(mocker.Mock(), args, mocker.Mock(), 'group', 'artifact', '1.0', False)
-    mock_logging.assert_called_once_with("Invalid: group:artifact:1.0")
 
 
 # noinspection PyShadowingNames
@@ -349,20 +298,6 @@ def test_load_pom_tree(mocker):
     mock_requests.return_value.status_code = 404
     with pytest.raises(FileNotFoundError):
         load_pom_tree(pom_path, True, config_parser, {})
-
-
-# noinspection PyShadowingNames
-def test_configure_logging(mocker):
-    mock_logging = mocker.patch('logging.basicConfig')
-    configure_logging({'logfile_off': False})
-    mock_logging.assert_called_once_with(
-        level=logging.INFO, handlers=[mocker.ANY, mocker.ANY],
-        format='%(asctime)s %(levelname)s: %(message)s'
-    )
-    handlers = mock_logging.call_args[1]['handlers']
-    assert isinstance(handlers[0], logging.StreamHandler)
-    assert isinstance(handlers[1], logging.FileHandler)
-    assert PurePath(handlers[1].baseFilename).name == 'maven_check_versions.log'
 
 
 # noinspection PyShadowingNames
