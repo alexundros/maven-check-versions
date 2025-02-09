@@ -20,6 +20,8 @@ It checks the versions of dependencies in a project and identifies the latest av
 Developed for developers, this package simplifies dependency management in Maven-based projects.
 It is especially useful in CI/CD environments, where maintaining consistency and up-to-date dependencies is critical.
 
+See https://pypi.org/project/maven-check-versions for more details.
+
 ---
 
 ## Features
@@ -42,8 +44,6 @@ You can install the tool via `pip`:
 ```bash
 pip install maven_check_versions
 ```
-
-See https://pypi.org/project/maven-check-versions for more details.
 
 ---
 
@@ -155,7 +155,7 @@ docker run --rm alexundros/maven_check_versions -ci
 
 ## Configuration
 
-You can customize the tool’s behavior using a configuration file `maven_check_versions.cfg` or environment variables.
+You can customize the tool’s behavior using a configuration file `maven_check_versions.cfg`.
 The following settings can be adjusted:
 
 - **SSL Verification:** Enable or disable SSL verification for HTTP requests.
@@ -163,12 +163,50 @@ The following settings can be adjusted:
 - **Repository Settings:** Define base URLs, authentication, and paths for repositories.
 - **Logging Preferences:** Specify log levels and file paths.
 
-See the [`maven_check_versions.cfg.dist`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/maven_check_versions.cfg.dist) file configuration file structure.
+### Example configuration
+
+```maven_check_versions.cfg
+[base]
+cache_off = false
+cache_time = 600
+fail_mode = false
+fail_major = 0
+fail_minor = 0
+plugins = false
+modules = false
+show_skip = false
+show_search = false
+empty_version = false
+show_invalid = false
+skip_version = true
+user = USER
+password = PASSWORD
+
+[pom_http]
+auth = true
+
+[urllib3]
+warnings = true
+
+[requests]
+verify = true
+
+[pom_files]
+pom-name = <path-to-pom.xml>
+
+[repositories]
+Central (repo1.maven.org) = repo1.maven
+
+[repo1.maven]
+base = https://repo1.maven.org
+path = maven2
+auth = false
+```
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See the [`LICENSE`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/LICENSE) file for more details.
+This project is licensed under the MIT License.
 
 ---
