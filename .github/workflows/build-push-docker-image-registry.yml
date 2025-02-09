@@ -48,3 +48,12 @@ jobs:
             ghcr.io/alexundros/maven-check-versions:${{ steps.version.outputs.version }}
             alexundros/maven-check-versions:latest
             alexundros/maven-check-versions:${{ steps.version.outputs.version }}
+
+      # Only if 2FA is disabled and the token has full access
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: alexundros
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: alexundros/maven-check-versions
+          readme-filepath: ./DockerHub.md
