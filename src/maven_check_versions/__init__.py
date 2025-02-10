@@ -30,7 +30,8 @@ from .logutils import (
     configure_logging
 )
 from .utils import (
-    get_config_value
+    get_config_value,
+    get_artifact_name
 )
 
 
@@ -164,22 +165,6 @@ def load_pom_tree(
         if not os.path.exists(pom_path):
             raise FileNotFoundError(f'{pom_path} not found')
         return ET.parse(pom_path)
-
-
-def get_artifact_name(root_element: ET.Element, ns_mapping: dict) -> str:
-    """
-    Get the full name of the artifact from the POM file.
-
-    Args:
-        root_element (ET.Element): Root element of the POM file.
-        ns_mapping (dict): XML namespace mapping.
-
-    Returns:
-        str: Full artifact name.
-    """
-    artifact_id = root_element.find('./xmlns:artifactId', namespaces=ns_mapping).text
-    group_id_element = root_element.find('./xmlns:groupId', namespaces=ns_mapping)
-    return (group_id_element.text + ':' if group_id_element is not None else '') + artifact_id
 
 
 def collect_dependencies(

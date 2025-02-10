@@ -16,7 +16,7 @@ sys.path.append('../src')
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions import (  # noqa: E402
-    parse_command_line_arguments, load_cache, save_cache, get_artifact_name,
+    parse_command_line_arguments, load_cache, save_cache,
     get_dependency_identifiers, collect_dependencies, resolve_version,
     get_version, update_cache, process_cache,
     config_items, fail_mode_if_required, pom_data, load_pom_tree,
@@ -88,19 +88,6 @@ def test_parse_command_line_arguments(mocker):
     assert args['show_invalid'] is True
     assert args['user'] == 'user'
     assert args['password'] == 'password'
-
-
-def test_get_artifact_name():
-    root = ET.fromstring("""
-    <?xml version="1.0" encoding="UTF-8"?>
-    <project xmlns="http://maven.apache.org/POM/4.0.0">
-        <groupId>groupId</groupId>
-        <artifactId>artifactId</artifactId>
-        <version>1.0</version>
-    </project>
-    """.lstrip())
-    result = get_artifact_name(root, ns_mappings)
-    assert result == "groupId:artifactId"
 
 
 def test_get_dependency_identifiers():

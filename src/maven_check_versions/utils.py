@@ -3,6 +3,8 @@
 
 import configparser
 import os
+# noinspection PyPep8Naming
+import xml.etree.ElementTree as ET
 from configparser import ConfigParser
 
 
@@ -39,3 +41,19 @@ def get_config_value(
         return value
     except configparser.Error:
         return None
+
+
+def get_artifact_name(root_element: ET.Element, ns_mapping: dict) -> str:
+    """
+    Get the full name of the artifact from the POM file.
+
+    Args:
+        root_element (ET.Element): Root element of the POM file.
+        ns_mapping (dict): XML namespace mapping.
+
+    Returns:
+        str: Full artifact name.
+    """
+    artifact_id = root_element.find('./xmlns:artifactId', namespaces=ns_mapping).text
+    group_id_element = root_element.find('./xmlns:groupId', namespaces=ns_mapping)
+    return (group_id_element.text + ':' if group_id_element is not None else '') + artifact_id
