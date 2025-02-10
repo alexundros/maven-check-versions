@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Tests for maven_check_versions package"""
+"""Tests for package log utility functions"""
 
 import logging
 import os

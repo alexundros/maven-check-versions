@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""This file provides utility functions used throughout the module"""
+"""This file provides utility functions"""
 
 import configparser
 import os

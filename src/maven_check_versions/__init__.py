@@ -1,10 +1,8 @@
 #!/usr/bin/python3
-"""Main entry point for the module"""
+"""Main entry point for the package"""
 
 import configparser
-import json
 import logging
-import math
 import os
 import re
 import sys
@@ -19,6 +17,12 @@ import dateutil.parser as parser
 import requests
 import urllib3
 from bs4 import BeautifulSoup
+from .cache import (
+    load_cache,
+    save_cache,
+    update_cache,
+    process_cache
+)
 from .logutils import (
     log_skip_if_required,
     log_search_if_required,
@@ -100,37 +104,6 @@ def main_process(arguments: dict) -> None:
         save_cache(cache_data, cache_file_path)
 
 
-def load_cache(cache_file: str) -> dict:
-    """
-    Load cache from a file.
-
-    Args:
-        cache_file (str): Path to the cache file.
-
-    Returns:
-        dict: A dictionary representing the loaded cache.
-    """
-    if os.path.exists(cache_file):
-        logging.info(f"Load Cache: {Path(cache_file).absolute()}")
-        with open(cache_file) as cf:
-            return json.load(cf)
-    return {}
-
-
-def save_cache(cache_data: dict, cache_file: str) -> None:
-    """
-    Save cache to a file.
-
-    Args:
-        cache_data (dict): The cache data to be saved.
-        cache_file (str): Path to the file where the cache will be saved.
-    """
-    if cache_data is not None:
-        logging.info(f"Save Cache: {Path(cache_file).absolute()}")
-        with open(cache_file, 'w') as cf:
-            json.dump(cache_data, cf)
-
-
 def process_pom(
         cache_data: dict | None, config_parser: ConfigParser, arguments: dict, pom_path: str, prefix: str = None
 ) -> None:
@@ -156,11 +129,9 @@ def process_pom(
     logging.info(f"=== Processing: {artifact_name} ===")
 
     dependencies = collect_dependencies(root_element, ns_mapping, config_parser, arguments)
-    process_dependencies(
-        cache_data, config_parser, arguments, dependencies, ns_mapping, root_element, verify_ssl)
+    process_dependencies(cache_data, config_parser, arguments, dependencies, ns_mapping, root_element, verify_ssl)
 
-    process_modules_if_required(
-        cache_data, config_parser, arguments, root_element, pom_path, ns_mapping, prefix)
+    process_modules_if_required(cache_data, config_parser, arguments, root_element, pom_path, ns_mapping, prefix)
 
 
 def load_pom_tree(
@@ -264,12 +235,10 @@ def process_dependencies(
         log_search_if_required(config_parser, arguments, group_id, artifact_id, version)
 
         if cache_data is not None and cache_data.get(f"{group_id}:{artifact_id}") is not None:
-            if process_cached_data(
-                    arguments, cache_data, config_parser, artifact_id, group_id, version):
+            if process_cache(arguments, cache_data, config_parser, artifact_id, group_id, version):
                 continue
 
-        if not process_repositories(
-                artifact_id, cache_data, config_parser, group_id, arguments, verify_ssl, version):
+        if not process_repositories(artifact_id, cache_data, config_parser, group_id, arguments, verify_ssl, version):
             logging.warning(f"Not Found: {group_id}:{artifact_id}, current:{version}")
 
 
@@ -289,53 +258,18 @@ def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tupl
     return None if artifact_id is None else artifact_id.text, None if group_id is None else group_id.text
 
 
-def process_cached_data(
-        arguments: dict, cache_data: dict | None, config_parser: ConfigParser, artifact_id_text: str,
-        group_id_text: str, version: str
-) -> bool:
-    """
-    Process cached data for a dependency.
-
-    Args:
-        arguments (dict): Parsed command line arguments.
-        cache_data (dict | None): Cache data containing dependency information.
-        config_parser (ConfigParser): Configuration parser for settings.
-        artifact_id_text (str): Artifact ID of the dependency.
-        group_id_text (str): Group ID of the dependency.
-        version (str): Version of the dependency.
-
-    Returns:
-        bool: True if the cached data is valid and up-to-date, False otherwise.
-    """
-    data = cache_data.get(f"{group_id_text}:{artifact_id_text}")
-    cached_time, cached_version, cached_key, cached_date, cached_versions = data
-    if cached_version == version:
-        return True
-
-    cache_time_threshold = get_config_value(config_parser, arguments, 'cache_time', value_type=int)
-
-    if cache_time_threshold == 0 or time.time() - cached_time < cache_time_threshold:
-        message_format = '*{}: {}:{}, current:{} versions: {} updated: {}'
-        formatted_date = cached_date if cached_date is not None else ''
-        logging.info(message_format.format(
-            cached_key, group_id_text, artifact_id_text, version, ', '.join(cached_versions),
-            formatted_date).rstrip())
-        return True
-    return False
-
-
 def process_repositories(
-        artifact_id_text: str, cache_data: dict | None, config_parser: ConfigParser, group_id_text: str,
+        artifact_id: str, cache_data: dict | None, config_parser: ConfigParser, group_id: str,
         arguments: dict, verify_ssl: bool, version: str
 ):
     """
     Process repositories to find a dependency.
 
     Args:
-        artifact_id_text (str): Artifact ID of the dependency.
+        artifact_id (str): Artifact ID of the dependency.
         cache_data (dict | None): Cache data containing dependency information.
         config_parser (ConfigParser): Configuration parser for settings.
-        group_id_text (str): Group ID of the dependency.
+        group_id (str): Group ID of the dependency.
         arguments (dict): Parsed command line arguments.
         verify_ssl (bool): Whether to verify SSL certificates.
         version (str): Version of the dependency.
@@ -346,7 +280,7 @@ def process_repositories(
     if len(items := config_items(config_parser, 'repositories')):
         for section_key, repository_section in items:
             if (process_repository(
-                    cache_data, config_parser, arguments, group_id_text, artifact_id_text, version,
+                    cache_data, config_parser, arguments, group_id, artifact_id, version,
                     section_key, repository_section, verify_ssl)):
                 return True
     return False
@@ -443,24 +377,24 @@ def get_version(
     return version_text, False
 
 
-def resolve_version(version_text: str, root_element: ET.Element, ns_mapping: dict) -> str:
+def resolve_version(version: str, root_element: ET.Element, ns_mapping: dict) -> str:
     """
     Resolves in version text by checking POM properties.
 
     Args:
-        version_text (str): The version text, potentially containing placeholders.
+        version (str): The version text, potentially containing placeholders.
         root_element (ET.Element): Root element of the POM file.
         ns_mapping (dict): XML namespace mapping for parsing.
 
     Returns:
         str: Resolved version text or None if unresolved.
     """
-    if match := re.match(r'^\${([^}]+)}$', version_text):
+    if match := re.match(r'^\${([^}]+)}$', version):
         property_xpath = f"./xmlns:properties/xmlns:{match.group(1)}"
         property_element = root_element.find(property_xpath, namespaces=ns_mapping)
         if property_element is not None:
-            version_text = property_element.text
-    return version_text
+            version = property_element.text
+    return version
 
 
 def process_repository(
@@ -522,9 +456,9 @@ def process_repository(
 
 
 def check_versions(
-        cache_data: dict | None, config_parser: ConfigParser, arguments: dict, group_id: str, artifact_id: str,
-        version: str, section_key: str, path: str, auth_info: tuple, verify_ssl: bool, available_versions: list[str],
-        response: requests.Response
+        cache_data: dict | None, config_parser: ConfigParser, arguments: dict, group_id: str,
+        artifact_id: str, version: str, section_key: str, path: str, auth_info: tuple, verify_ssl: bool,
+        available_versions: list[str], response: requests.Response
 ) -> bool:
     """
     Check versions.
@@ -564,8 +498,7 @@ def check_versions(
 
     for item in available_versions:
         if item == version and skip_current:
-            update_cache_data(
-                cache_data, available_versions, artifact_id, group_id, item, None, section_key)
+            update_cache(cache_data, available_versions, artifact_id, group_id, item, None, section_key)
             return True
 
         is_valid, last_modified = pom_data(auth_info, verify_ssl, artifact_id, item, path)
@@ -573,8 +506,7 @@ def check_versions(
             logging.info('{}: {}:{}, current:{} {} {}'.format(
                 section_key, group_id, artifact_id, version, available_versions[:3], last_modified).rstrip())
 
-            update_cache_data(
-                cache_data, available_versions, artifact_id, group_id, item, last_modified, section_key)
+            update_cache(cache_data, available_versions, artifact_id, group_id, item, last_modified, section_key)
 
             fail_mode_if_required(
                 config_parser, current_major, current_minor, item,
@@ -582,32 +514,10 @@ def check_versions(
             return True
 
         else:
-            log_invalid_if_required(
-                config_parser, arguments, response, group_id, artifact_id, item, invalid_flag)
+            log_invalid_if_required(config_parser, arguments, response, group_id, artifact_id, item, invalid_flag)
             invalid_flag = True
 
     return False
-
-
-def update_cache_data(
-        cache_data: dict | None, available_versions: list, artifact_id: str, group_id, item: str,
-        last_modified_date: str | None, section_key: str
-) -> None:
-    """
-    Update the cache data with the latest information about the artifact.
-
-    Args:
-        cache_data (dict | None): The cache dictionary where data is stored.
-        available_versions (list): List of available versions for the artifact.
-        artifact_id (str): The artifact ID of the Maven dependency.
-        group_id (str): The group ID of the Maven dependency.
-        item (str): The specific version item being processed.
-        last_modified_date (str | None): The last modified date of the artifact.
-        section_key (str): The key for the repository section.
-    """
-    if cache_data is not None:
-        value = (math.trunc(time.time()), item, section_key, last_modified_date, available_versions[:3])
-        cache_data[f"{group_id}:{artifact_id}"] = value
 
 
 def fail_mode_if_required(
@@ -642,8 +552,9 @@ def fail_mode_if_required(
 
 
 def service_rest(
-        cache_data: dict | None, config_parser: ConfigParser, arguments: dict, group_id: str, artifact_id: str,
-        version: str, section_key: str, repository_section: str, base_url: str, auth_info: tuple, verify_ssl: bool
+        cache_data: dict | None, config_parser: ConfigParser, arguments: dict, group_id: str,
+        artifact_id: str, version: str, section_key: str, repository_section: str, base_url: str,
+        auth_info: tuple, verify_ssl: bool
 ) -> bool:
     """
     Process REST services.
@@ -697,7 +608,9 @@ def service_rest(
     return False
 
 
-def pom_data(auth_info: tuple, verify_ssl: bool, artifact_id: str, version: str, path: str) -> tuple[bool, str | None]:
+def pom_data(
+        auth_info: tuple, verify_ssl: bool, artifact_id: str, version: str, path: str
+) -> tuple[bool, str | None]:
     """
     Get POM data.
 

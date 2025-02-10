@@ -1,9 +1,8 @@
 #!/usr/bin/python3
-"""Tests for maven_check_versions package"""
+"""Tests for package init"""
 
 import os
 import sys
-import time
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from configparser import ConfigParser
@@ -19,7 +18,7 @@ sys.path.append('../src')
 from maven_check_versions import (  # noqa: E402
     parse_command_line_arguments, load_cache, save_cache, get_artifact_name,
     get_dependency_identifiers, collect_dependencies, resolve_version,
-    get_version, update_cache_data, process_cached_data,
+    get_version, update_cache, process_cache,
     config_items, fail_mode_if_required, pom_data, load_pom_tree,
     check_versions, service_rest, process_repository,
     process_repositories, process_modules_if_required, find_artifact,
@@ -89,26 +88,6 @@ def test_parse_command_line_arguments(mocker):
     assert args['show_invalid'] is True
     assert args['user'] == 'user'
     assert args['password'] == 'password'
-
-
-# noinspection PyShadowingNames
-def test_load_cache(mocker):
-    mocker.patch('os.path.exists', return_value=True)
-    mocker.patch('builtins.open', mocker.mock_open(read_data='{"key": "value"}'))
-    assert load_cache('test_cache.cache') == {'key': 'value'}
-
-    mocker.patch('os.path.exists', return_value=False)
-    assert load_cache('test_cache.cache') == {}
-
-
-# noinspection PyShadowingNames
-def test_save_cache(mocker):
-    mock_open = mocker.patch('builtins.open')
-    mock_json = mocker.patch('json.dump')
-    save_cache({'key': 'value'}, 'test_cache.cache')
-    mock_open.assert_called_once_with('test_cache.cache', 'w')
-    mock_open_rv = mock_open.return_value.__enter__.return_value
-    mock_json.assert_called_once_with({'key': 'value'}, mock_open_rv)
 
 
 def test_get_artifact_name():
@@ -211,25 +190,6 @@ def test_get_version(mocker):
 
     version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[2])
     assert version == '${dependency.version}' and skip_flag
-
-
-def test_update_cache_data():
-    cache_data = {}
-    update_cache_data(cache_data, ['1.0'], 'artifact', 'group', '1.0', '16.01.2025', 'key')  # NOSONAR
-    data = (pytest.approx(time.time()), '1.0', 'key', '16.01.2025', ['1.0'])
-    assert cache_data == {'group:artifact': data}
-
-
-# noinspection PyShadowingNames
-def test_process_cached_data(mocker):
-    config_parser = ConfigParser()
-    data = {'group:artifact': (time.time() - 100, '1.0', 'key', '23.01.2025', ['1.0', '1.1'])}
-    assert process_cached_data({'cache_time': 0}, data, config_parser, 'artifact', 'group', '1.0')
-    assert not process_cached_data({'cache_time': 50}, data, config_parser, 'artifact', 'group', '1.1')
-
-    mock = mocker.patch('logging.info')
-    assert process_cached_data({'cache_time': 0}, data, config_parser, 'artifact', 'group', '1.1')
-    mock.assert_called_once_with('*key: group:artifact, current:1.1 versions: 1.0, 1.1 updated: 23.01.2025')
 
 
 def test_config_items():
@@ -514,7 +474,7 @@ def test_process_dependencies(mocker):
     mock_logging.assert_called_once()
 
     mock_get_version.return_value = ('1.0', False)
-    mocker.patch('maven_check_versions.process_cached_data', return_value=True)
+    mocker.patch('maven_check_versions.process_cache', return_value=True)
     _process_dependencies({'group:artifact': ()})
 
     mocker.patch('maven_check_versions.process_repositories', return_value=False)
