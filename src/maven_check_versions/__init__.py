@@ -9,7 +9,6 @@ import sys
 import time
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
-from argparse import ArgumentParser
 from configparser import ConfigParser
 from pathlib import Path
 
@@ -89,18 +88,18 @@ def process_pom(
     verify_ssl = get_config_value(config_parser, arguments, 'verify', 'requests', value_type=bool)
 
     tree = load_pom_tree(pom_path, verify_ssl, config_parser, arguments)
-    root_element = tree.getroot()
+    root = tree.getroot()
     ns_mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}  # NOSONAR
 
-    artifact_name = get_artifact_name(root_element, ns_mapping)
+    artifact_name = get_artifact_name(root, ns_mapping)
     if prefix is not None:
         prefix = artifact_name = f"{prefix} / {artifact_name}"
     logging.info(f"=== Processing: {artifact_name} ===")
 
-    dependencies = collect_dependencies(root_element, ns_mapping, config_parser, arguments)
-    process_dependencies(cache_data, config_parser, arguments, dependencies, ns_mapping, root_element, verify_ssl)
+    dependencies = collect_dependencies(root, ns_mapping, config_parser, arguments)
+    process_dependencies(cache_data, config_parser, arguments, dependencies, ns_mapping, root, verify_ssl)
 
-    process_modules_if_required(cache_data, config_parser, arguments, root_element, pom_path, ns_mapping, prefix)
+    process_modules_if_required(cache_data, config_parser, arguments, root, pom_path, ns_mapping, prefix)
 
 
 def load_pom_tree(
@@ -136,13 +135,13 @@ def load_pom_tree(
 
 
 def collect_dependencies(
-        root_element: ET.Element, ns_mapping: dict, config_parser: ConfigParser, arguments: dict
+        root: ET.Element, ns_mapping: dict, config_parser: ConfigParser, arguments: dict
 ) -> list:
     """
     Collect dependencies from the POM file.
 
     Args:
-        root_element (ET.Element): Root element of the POM file.
+        root (ET.Element): Root element of the POM file.
         ns_mapping (dict): XML namespace mapping.
         config_parser (ConfigParser): Configuration data.
         arguments (dict): Command line arguments.
@@ -150,17 +149,17 @@ def collect_dependencies(
     Returns:
         list: List of dependencies from the POM file.
     """
-    dependencies = root_element.findall('.//xmlns:dependency', namespaces=ns_mapping)
+    dependencies = root.findall('.//xmlns:dependency', namespaces=ns_mapping)
     if get_config_value(config_parser, arguments, 'search_plugins', value_type=bool):
         plugin_xpath = './/xmlns:plugins/xmlns:plugin'
-        plugins = root_element.findall(plugin_xpath, namespaces=ns_mapping)
+        plugins = root.findall(plugin_xpath, namespaces=ns_mapping)
         dependencies.extend(plugins)
     return dependencies
 
 
 def process_dependencies(
         cache_data: dict | None, config_parser: ConfigParser, arguments: dict, dependencies: list,
-        ns_mapping: dict, root_element: ET.Element, verify_ssl: bool
+        ns_mapping: dict, root: ET.Element, verify_ssl: bool
 ) -> None:
     """
     Process dependencies in a POM file.
@@ -171,7 +170,7 @@ def process_dependencies(
         arguments (dict): Command-line arguments.
         dependencies (list): List of dependencies from the POM file.
         ns_mapping (dict): XML namespace mapping.
-        root_element (ET.Element): Root XML element of the POM file.
+        root (ET.Element): Root XML element of the POM file.
         verify_ssl (bool): Whether to verify HTTPS certificates.
     """
     for dependency in dependencies:
@@ -180,7 +179,7 @@ def process_dependencies(
             logging.error("Missing artifactId or groupId in a dependency.")
             continue
 
-        version, skip_flag = get_version(config_parser, arguments, ns_mapping, root_element, dependency)
+        version, skip_flag = get_version(config_parser, arguments, ns_mapping, root, dependency)
         if skip_flag is True:
             log_skip_if_required(config_parser, arguments, group_id, artifact_id, version)
             continue
@@ -240,7 +239,7 @@ def process_repositories(
 
 
 def process_modules_if_required(
-        cache_data: dict | None, config_parser: ConfigParser, arguments: dict, root_element: ET.Element,
+        cache_data: dict | None, config_parser: ConfigParser, arguments: dict, root: ET.Element,
         pom_path: str, ns_mapping: dict, prefix: str = None
 ) -> None:
     """
@@ -250,7 +249,7 @@ def process_modules_if_required(
         cache_data (dict | None): Cache data for dependencies.
         config_parser (ConfigParser): Configuration data.
         arguments (dict): Command line arguments.
-        root_element (ET.Element): Root element of the POM file.
+        root (ET.Element): Root element of the POM file.
         pom_path (str): Path to the POM file.
         ns_mapping (dict): XML namespace mapping.
         prefix (str): Prefix for the artifact name.
@@ -259,7 +258,7 @@ def process_modules_if_required(
         directory_path = os.path.dirname(pom_path)
         module_xpath = './/xmlns:modules/xmlns:module'
 
-        for module in root_element.findall(module_xpath, namespaces=ns_mapping):
+        for module in root.findall(module_xpath, namespaces=ns_mapping):
             module_pom_path = f"{directory_path}/{module.text}/pom.xml"
             if os.path.exists(module_pom_path):
                 process_pom(cache_data, config_parser, arguments, module_pom_path, prefix)
@@ -293,7 +292,7 @@ def find_artifact(
 
 
 def get_version(
-        config_parser: ConfigParser, arguments: dict, ns_mapping: dict, root_element: ET.Element,
+        config_parser: ConfigParser, arguments: dict, ns_mapping: dict, root: ET.Element,
         dependency: ET.Element
 ) -> tuple[str | None, bool]:
     """
@@ -303,7 +302,7 @@ def get_version(
         config_parser (ConfigParser): The configuration parser.
         arguments (dict): Dictionary containing the parsed command line arguments.
         ns_mapping (dict): Namespace dictionary for XML parsing.
-        root_element (ET.Element): Root element of the POM file.
+        root (ET.Element): Root element of the POM file.
         dependency (ET.Element): Dependency element from which to extract version.
 
     Returns:
@@ -311,17 +310,17 @@ def get_version(
             A tuple containing the resolved version and a boolean indicating if the version should be skipped.
     """
     version_text = ''
-    version_element = dependency.find('xmlns:version', namespaces=ns_mapping)
+    version = dependency.find('xmlns:version', namespaces=ns_mapping)
 
-    if version_element is None:
+    if version is None:
         if not get_config_value(config_parser, arguments, 'empty_version', value_type=bool):
             return None, True
     else:
-        version_text = resolve_version(version_element.text, root_element, ns_mapping)
+        version_text = resolve_version(version.text, root, ns_mapping)
 
         if version_text == '${project.version}':
-            project_version_text = root_element.find('xmlns:version', namespaces=ns_mapping).text
-            version_text = resolve_version(project_version_text, root_element, ns_mapping)
+            project_version_text = root.find('xmlns:version', namespaces=ns_mapping).text
+            version_text = resolve_version(project_version_text, root, ns_mapping)
 
         if re.match('^\\${([^}]+)}$', version_text):
             if not get_config_value(config_parser, arguments, 'empty_version', value_type=bool):
@@ -330,13 +329,13 @@ def get_version(
     return version_text, False
 
 
-def resolve_version(version: str, root_element: ET.Element, ns_mapping: dict) -> str:
+def resolve_version(version: str, root: ET.Element, ns_mapping: dict) -> str:
     """
     Resolves in version text by checking POM properties.
 
     Args:
         version (str): The version text, potentially containing placeholders.
-        root_element (ET.Element): Root element of the POM file.
+        root (ET.Element): Root element of the POM file.
         ns_mapping (dict): XML namespace mapping for parsing.
 
     Returns:
@@ -344,7 +343,7 @@ def resolve_version(version: str, root_element: ET.Element, ns_mapping: dict) ->
     """
     if match := re.match(r'^\${([^}]+)}$', version):
         property_xpath = f"./xmlns:properties/xmlns:{match.group(1)}"
-        property_element = root_element.find(property_xpath, namespaces=ns_mapping)
+        property_element = root.find(property_xpath, namespaces=ns_mapping)
         if property_element is not None:
             version = property_element.text
     return version
