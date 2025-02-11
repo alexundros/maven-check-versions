@@ -15,7 +15,7 @@ sys.path.append('../src')
 # noinspection PyUnresolvedReferences
 from maven_check_versions.utils import (  # noqa: E402
     parse_command_line, get_artifact_name,
-    collect_dependencies
+    collect_dependencies, get_dependency_identifiers
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -111,3 +111,16 @@ def test_collect_dependencies(mocker):
     args = {'search_plugins': True}
     result = collect_dependencies(root, ns_mappings, mocker.Mock(), args)
     assert len(result) == 3
+
+
+def test_get_dependency_identifiers():
+    dependency = ET.fromstring("""
+    <?xml version="1.0" encoding="UTF-8"?>
+    <dependency xmlns="http://maven.apache.org/POM/4.0.0">
+        <groupId>groupId</groupId>
+        <artifactId>artifactId</artifactId>
+        <version>1.0</version>
+    </dependency>
+    """.lstrip())
+    artifact, group = get_dependency_identifiers(dependency, ns_mappings)
+    assert artifact == 'artifactId' and group == 'groupId'

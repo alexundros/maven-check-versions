@@ -42,19 +42,6 @@ from maven_check_versions.utils import (  # noqa: E402
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
 
 
-def test_get_dependency_identifiers():
-    dependency = ET.fromstring("""
-    <?xml version="1.0" encoding="UTF-8"?>
-    <dependency xmlns="http://maven.apache.org/POM/4.0.0">
-        <groupId>groupId</groupId>
-        <artifactId>artifactId</artifactId>
-        <version>1.0</version>
-    </dependency>
-    """.lstrip())
-    artifact, group = get_dependency_identifiers(dependency, ns_mappings)
-    assert artifact == 'artifactId' and group == 'groupId'
-
-
 def test_resolve_version():
     root = ET.fromstring("""
     <?xml version="1.0" encoding="UTF-8"?>

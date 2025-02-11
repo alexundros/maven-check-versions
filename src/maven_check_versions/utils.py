@@ -79,3 +79,19 @@ def collect_dependencies(
         plugins = root.findall(plugin_xpath, namespaces=ns_mapping)
         dependencies.extend(plugins)
     return dependencies
+
+
+def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tuple[str, str | None]:
+    """
+    Extract artifactId and groupId from a dependency.
+
+    Args:
+        dependency (ET.Element): Dependency element.
+        ns_mapping (dict): XML namespace mapping.
+
+    Returns:
+        tuple[str, str | None]: artifactId and groupId (if present).
+    """
+    artifact_id = dependency.find('xmlns:artifactId', namespaces=ns_mapping)
+    group_id = dependency.find('xmlns:groupId', namespaces=ns_mapping)
+    return None if artifact_id is None else artifact_id.text, None if group_id is None else group_id.text
