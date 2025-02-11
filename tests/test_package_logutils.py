@@ -25,6 +25,7 @@ from maven_check_versions.logutils import (  # noqa: E402
 # noinspection PyShadowingNames
 def test_configure_logging(mocker):
     mock_logging = mocker.patch('logging.basicConfig')
+    mocker.patch('builtins.open', mocker.mock_open(read_data='{}'))
     configure_logging({'logfile_off': False})
     mock_logging.assert_called_once_with(
         level=logging.INFO, handlers=[mocker.ANY, mocker.ANY],
