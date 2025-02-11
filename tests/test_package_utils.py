@@ -14,7 +14,8 @@ sys.path.append('../src')
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions.utils import (  # noqa: E402
-    parse_command_line, get_artifact_name
+    parse_command_line, get_artifact_name,
+    collect_dependencies
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -80,3 +81,33 @@ def test_get_artifact_name():
     """.lstrip())
     result = get_artifact_name(root, ns_mappings)
     assert result == "groupId:artifactId"
+
+
+# noinspection PyShadowingNames
+def test_collect_dependencies(mocker):
+    root = ET.fromstring("""
+    <?xml version="1.0" encoding="UTF-8"?>
+    <project xmlns="http://maven.apache.org/POM/4.0.0">
+        <dependencies>
+            <dependency>
+                <groupId>groupId</groupId>
+                <artifactId>artifactId</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>groupId</groupId>
+                <artifactId>artifactId</artifactId>
+            </dependency>
+        </dependencies> 
+        <build>
+            <plugins>
+            <plugin>
+                <groupId>groupId</groupId>
+                <artifactId>artifactId</artifactId>
+            </plugin>
+            </plugins>
+        </build>
+    </project>
+    """.lstrip())
+    args = {'search_plugins': True}
+    result = collect_dependencies(root, ns_mappings, mocker.Mock(), args)
+    assert len(result) == 3

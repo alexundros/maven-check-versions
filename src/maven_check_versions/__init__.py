@@ -24,7 +24,10 @@ from .logutils import (
     log_skip_if_required, log_search_if_required,
     log_invalid_if_required, configure_logging
 )
-from .utils import parse_command_line, get_artifact_name
+from .utils import (
+    parse_command_line, get_artifact_name,
+    collect_dependencies
+)
 
 
 def main_process(arguments: dict) -> None:
@@ -124,29 +127,6 @@ def load_pom_tree(
         if not os.path.exists(pom_path):
             raise FileNotFoundError(f'{pom_path} not found')
         return ET.parse(pom_path)
-
-
-def collect_dependencies(
-        root: ET.Element, ns_mapping: dict, config_parser: ConfigParser, arguments: dict
-) -> list:
-    """
-    Collect dependencies from the POM file.
-
-    Args:
-        root (ET.Element): Root element of the POM file.
-        ns_mapping (dict): XML namespace mapping.
-        config_parser (ConfigParser): Configuration data.
-        arguments (dict): Command line arguments.
-
-    Returns:
-        list: List of dependencies from the POM file.
-    """
-    dependencies = root.findall('.//xmlns:dependency', namespaces=ns_mapping)
-    if get_config_value(config_parser, arguments, 'search_plugins', value_type=bool):
-        plugin_xpath = './/xmlns:plugins/xmlns:plugin'
-        plugins = root.findall(plugin_xpath, namespaces=ns_mapping)
-        dependencies.extend(plugins)
-    return dependencies
 
 
 def process_dependencies(

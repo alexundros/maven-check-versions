@@ -4,6 +4,9 @@
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser
+from configparser import ConfigParser
+
+from .config import get_config_value
 
 
 def parse_command_line() -> dict:
@@ -53,3 +56,26 @@ def get_artifact_name(root: ET.Element, ns_mapping: dict) -> str:
     artifact_id = root.find('./xmlns:artifactId', namespaces=ns_mapping).text
     group_id_element = root.find('./xmlns:groupId', namespaces=ns_mapping)
     return (group_id_element.text + ':' if group_id_element is not None else '') + artifact_id
+
+
+def collect_dependencies(
+        root: ET.Element, ns_mapping: dict, config_parser: ConfigParser, arguments: dict
+) -> list:
+    """
+    Collect dependencies from the POM file.
+
+    Args:
+        root (ET.Element): Root element of the POM file.
+        ns_mapping (dict): XML namespace mapping.
+        config_parser (ConfigParser): Configuration data.
+        arguments (dict): Command line arguments.
+
+    Returns:
+        list: List of dependencies from the POM file.
+    """
+    dependencies = root.findall('.//xmlns:dependency', namespaces=ns_mapping)
+    if get_config_value(config_parser, arguments, 'search_plugins', value_type=bool):
+        plugin_xpath = './/xmlns:plugins/xmlns:plugin'
+        plugins = root.findall(plugin_xpath, namespaces=ns_mapping)
+        dependencies.extend(plugins)
+    return dependencies

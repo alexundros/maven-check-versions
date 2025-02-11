@@ -16,7 +16,7 @@ sys.path.append('../src')
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions import (  # noqa: E402
-    get_dependency_identifiers, collect_dependencies, resolve_version,
+    get_dependency_identifiers, resolve_version,
     get_version, fail_mode_if_required, pom_data, load_pom_tree,
     check_versions, service_rest, process_repository,
     process_repositories, process_modules_if_required, find_artifact,
@@ -34,6 +34,11 @@ from maven_check_versions.config import (  # noqa: E402
     get_config_value, config_items
 )
 
+# noinspection PyUnresolvedReferences
+from maven_check_versions.utils import (  # noqa: E402
+    collect_dependencies
+)
+
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
 
 
@@ -48,36 +53,6 @@ def test_get_dependency_identifiers():
     """.lstrip())
     artifact, group = get_dependency_identifiers(dependency, ns_mappings)
     assert artifact == 'artifactId' and group == 'groupId'
-
-
-# noinspection PyShadowingNames
-def test_collect_dependencies(mocker):
-    root = ET.fromstring("""
-    <?xml version="1.0" encoding="UTF-8"?>
-    <project xmlns="http://maven.apache.org/POM/4.0.0">
-        <dependencies>
-            <dependency>
-                <groupId>groupId</groupId>
-                <artifactId>artifactId</artifactId>
-            </dependency>
-            <dependency>
-                <groupId>groupId</groupId>
-                <artifactId>artifactId</artifactId>
-            </dependency>
-        </dependencies> 
-        <build>
-            <plugins>
-            <plugin>
-                <groupId>groupId</groupId>
-                <artifactId>artifactId</artifactId>
-            </plugin>
-            </plugins>
-        </build>
-    </project>
-    """.lstrip())
-    args = {'search_plugins': True}
-    result = collect_dependencies(root, ns_mappings, mocker.Mock(), args)
-    assert len(result) == 3
 
 
 def test_resolve_version():
