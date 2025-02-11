@@ -17,23 +17,21 @@ sys.path.append('../src')
 # noinspection PyUnresolvedReferences
 from maven_check_versions import (  # noqa: E402
     get_dependency_identifiers, collect_dependencies, resolve_version,
-    get_version, config_items, fail_mode_if_required, pom_data,
-    load_pom_tree, check_versions, service_rest, process_repository,
+    get_version, fail_mode_if_required, pom_data, load_pom_tree,
+    check_versions, service_rest, process_repository,
     process_repositories, process_modules_if_required, find_artifact,
     process_dependencies, process_pom, main_process, main
 )
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions.logutils import (  # noqa: E402
-    configure_logging,
-    log_skip_if_required,
-    log_search_if_required,
-    log_invalid_if_required
+    configure_logging, log_skip_if_required,
+    log_search_if_required, log_invalid_if_required
 )
 
 # noinspection PyUnresolvedReferences
-from maven_check_versions.utils import (  # noqa: E402
-    get_config_value
+from maven_check_versions.config import (  # noqa: E402
+    get_config_value, config_items
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -126,15 +124,6 @@ def test_get_version(mocker):
 
     version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[2])
     assert version == '${dependency.version}' and skip_flag
-
-
-def test_config_items():
-    config_parser = ConfigParser()
-    config_parser.optionxform = str
-    config_parser.read_string("[base]\nkey = value\n[empty]")
-    assert config_items(config_parser, 'base') == [('key', 'value')]
-    assert config_items(config_parser, 'other') == []
-    assert config_items(config_parser, 'empty') == []
 
 
 # noinspection PyShadowingNames

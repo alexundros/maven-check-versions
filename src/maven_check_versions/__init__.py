@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 """Main entry point for the package"""
 
-import configparser
 import logging
 import os
 import re
@@ -17,22 +16,15 @@ import requests
 import urllib3
 from bs4 import BeautifulSoup
 from .cache import (
-    load_cache,
-    save_cache,
-    update_cache,
-    process_cache
+    load_cache, save_cache,
+    update_cache, process_cache
 )
+from .config import get_config_value, config_items
 from .logutils import (
-    log_skip_if_required,
-    log_search_if_required,
-    log_invalid_if_required,
-    configure_logging
+    log_skip_if_required, log_search_if_required,
+    log_invalid_if_required, configure_logging
 )
-from .utils import (
-    parse_command_line,
-    get_config_value,
-    get_artifact_name
-)
+from .utils import parse_command_line, get_artifact_name
 
 
 def main_process(arguments: dict) -> None:
@@ -586,23 +578,6 @@ def pom_data(
         return True, parser.parse(last_modified_header).date().isoformat()
 
     return False, None
-
-
-def config_items(config_parser: ConfigParser, section: str) -> list[tuple[str, str]]:
-    """
-    Retrieve all items from a configuration section.
-
-    Args:
-        config_parser (ConfigParser): The configuration parser.
-        section (str): The section of the configuration file.
-
-    Returns:
-        list[tuple[str, str]]: A list of tuples containing the key-value pairs for the specified section.
-    """
-    try:
-        return config_parser.items(section)
-    except configparser.Error:
-        return []
 
 
 # noinspection PyMissingOrEmptyDocstring

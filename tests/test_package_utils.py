@@ -14,9 +14,7 @@ sys.path.append('../src')
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions.utils import (  # noqa: E402
-    parse_command_line,
-    get_config_value,
-    get_artifact_name
+    parse_command_line, get_artifact_name
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -69,28 +67,6 @@ def test_parse_command_line(mocker):
     assert args['show_invalid'] is True
     assert args['user'] == 'user'
     assert args['password'] == 'password'
-
-
-# noinspection PyShadowingNames
-def test_get_config_value(mocker, monkeypatch):
-    mock = mocker.Mock()
-    mock.get.return_value = 'true'
-    assert get_config_value(mock, {}, 'key', value_type=bool) == True
-
-    mock.get.return_value = 'true'
-    assert get_config_value(mock, {'key': False}, 'key', value_type=bool) == False
-
-    monkeypatch.setenv('CV_KEY', 'true')
-    assert get_config_value(mock, {'key': False}, 'key', value_type=bool) == True
-
-    mock.get.return_value = '123'
-    assert get_config_value(mock, {}, 'key', value_type=int) == 123
-
-    mock.get.return_value = '123.45'
-    assert get_config_value(mock, {}, 'key', value_type=float) == 123.45  # NOSONAR
-
-    mock.get.return_value = 'value'
-    assert get_config_value(mock, {}, 'key') == 'value'
 
 
 def test_get_artifact_name():

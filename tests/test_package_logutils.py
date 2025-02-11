@@ -4,7 +4,6 @@
 import logging
 import os
 import sys
-# noinspection PyPep8Naming
 from pathlib import PurePath
 
 # noinspection PyUnresolvedReferences
@@ -15,10 +14,8 @@ sys.path.append('../src')
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions.logutils import (  # noqa: E402
-    configure_logging,
-    log_skip_if_required,
-    log_search_if_required,
-    log_invalid_if_required
+    configure_logging, log_skip_if_required,
+    log_search_if_required, log_invalid_if_required
 )
 
 

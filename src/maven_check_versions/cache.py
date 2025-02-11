@@ -9,7 +9,7 @@ import time
 from configparser import ConfigParser
 from pathlib import Path
 
-from .utils import get_config_value
+from .config import get_config_value
 
 
 def load_cache(cache_file: str) -> dict:

@@ -5,11 +5,10 @@ import datetime
 import logging
 import re
 import sys
-# noinspection PyPep8Naming
 from configparser import ConfigParser
 
 import requests
-from .utils import get_config_value
+from .config import get_config_value
 
 
 def configure_logging(arguments: dict) -> None:
