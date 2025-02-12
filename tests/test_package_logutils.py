@@ -32,7 +32,7 @@ def test_configure_logging(mocker):
     assert isinstance(handlers[0], logging.StreamHandler)
     assert isinstance(handlers[1], logging.FileHandler)
     assert PurePath(handlers[1].baseFilename).name == 'maven_check_versions.log'
-
+    mocker.stopall()
 
 # noinspection PyShadowingNames
 def test_log_skip_if_required(mocker):
