@@ -26,6 +26,7 @@ def test_load_cache(mocker):
 
     mocker.patch('os.path.exists', return_value=False)
     assert load_cache('test_cache.cache') == {}
+    mocker.stopall()
 
 
 # noinspection PyShadowingNames
@@ -36,6 +37,7 @@ def test_save_cache(mocker):
     mock_open.assert_called_once_with('test_cache.cache', 'w')
     mock_open_rv = mock_open.return_value.__enter__.return_value
     mock_json.assert_called_once_with({'key': 'value'}, mock_open_rv)
+    mocker.stopall()
 
 
 # noinspection PyShadowingNames
