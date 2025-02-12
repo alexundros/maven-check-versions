@@ -25,8 +25,8 @@ from .logutils import (
     log_invalid_if_required, configure_logging
 )
 from .utils import (
-    parse_command_line, get_artifact_name,
-    collect_dependencies, get_dependency_identifiers
+    parse_command_line, get_artifact_name, collect_dependencies,
+    get_dependency_identifiers, fail_mode_if_required
 )
 
 
@@ -426,37 +426,6 @@ def check_versions(
             invalid_flag = True
 
     return False
-
-
-def fail_mode_if_required(
-        config_parser: ConfigParser, current_major_version: int, current_minor_version: int, item: str,
-        major_version_threshold: int, minor_version_threshold: int, arguments: dict, version: str
-) -> None:
-    """
-    Check if the fail mode is enabled and if the version difference exceeds the thresholds.
-    If so, log a warning and raise an AssertionError.
-
-    Args:
-        config_parser (ConfigParser): Configuration parser to fetch values from configuration files.
-        current_major_version (int): The current major version of the artifact.
-        current_minor_version (int): The current minor version of the artifact.
-        item (str): The specific version item being processed.
-        major_version_threshold (int): The major version threshold for failure.
-        minor_version_threshold (int): The minor version threshold for failure.
-        arguments (dict): Dictionary of parsed command-line arguments to check runtime options.
-        version (str): The version of the Maven artifact being processed.
-    """
-    if get_config_value(config_parser, arguments, 'fail_mode', value_type=bool):
-        item_major_version = 0
-        item_minor_version = 0
-
-        if item_match := re.match('^(\\d+).(\\d+).?', item):
-            item_major_version, item_minor_version = int(item_match.group(1)), int(item_match.group(2))
-
-        if item_major_version - current_major_version > major_version_threshold or \
-                item_minor_version - current_minor_version > minor_version_threshold:
-            logging.warning(f"Fail version: {item} > {version}")
-            raise AssertionError
 
 
 def service_rest(

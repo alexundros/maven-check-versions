@@ -16,8 +16,7 @@ sys.path.append('../src')
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions import (  # noqa: E402
-    get_dependency_identifiers, resolve_version,
-    get_version, fail_mode_if_required, pom_data, load_pom_tree,
+    resolve_version, get_version, pom_data, load_pom_tree,
     check_versions, service_rest, process_repository,
     process_repositories, process_modules_if_required, find_artifact,
     process_dependencies, process_pom, main_process, main
@@ -36,7 +35,7 @@ from maven_check_versions.config import (  # noqa: E402
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions.utils import (  # noqa: E402
-    collect_dependencies
+    get_dependency_identifiers, collect_dependencies
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -86,16 +85,6 @@ def test_get_version(mocker):
 
     version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[2])
     assert version == '${dependency.version}' and skip_flag
-
-
-# noinspection PyShadowingNames
-def test_fail_mode_if_required(mocker):
-    mock_logging = mocker.patch('logging.warning')
-    with pytest.raises(AssertionError):
-        config_parser = ConfigParser()
-        args = {'fail_mode': True, 'fail_major': 2, 'fail_minor': 2}
-        fail_mode_if_required(config_parser, 1, 0, '4.0', 2, 2, args, '1.0')
-    mock_logging.assert_called_once_with("Fail version: 4.0 > 1.0")
 
 
 # noinspection PyShadowingNames

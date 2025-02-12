@@ -14,8 +14,7 @@ os.chdir(os.path.dirname(__file__))
 sys.path.append('../src')
 
 from maven_check_versions.cache import (
-    load_cache, save_cache,
-    update_cache, process_cache
+    load_cache, save_cache, update_cache, process_cache
 )
 
 

@@ -5,7 +5,9 @@ import os
 import sys
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
+from configparser import ConfigParser
 
+import pytest
 # noinspection PyUnresolvedReferences
 from pytest_mock import mocker
 
@@ -14,8 +16,8 @@ sys.path.append('../src')
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions.utils import (  # noqa: E402
-    parse_command_line, get_artifact_name,
-    collect_dependencies, get_dependency_identifiers
+    parse_command_line, get_artifact_name, collect_dependencies,
+    get_dependency_identifiers, fail_mode_if_required
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -124,3 +126,13 @@ def test_get_dependency_identifiers():
     """.lstrip())
     artifact, group = get_dependency_identifiers(dependency, ns_mappings)
     assert artifact == 'artifactId' and group == 'groupId'
+
+
+# noinspection PyShadowingNames
+def test_fail_mode_if_required(mocker):
+    mock_logging = mocker.patch('logging.warning')
+    with pytest.raises(AssertionError):
+        config_parser = ConfigParser()
+        args = {'fail_mode': True, 'fail_major': 2, 'fail_minor': 2}
+        fail_mode_if_required(config_parser, 1, 0, '4.0', 2, 2, args, '1.0')
+    mock_logging.assert_called_once_with("Fail version: 4.0 > 1.0")
