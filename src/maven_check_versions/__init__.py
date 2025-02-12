@@ -29,66 +29,7 @@ from .utils import (
 )
 
 
-def main_process(arguments: dict) -> None:
-    """
-    Main processing function.
-
-    Args:
-        arguments (dict): Dictionary of parsed command line arguments.
-    """
-    config_parser = get_config_parser(arguments)
-
-    if not get_config_value(config_parser, arguments, 'warnings', 'urllib3', value_type=bool):
-        urllib3.disable_warnings()
-
-    cache_disabled = get_config_value(config_parser, arguments, 'cache_off', value_type=bool)
-    if (cache_file_path := arguments.get('cache_file')) is None:
-        cache_file_path = 'maven_check_versions.cache'
-    cache_data = load_cache(cache_file_path) if not cache_disabled else None
-
-    if pom_file := arguments.get('pom_file'):
-        process_pom(cache_data, config_parser, arguments, pom_file)
-    elif artifact_to_find := arguments.get('find_artifact'):
-        find_artifact(cache_data, config_parser, arguments, artifact_to_find)
-    else:
-        for key, pom in config_items(config_parser, 'pom_files'):
-            process_pom(cache_data, config_parser, arguments, pom)
-
-    if cache_data is not None:
-        save_cache(cache_data, cache_file_path)
-
-
-def process_pom(
-        cache_data: dict | None, config_parser: ConfigParser, arguments: dict, pom_path: str, prefix: str = None
-) -> None:
-    """
-    Process POM files.
-
-    Args:
-        cache_data (dict | None): Cache data for dependencies.
-        config_parser (ConfigParser): Configuration data.
-        arguments (dict): Command line arguments.
-        pom_path (str): Path or URL to the POM file to process.
-        prefix (str, optional): Prefix for the artifact name. Defaults to None.
-    """
-    verify_ssl = get_config_value(config_parser, arguments, 'verify', 'requests', value_type=bool)
-
-    tree = load_pom_tree(pom_path, verify_ssl, config_parser, arguments)
-    root = tree.getroot()
-    ns_mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}  # NOSONAR
-
-    artifact_name = get_artifact_name(root, ns_mapping)
-    if prefix is not None:
-        prefix = artifact_name = f"{prefix} / {artifact_name}"
-    logging.info(f"=== Processing: {artifact_name} ===")
-
-    dependencies = collect_dependencies(root, ns_mapping, config_parser, arguments)
-    process_dependencies(cache_data, config_parser, arguments, dependencies, ns_mapping, root, verify_ssl)
-
-    process_modules_if_required(cache_data, config_parser, arguments, root, pom_path, ns_mapping, prefix)
-
-
-def load_pom_tree(
+def get_pom_tree(
         pom_path: str, verify_ssl: bool, config_parser: ConfigParser, arguments: dict
 ) -> ET.ElementTree:
     """
@@ -118,6 +59,93 @@ def load_pom_tree(
         if not os.path.exists(pom_path):
             raise FileNotFoundError(f'{pom_path} not found')
         return ET.parse(pom_path)
+
+
+def get_pom_data(
+        auth_info: tuple, verify_ssl: bool, artifact_id: str, version: str, path: str
+) -> tuple[bool, str | None]:
+    """
+    Get POM data.
+
+    Args:
+        auth_info (tuple): Tuple containing basic authentication credentials.
+        verify_ssl (bool): Whether to verify SSL certificates.
+        artifact_id (str): The artifact ID.
+        version (str): The version of the artifact.
+        path (str): The path to the dependency in the repository.
+
+    Returns:
+        tuple[bool, str | None]:
+            A tuple containing a boolean indicating if the data was retrieved successfully
+            and the date of the last modification.
+    """
+    url = f"{path}/{version}/{artifact_id}-{version}.pom"
+    response = requests.get(url, auth=auth_info, verify=verify_ssl)
+
+    if response.status_code == 200:
+        last_modified_header = response.headers.get('Last-Modified')
+        return True, parser.parse(last_modified_header).date().isoformat()
+
+    return False, None
+
+
+def process_main(arguments: dict) -> None:
+    """
+    Main processing function.
+
+    Args:
+        arguments (dict): Dictionary of parsed command line arguments.
+    """
+    config_parser = get_config_parser(arguments)
+
+    if not get_config_value(config_parser, arguments, 'warnings', 'urllib3', value_type=bool):
+        urllib3.disable_warnings()
+
+    cache_disabled = get_config_value(config_parser, arguments, 'cache_off', value_type=bool)
+    if (cache_file_path := arguments.get('cache_file')) is None:
+        cache_file_path = 'maven_check_versions.cache'
+    cache_data = load_cache(cache_file_path) if not cache_disabled else None
+
+    if pom_file := arguments.get('pom_file'):
+        process_pom(cache_data, config_parser, arguments, pom_file)
+    elif artifact_to_find := arguments.get('find_artifact'):
+        process_artifact(cache_data, config_parser, arguments, artifact_to_find)
+    else:
+        for key, pom in config_items(config_parser, 'pom_files'):
+            process_pom(cache_data, config_parser, arguments, pom)
+
+    if cache_data is not None:
+        save_cache(cache_data, cache_file_path)
+
+
+def process_pom(
+        cache_data: dict | None, config_parser: ConfigParser, arguments: dict, pom_path: str, prefix: str = None
+) -> None:
+    """
+    Process POM files.
+
+    Args:
+        cache_data (dict | None): Cache data for dependencies.
+        config_parser (ConfigParser): Configuration data.
+        arguments (dict): Command line arguments.
+        pom_path (str): Path or URL to the POM file to process.
+        prefix (str, optional): Prefix for the artifact name. Defaults to None.
+    """
+    verify_ssl = get_config_value(config_parser, arguments, 'verify', 'requests', value_type=bool)
+
+    tree = get_pom_tree(pom_path, verify_ssl, config_parser, arguments)
+    root = tree.getroot()
+    ns_mapping = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}  # NOSONAR
+
+    artifact_name = get_artifact_name(root, ns_mapping)
+    if prefix is not None:
+        prefix = artifact_name = f"{prefix} / {artifact_name}"
+    logging.info(f"=== Processing: {artifact_name} ===")
+
+    dependencies = collect_dependencies(root, ns_mapping, config_parser, arguments)
+    process_dependencies(cache_data, config_parser, arguments, dependencies, ns_mapping, root, verify_ssl)
+
+    process_modules_if_required(cache_data, config_parser, arguments, root, pom_path, ns_mapping, prefix)
 
 
 def process_dependencies(
@@ -211,7 +239,7 @@ def process_modules_if_required(
                 process_pom(cache_data, config_parser, arguments, module_pom_path, prefix)
 
 
-def find_artifact(
+def process_artifact(
         cache_data: dict | None, config_parser: ConfigParser, arguments: dict, artifact_to_find: str
 ) -> None:
     """
@@ -289,14 +317,14 @@ def process_repository(
             return True
 
     if get_config_value(config_parser, arguments, 'service_rest', repository_section, value_type=bool):
-        return service_rest(
+        return process_rest(
             cache_data, config_parser, arguments, group_id, artifact_id, version, section_key,
             repository_section, base_url, auth_info, verify_ssl)
 
     return False
 
 
-def service_rest(
+def process_rest(
         cache_data: dict | None, config_parser: ConfigParser, arguments: dict, group_id: str,
         artifact_id: str, version: str, section_key: str, repository_section: str, base_url: str,
         auth_info: tuple, verify_ssl: bool
@@ -353,34 +381,6 @@ def service_rest(
     return False
 
 
-def pom_data(
-        auth_info: tuple, verify_ssl: bool, artifact_id: str, version: str, path: str
-) -> tuple[bool, str | None]:
-    """
-    Get POM data.
-
-    Args:
-        auth_info (tuple): Tuple containing basic authentication credentials.
-        verify_ssl (bool): Whether to verify SSL certificates.
-        artifact_id (str): The artifact ID.
-        version (str): The version of the artifact.
-        path (str): The path to the dependency in the repository.
-
-    Returns:
-        tuple[bool, str | None]:
-            A tuple containing a boolean indicating if the data was retrieved successfully
-            and the date of the last modification.
-    """
-    url = f"{path}/{version}/{artifact_id}-{version}.pom"
-    response = requests.get(url, auth=auth_info, verify=verify_ssl)
-
-    if response.status_code == 200:
-        last_modified_header = response.headers.get('Last-Modified')
-        return True, parser.parse(last_modified_header).date().isoformat()
-
-    return False, None
-
-
 # noinspection PyMissingOrEmptyDocstring
 def main() -> None:
     exception_occurred = False
@@ -392,7 +392,7 @@ def main() -> None:
         configure_logging(arguments)
         ci_mode_enabled = arguments.get('ci_mode')
 
-        main_process(arguments)
+        process_main(arguments)
 
         elapsed_time = f"{time.time() - start_time:.2f} sec."
         logging.info(f"Processing is completed, {elapsed_time}")

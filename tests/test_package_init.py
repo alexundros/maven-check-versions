@@ -16,9 +16,9 @@ sys.path.append('../src')
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions import (  # noqa: E402
-    resolve_version, get_version, pom_data, load_pom_tree, service_rest,
+    resolve_version, get_version, get_pom_data, get_pom_tree, process_rest,
     process_repository, process_repositories, process_modules_if_required,
-    find_artifact, process_dependencies, process_pom, main_process, main
+    process_artifact, process_dependencies, process_pom, process_main, main
 )
 
 # noinspection PyUnresolvedReferences
@@ -41,21 +41,21 @@ ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
 
 
 # noinspection PyShadowingNames
-def test_pom_data(mocker):
+def test_get_pom_data(mocker):
     pom_path = 'http://example.com/pom.pom'
     headers = {'Last-Modified': 'Wed, 18 Jan 2025 12:00:00 GMT'}
     mock_response = mocker.Mock(status_code=200, headers=headers)
     mock_requests = mocker.patch('requests.get', return_value=mock_response)
-    is_valid, last_modified = pom_data((), True, 'artifact', '1.0', pom_path)
+    is_valid, last_modified = get_pom_data((), True, 'artifact', '1.0', pom_path)
     assert is_valid is True and last_modified == '2025-01-18'
 
     mock_requests.return_value = mocker.Mock(status_code=404)
-    is_valid, last_modified = pom_data((), True, 'artifact', '1.0', pom_path)
+    is_valid, last_modified = get_pom_data((), True, 'artifact', '1.0', pom_path)
     assert is_valid is False and last_modified is None
 
 
 # noinspection PyShadowingNames
-def test_load_pom_tree(mocker):
+def test_get_pom_tree(mocker):
     xml = """<?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <groupId>group</groupId>
@@ -71,27 +71,27 @@ def test_load_pom_tree(mocker):
     """)
     mocker.patch('os.path.exists', return_value=True)
     mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data=xml))
-    tree = load_pom_tree('pom.xml', True, config_parser, {})
+    tree = get_pom_tree('pom.xml', True, config_parser, {})
     mock_open.assert_called_once_with('pom.xml', 'rb')
     assert isinstance(tree, ET.ElementTree)
 
     mocker.patch('os.path.exists', return_value=False)
     with pytest.raises(FileNotFoundError):
-        load_pom_tree('pom.xml', True, config_parser, {})
+        get_pom_tree('pom.xml', True, config_parser, {})
 
     pom_path = 'http://example.com/pom.pom'
     mock_response = mocker.Mock(status_code=200, text=xml)
     mock_requests = mocker.patch('requests.get', return_value=mock_response)
-    assert isinstance(load_pom_tree(pom_path, True, config_parser, {}), ET.ElementTree)
+    assert isinstance(get_pom_tree(pom_path, True, config_parser, {}), ET.ElementTree)
 
     mock_requests.return_value.status_code = 404
     with pytest.raises(FileNotFoundError):
-        load_pom_tree(pom_path, True, config_parser, {})
+        get_pom_tree(pom_path, True, config_parser, {})
 
 
 # noinspection PyShadowingNames
-def test_service_rest(mocker):
-    _service_rest = lambda: service_rest(
+def test_process_rest(mocker):
+    _service_rest = lambda: process_rest(
         {}, mocker.Mock(), {}, 'group', 'artifact', '1.0', 'section',
         'repository', 'http://example.com/pom.pom', (), True
     )
@@ -153,8 +153,8 @@ def test_process_repository(mocker):
     assert _process_repository()
 
     mock_requests.return_value = mocker.Mock(status_code=404)
-    mock_service_rest = mocker.patch('maven_check_versions.service_rest')
-    mock_service_rest.return_value = True
+    mock_process_rest = mocker.patch('maven_check_versions.process_rest')
+    mock_process_rest.return_value = True
     assert _process_repository()
 
     config_parser.set('section', 'service_rest', 'false')
@@ -206,7 +206,7 @@ def test_process_modules_if_required(mocker):
 
 
 # noinspection PyShadowingNames
-def test_find_artifact(mocker):
+def test_process_artifact(mocker):
     config_parser = ConfigParser()
     config_parser.optionxform = str
     config_parser.read_string("""
@@ -225,13 +225,13 @@ def test_find_artifact(mocker):
     mock_logging = mocker.patch('logging.info')
     mock_process_repository = mocker.patch('maven_check_versions.process_repository')
     mock_process_repository.return_value = True
-    find_artifact(None, config_parser, {}, 'group:artifact:1.0')
+    process_artifact(None, config_parser, {}, 'group:artifact:1.0')
     mock_logging.assert_called_once_with('Search: group:artifact:1.0')
     mock_process_repository.assert_called_once()
 
     mock_logging = mocker.patch('logging.warning')
     mock_process_repository.return_value = False
-    find_artifact(None, config_parser, {}, 'group:artifact:1.0')
+    process_artifact(None, config_parser, {}, 'group:artifact:1.0')
     mock_logging.assert_called_once_with('Not Found: group:artifact, current:1.0')
 
 
@@ -286,8 +286,8 @@ def test_process_dependencies(mocker):
 
 # noinspection PyShadowingNames
 def test_process_pom(mocker):
-    mock_load_pom_tree = mocker.patch('maven_check_versions.load_pom_tree')
-    mock_load_pom_tree.return_value = ET.ElementTree(ET.fromstring("""
+    mock_get_pom_tree = mocker.patch('maven_check_versions.get_pom_tree')
+    mock_get_pom_tree.return_value = ET.ElementTree(ET.fromstring("""
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <artifactId>artifact</artifactId>
         <groupId>group</groupId>
@@ -305,14 +305,14 @@ def test_process_pom(mocker):
     mock_pd = mocker.patch('maven_check_versions.process_dependencies')
     mock_pmir = mocker.patch('maven_check_versions.process_modules_if_required')
     process_pom({}, mocker.Mock(), {}, 'pom.xml', 'prefix')
-    mock_load_pom_tree.assert_called_once()
+    mock_get_pom_tree.assert_called_once()
     mock_cd.assert_called_once()
     mock_pd.assert_called_once()
     mock_pmir.assert_called_once()
 
 
 # noinspection PyShadowingNames
-def test_main_process(mocker, monkeypatch):
+def test_process_main(mocker, monkeypatch):
     monkeypatch.setenv('HOME', os.path.dirname(__file__))
     mock_exists = mocker.patch('os.path.exists')
     mock_exists.side_effect = [False, True]
@@ -323,36 +323,36 @@ def test_main_process(mocker, monkeypatch):
     mocker.patch('maven_check_versions.load_cache', return_value={})
     mocker.patch('maven_check_versions.process_pom')
     mocker.patch('maven_check_versions.save_cache')
-    main_process({'pom_file': 'pom.xml'})
+    process_main({'pom_file': 'pom.xml'})
 
     mock_exists.side_effect = [False, True]
-    mocker.patch('maven_check_versions.find_artifact')
-    main_process({'find_artifact': 'pom.xml'})
+    mocker.patch('maven_check_versions.process_artifact')
+    process_main({'find_artifact': 'pom.xml'})
 
     mock_exists.side_effect = [False, True]
     mock_config_items = mocker.patch('maven_check_versions.config_items')
     mock_config_items.return_value = [('key', 'pom.xml')]
-    main_process({})
+    process_main({})
 
 
 # noinspection PyShadowingNames
 def test_main(mocker):
-    mock_pcla = mocker.patch('maven_check_versions.parse_command_line')
-    mock_pcla.return_value = {'ci_mode': False}
-    mock_main_process = mocker.patch('maven_check_versions.main_process')
+    mock_pcl = mocker.patch('maven_check_versions.parse_command_line')
+    mock_pcl.return_value = {'ci_mode': False}
+    mock_process_main = mocker.patch('maven_check_versions.process_main')
     mock_input = mocker.patch('builtins.input', return_value='')
     mocker.patch('maven_check_versions.configure_logging')
     mocker.patch('sys.exit')
     main()
-    mock_main_process.side_effect = FileNotFoundError
+    mock_process_main.side_effect = FileNotFoundError
     main()
-    mock_main_process.side_effect = AssertionError
+    mock_process_main.side_effect = AssertionError
     main()
-    mock_main_process.side_effect = KeyboardInterrupt
+    mock_process_main.side_effect = KeyboardInterrupt
     main()
-    mock_main_process.side_effect = SystemExit
+    mock_process_main.side_effect = SystemExit
     main()
-    mock_main_process.side_effect = Exception
+    mock_process_main.side_effect = Exception
     main()
     mock_input.side_effect = KeyboardInterrupt
     main()

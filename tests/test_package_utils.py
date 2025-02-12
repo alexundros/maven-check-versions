@@ -192,8 +192,8 @@ def test_check_versions(mocker):
         'repo_section', 'path', (), True, vers, mocker.Mock()
     )
 
-    mock_pom_data = mocker.patch('maven_check_versions.pom_data')
-    mock_pom_data.return_value = (True, '2025-01-25')
+    mock_get_pom_data = mocker.patch('maven_check_versions.get_pom_data')
+    mock_get_pom_data.return_value = (True, '2025-01-25')
     args = {
         'skip_current': True, 'fail_mode': True,
         'fail_major': 0, 'fail_minor': 1
@@ -209,5 +209,5 @@ def test_check_versions(mocker):
     args['fail_mode'] = False
     assert _check_versions(args, cache_data, '1.1', ['1.2'])
 
-    mock_pom_data.return_value = (False, None)
+    mock_get_pom_data.return_value = (False, None)
     assert not _check_versions(args, cache_data, '1.1', ['1.2'])

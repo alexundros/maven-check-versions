@@ -216,7 +216,7 @@ def check_versions(
     Returns:
         bool: True if the current version is valid, False otherwise.
     """
-    from . import pom_data  # resolve circular import
+    from . import get_pom_data  # resolve circular import
 
     available_versions = list(filter(lambda v: re.match('^\\d+.+', v), available_versions))
     available_versions.reverse()
@@ -239,7 +239,7 @@ def check_versions(
             update_cache(cache_data, available_versions, artifact_id, group_id, item, None, section_key)
             return True
 
-        is_valid, last_modified = pom_data(auth_info, verify_ssl, artifact_id, item, path)
+        is_valid, last_modified = get_pom_data(auth_info, verify_ssl, artifact_id, item, path)
         if is_valid:
             logging.info('{}: {}:{}, current:{} {} {}'.format(
                 section_key, group_id, artifact_id, version, available_versions[:3], last_modified).rstrip())
