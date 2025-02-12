@@ -17,7 +17,8 @@ sys.path.append('../src')
 # noinspection PyUnresolvedReferences
 from maven_check_versions.utils import (  # noqa: E402
     parse_command_line, get_artifact_name, collect_dependencies,
-    get_dependency_identifiers, fail_mode_if_required
+    get_dependency_identifiers, fail_mode_if_required,
+    resolve_version, get_version
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -136,3 +137,49 @@ def test_fail_mode_if_required(mocker):
         args = {'fail_mode': True, 'fail_major': 2, 'fail_minor': 2}
         fail_mode_if_required(config_parser, 1, 0, '4.0', 2, 2, args, '1.0')
     mock_logging.assert_called_once_with("Fail version: 4.0 > 1.0")
+
+
+def test_resolve_version():
+    root = ET.fromstring("""
+    <?xml version="1.0" encoding="UTF-8"?>
+    <project xmlns="http://maven.apache.org/POM/4.0.0">
+        <properties>
+            <lib.version>1.0</lib.version>
+        </properties>
+    </project>
+    """.lstrip())
+    version = resolve_version('${lib.version}', root, ns_mappings)
+    assert version == '1.0'
+
+
+# noinspection PyShadowingNames
+def test_get_version(mocker):
+    root = ET.fromstring("""
+    <?xml version="1.0" encoding="UTF-8"?>
+    <project xmlns="http://maven.apache.org/POM/4.0.0">
+        <version>1.0</version>
+        <dependencies>
+            <dependency>
+                <artifactId>dependency</artifactId>
+            </dependency>
+            <dependency>
+                <artifactId>dependency</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <artifactId>dependency</artifactId>
+                <version>${dependency.version}</version>
+            </dependency>
+        </dependencies> 
+    </project>
+    """.lstrip())
+    args = {'empty_version': False}
+    deps = root.findall('.//xmlns:dependency', namespaces=ns_mappings)
+    version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[0])
+    assert version is None and skip_flag
+
+    version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[1])
+    assert version == '1.0' and not skip_flag
+
+    version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[2])
+    assert version == '${dependency.version}' and skip_flag

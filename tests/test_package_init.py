@@ -41,52 +41,6 @@ from maven_check_versions.utils import (  # noqa: E402
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
 
 
-def test_resolve_version():
-    root = ET.fromstring("""
-    <?xml version="1.0" encoding="UTF-8"?>
-    <project xmlns="http://maven.apache.org/POM/4.0.0">
-        <properties>
-            <lib.version>1.0</lib.version>
-        </properties>
-    </project>
-    """.lstrip())
-    version = resolve_version('${lib.version}', root, ns_mappings)
-    assert version == '1.0'
-
-
-# noinspection PyShadowingNames
-def test_get_version(mocker):
-    root = ET.fromstring("""
-    <?xml version="1.0" encoding="UTF-8"?>
-    <project xmlns="http://maven.apache.org/POM/4.0.0">
-        <version>1.0</version>
-        <dependencies>
-            <dependency>
-                <artifactId>dependency</artifactId>
-            </dependency>
-            <dependency>
-                <artifactId>dependency</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <artifactId>dependency</artifactId>
-                <version>${dependency.version}</version>
-            </dependency>
-        </dependencies> 
-    </project>
-    """.lstrip())
-    args = {'empty_version': False}
-    deps = root.findall('.//xmlns:dependency', namespaces=ns_mappings)
-    version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[0])
-    assert version is None and skip_flag
-
-    version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[1])
-    assert version == '1.0' and not skip_flag
-
-    version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[2])
-    assert version == '${dependency.version}' and skip_flag
-
-
 # noinspection PyShadowingNames
 def test_pom_data(mocker):
     pom_path = 'http://example.com/pom.pom'

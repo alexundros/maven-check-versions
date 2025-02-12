@@ -26,7 +26,8 @@ from .logutils import (
 )
 from .utils import (
     parse_command_line, get_artifact_name, collect_dependencies,
-    get_dependency_identifiers, fail_mode_if_required
+    get_dependency_identifiers, fail_mode_if_required,
+    resolve_version, get_version
 )
 
 
@@ -245,64 +246,6 @@ def find_artifact(
             break
     if not dependency_found:
         logging.warning(f"Not Found: {group_id}:{artifact_id}, current:{version}")
-
-
-def get_version(
-        config_parser: ConfigParser, arguments: dict, ns_mapping: dict, root: ET.Element,
-        dependency: ET.Element
-) -> tuple[str | None, bool]:
-    """
-    Get version information.
-
-    Args:
-        config_parser (ConfigParser): The configuration parser.
-        arguments (dict): Dictionary containing the parsed command line arguments.
-        ns_mapping (dict): Namespace dictionary for XML parsing.
-        root (ET.Element): Root element of the POM file.
-        dependency (ET.Element): Dependency element from which to extract version.
-
-    Returns:
-        tuple[str | None, bool]:
-            A tuple containing the resolved version and a boolean indicating if the version should be skipped.
-    """
-    version_text = ''
-    version = dependency.find('xmlns:version', namespaces=ns_mapping)
-
-    if version is None:
-        if not get_config_value(config_parser, arguments, 'empty_version', value_type=bool):
-            return None, True
-    else:
-        version_text = resolve_version(version.text, root, ns_mapping)
-
-        if version_text == '${project.version}':
-            project_version_text = root.find('xmlns:version', namespaces=ns_mapping).text
-            version_text = resolve_version(project_version_text, root, ns_mapping)
-
-        if re.match('^\\${([^}]+)}$', version_text):
-            if not get_config_value(config_parser, arguments, 'empty_version', value_type=bool):
-                return version_text, True
-
-    return version_text, False
-
-
-def resolve_version(version: str, root: ET.Element, ns_mapping: dict) -> str:
-    """
-    Resolves in version text by checking POM properties.
-
-    Args:
-        version (str): The version text, potentially containing placeholders.
-        root (ET.Element): Root element of the POM file.
-        ns_mapping (dict): XML namespace mapping for parsing.
-
-    Returns:
-        str: Resolved version text or None if unresolved.
-    """
-    if match := re.match(r'^\${([^}]+)}$', version):
-        property_xpath = f"./xmlns:properties/xmlns:{match.group(1)}"
-        property_element = root.find(property_xpath, namespaces=ns_mapping)
-        if property_element is not None:
-            version = property_element.text
-    return version
 
 
 def process_repository(
