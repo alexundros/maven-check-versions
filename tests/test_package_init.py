@@ -16,10 +16,9 @@ sys.path.append('../src')
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions import (  # noqa: E402
-    resolve_version, get_version, pom_data, load_pom_tree,
-    check_versions, service_rest, process_repository,
-    process_repositories, process_modules_if_required, find_artifact,
-    process_dependencies, process_pom, main_process, main
+    resolve_version, get_version, pom_data, load_pom_tree, service_rest,
+    process_repository, process_repositories, process_modules_if_required,
+    find_artifact, process_dependencies, process_pom, main_process, main
 )
 
 # noinspection PyUnresolvedReferences
@@ -88,34 +87,6 @@ def test_load_pom_tree(mocker):
     mock_requests.return_value.status_code = 404
     with pytest.raises(FileNotFoundError):
         load_pom_tree(pom_path, True, config_parser, {})
-
-
-# noinspection PyShadowingNames
-def test_check_versions(mocker):
-    _check_versions = lambda pa, data, item, vers: check_versions(
-        data, mocker.Mock(), pa, 'group', 'artifact', item,
-        'repo_section', 'path', (), True, vers, mocker.Mock()
-    )
-
-    mock_pom_data = mocker.patch('maven_check_versions.pom_data')
-    mock_pom_data.return_value = (True, '2025-01-25')
-    args = {
-        'skip_current': True, 'fail_mode': True,
-        'fail_major': 0, 'fail_minor': 1
-    }
-    cache_data = {}
-    assert _check_versions(args, cache_data, '1.1', ['1.1'])
-    assert cache_data['group:artifact'][1] == '1.1'
-
-    with pytest.raises(AssertionError):
-        args['fail_minor'] = 0
-        assert _check_versions(args, cache_data, '1.1', ['1.2'])
-
-    args['fail_mode'] = False
-    assert _check_versions(args, cache_data, '1.1', ['1.2'])
-
-    mock_pom_data.return_value = (False, None)
-    assert not _check_versions(args, cache_data, '1.1', ['1.2'])
 
 
 # noinspection PyShadowingNames

@@ -18,7 +18,7 @@ sys.path.append('../src')
 from maven_check_versions.utils import (  # noqa: E402
     parse_command_line, get_artifact_name, collect_dependencies,
     get_dependency_identifiers, fail_mode_if_required,
-    resolve_version, get_version
+    resolve_version, get_version, check_versions
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -183,3 +183,31 @@ def test_get_version(mocker):
 
     version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[2])
     assert version == '${dependency.version}' and skip_flag
+
+
+# noinspection PyShadowingNames
+def test_check_versions(mocker):
+    _check_versions = lambda pa, data, item, vers: check_versions(
+        data, mocker.Mock(), pa, 'group', 'artifact', item,
+        'repo_section', 'path', (), True, vers, mocker.Mock()
+    )
+
+    mock_pom_data = mocker.patch('maven_check_versions.pom_data')
+    mock_pom_data.return_value = (True, '2025-01-25')
+    args = {
+        'skip_current': True, 'fail_mode': True,
+        'fail_major': 0, 'fail_minor': 1
+    }
+    cache_data = {}
+    assert _check_versions(args, cache_data, '1.1', ['1.1'])
+    assert cache_data['group:artifact'][1] == '1.1'
+
+    with pytest.raises(AssertionError):
+        args['fail_minor'] = 0
+        assert _check_versions(args, cache_data, '1.1', ['1.2'])
+
+    args['fail_mode'] = False
+    assert _check_versions(args, cache_data, '1.1', ['1.2'])
+
+    mock_pom_data.return_value = (False, None)
+    assert not _check_versions(args, cache_data, '1.1', ['1.2'])

@@ -34,6 +34,7 @@ def test_configure_logging(mocker):
     assert PurePath(handlers[1].baseFilename).name == 'maven_check_versions.log'
     mocker.stopall()
 
+
 # noinspection PyShadowingNames
 def test_log_skip_if_required(mocker):
     mock_logging = mocker.patch('logging.warning')

@@ -3,7 +3,6 @@
 
 import logging
 import os
-import re
 import sys
 import time
 # noinspection PyPep8Naming
@@ -26,7 +25,7 @@ from .logutils import (
 from .utils import (
     parse_command_line, get_artifact_name, collect_dependencies,
     get_dependency_identifiers, fail_mode_if_required,
-    resolve_version, get_version
+    resolve_version, get_version, check_versions
 )
 
 
@@ -293,71 +292,6 @@ def process_repository(
         return service_rest(
             cache_data, config_parser, arguments, group_id, artifact_id, version, section_key,
             repository_section, base_url, auth_info, verify_ssl)
-
-    return False
-
-
-def check_versions(
-        cache_data: dict | None, config_parser: ConfigParser, arguments: dict, group_id: str,
-        artifact_id: str, version: str, section_key: str, path: str, auth_info: tuple, verify_ssl: bool,
-        available_versions: list[str], response: requests.Response
-) -> bool:
-    """
-    Check versions.
-
-    Args:
-        cache_data (dict | None): The cache dictionary.
-        config_parser (ConfigParser): The configuration parser.
-        arguments (dict): Dictionary containing the parsed command line arguments.
-        group_id (str): The group ID of the artifact.
-        artifact_id (str): The artifact ID.
-        version (str): The version of the artifact.
-        section_key (str): The key for the repository section.
-        path (str): The path to the dependency in the repository.
-        auth_info (tuple): Tuple containing basic authentication credentials.
-        verify_ssl (bool): Whether to verify SSL certificates.
-        available_versions (list[str]): List of available versions.
-        response (requests.Response): The response object from the repository.
-
-    Returns:
-        bool: True if the current version is valid, False otherwise.
-    """
-    available_versions = list(filter(lambda v: re.match('^\\d+.+', v), available_versions))
-    available_versions.reverse()
-
-    major_threshold = minor_threshold = 0
-    current_major = current_minor = 0
-
-    if get_config_value(config_parser, arguments, 'fail_mode', value_type=bool):
-        major_threshold = int(get_config_value(config_parser, arguments, 'fail_major'))
-        minor_threshold = int(get_config_value(config_parser, arguments, 'fail_minor'))
-
-        if version_match := re.match('^(\\d+)\\.(\\d+).?', version):
-            current_major, current_minor = int(version_match.group(1)), int(version_match.group(2))
-
-    skip_current = get_config_value(config_parser, arguments, 'skip_current', value_type=bool)
-    invalid_flag = False
-
-    for item in available_versions:
-        if item == version and skip_current:
-            update_cache(cache_data, available_versions, artifact_id, group_id, item, None, section_key)
-            return True
-
-        is_valid, last_modified = pom_data(auth_info, verify_ssl, artifact_id, item, path)
-        if is_valid:
-            logging.info('{}: {}:{}, current:{} {} {}'.format(
-                section_key, group_id, artifact_id, version, available_versions[:3], last_modified).rstrip())
-
-            update_cache(cache_data, available_versions, artifact_id, group_id, item, last_modified, section_key)
-
-            fail_mode_if_required(
-                config_parser, current_major, current_minor, item,
-                major_threshold, minor_threshold, arguments, version)
-            return True
-
-        else:
-            log_invalid_if_required(config_parser, arguments, response, group_id, artifact_id, item, invalid_flag)
-            invalid_flag = True
 
     return False
 
