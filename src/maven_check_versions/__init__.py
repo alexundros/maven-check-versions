@@ -9,7 +9,6 @@ import time
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from configparser import ConfigParser
-from pathlib import Path
 
 import dateutil.parser as parser
 import requests
@@ -19,7 +18,7 @@ from .cache import (
     load_cache, save_cache,
     update_cache, process_cache
 )
-from .config import get_config_value, config_items
+from .config import get_config_parser, get_config_value, config_items
 from .logutils import (
     log_skip_if_required, log_search_if_required,
     log_invalid_if_required, configure_logging
@@ -38,15 +37,7 @@ def main_process(arguments: dict) -> None:
     Args:
         arguments (dict): Dictionary of parsed command line arguments.
     """
-    config_parser = ConfigParser()
-    config_parser.optionxform = str
-    if (config_file := arguments.get('config_file')) is None:
-        config_file = 'maven_check_versions.cfg'
-        if not os.path.exists(config_file):
-            config_file = os.path.join(Path.home(), config_file)
-    if os.path.exists(config_file):
-        logging.info(f"Load Config: {Path(config_file).absolute()}")
-        config_parser.read_file(open(config_file))
+    config_parser = get_config_parser(arguments)
 
     if not get_config_value(config_parser, arguments, 'warnings', 'urllib3', value_type=bool):
         urllib3.disable_warnings()

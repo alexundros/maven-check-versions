@@ -2,8 +2,32 @@
 """This file provides config functions"""
 
 import configparser
+import logging
 import os
 from configparser import ConfigParser
+from pathlib import Path
+
+
+def get_config_parser(arguments: dict) -> ConfigParser:
+    """
+    Get config parser.
+
+    Args:
+        arguments (dict): Dictionary of parsed command line arguments.
+
+    Returns:
+        ConfigParser: Config parser.
+    """
+    config_parser = ConfigParser()
+    config_parser.optionxform = str
+    if (config_file := arguments.get('config_file')) is None:
+        config_file = 'maven_check_versions.cfg'
+        if not os.path.exists(config_file):
+            config_file = os.path.join(Path.home(), config_file)
+    if os.path.exists(config_file):
+        logging.info(f"Load Config: {Path(config_file).absolute()}")
+        config_parser.read_file(open(config_file))
+    return config_parser
 
 
 def get_config_value(

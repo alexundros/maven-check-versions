@@ -12,8 +12,20 @@ os.chdir(os.path.dirname(__file__))
 sys.path.append('../src')
 
 from maven_check_versions.config import (
-    get_config_value, config_items
+    get_config_parser, get_config_value, config_items
 )
+
+
+# noinspection PyShadowingNames
+def test_get_config_parser(mocker):
+    mock_exists = mocker.patch('os.path.exists')
+    mock_exists.side_effect = [False, True]
+    mocker.patch('builtins.open', mocker.mock_open(read_data="[base]"))
+    mock_logging = mocker.patch('logging.info')
+    config_parser = get_config_parser({})
+    assert isinstance(config_parser, ConfigParser)
+    mock_logging.assert_called_once()
+    mocker.stopall()
 
 
 # noinspection PyShadowingNames
