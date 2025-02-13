@@ -7,7 +7,6 @@ import sys
 import xml.etree.ElementTree as ET
 from configparser import ConfigParser
 
-import pytest
 # noinspection PyUnresolvedReferences
 from pytest_mock import mocker
 
@@ -16,9 +15,9 @@ sys.path.append('../src')
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions import (  # noqa: E402
-    resolve_version, get_version, get_pom_data, get_pom_tree, process_rest,
-    process_repository, process_repositories, process_modules_if_required,
-    process_artifact, process_dependencies, process_pom, process_main, main
+    process_rest, process_repository, process_repositories,
+    process_modules_if_required, process_artifact,
+    process_dependencies, process_pom, process_main, main
 )
 
 # noinspection PyUnresolvedReferences
@@ -34,59 +33,11 @@ from maven_check_versions.config import (  # noqa: E402
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions.utils import (  # noqa: E402
-    get_dependency_identifiers, collect_dependencies
+    get_dependency_identifiers, collect_dependencies,
+    resolve_version, get_version,
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
-
-
-# noinspection PyShadowingNames
-def test_get_pom_data(mocker):
-    pom_path = 'http://example.com/pom.pom'
-    headers = {'Last-Modified': 'Wed, 18 Jan 2025 12:00:00 GMT'}
-    mock_response = mocker.Mock(status_code=200, headers=headers)
-    mock_requests = mocker.patch('requests.get', return_value=mock_response)
-    is_valid, last_modified = get_pom_data((), True, 'artifact', '1.0', pom_path)
-    assert is_valid is True and last_modified == '2025-01-18'
-
-    mock_requests.return_value = mocker.Mock(status_code=404)
-    is_valid, last_modified = get_pom_data((), True, 'artifact', '1.0', pom_path)
-    assert is_valid is False and last_modified is None
-
-
-# noinspection PyShadowingNames
-def test_get_pom_tree(mocker):
-    xml = """<?xml version="1.0" encoding="UTF-8"?>
-    <project xmlns="http://maven.apache.org/POM/4.0.0">
-        <groupId>group</groupId>
-        <artifactId>artifact</artifactId>
-        <version>1.0</version>
-    </project>
-    """
-    config_parser = ConfigParser()
-    config_parser.optionxform = str
-    config_parser.read_string("""
-    [pom_http]
-    auth = true
-    """)
-    mocker.patch('os.path.exists', return_value=True)
-    mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data=xml))
-    tree = get_pom_tree('pom.xml', True, config_parser, {})
-    mock_open.assert_called_once_with('pom.xml', 'rb')
-    assert isinstance(tree, ET.ElementTree)
-
-    mocker.patch('os.path.exists', return_value=False)
-    with pytest.raises(FileNotFoundError):
-        get_pom_tree('pom.xml', True, config_parser, {})
-
-    pom_path = 'http://example.com/pom.pom'
-    mock_response = mocker.Mock(status_code=200, text=xml)
-    mock_requests = mocker.patch('requests.get', return_value=mock_response)
-    assert isinstance(get_pom_tree(pom_path, True, config_parser, {}), ET.ElementTree)
-
-    mock_requests.return_value.status_code = 404
-    with pytest.raises(FileNotFoundError):
-        get_pom_tree(pom_path, True, config_parser, {})
 
 
 # noinspection PyShadowingNames

@@ -2,12 +2,14 @@
 """This file provides utility functions"""
 
 import logging
+import os
 import re
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser
 from configparser import ConfigParser
 
+import dateutil.parser as parser
 import requests
 from .cache import update_cache
 from .config import get_config_value
@@ -216,8 +218,6 @@ def check_versions(
     Returns:
         bool: True if the current version is valid, False otherwise.
     """
-    from . import get_pom_data  # resolve circular import
-
     available_versions = list(filter(lambda v: re.match('^\\d+.+', v), available_versions))
     available_versions.reverse()
 
@@ -256,3 +256,63 @@ def check_versions(
             invalid_flag = True
 
     return False
+
+
+def get_pom_data(
+        auth_info: tuple, verify_ssl: bool, artifact_id: str, version: str, path: str
+) -> tuple[bool, str | None]:
+    """
+    Get POM data.
+
+    Args:
+        auth_info (tuple): Tuple containing basic authentication credentials.
+        verify_ssl (bool): Whether to verify SSL certificates.
+        artifact_id (str): The artifact ID.
+        version (str): The version of the artifact.
+        path (str): The path to the dependency in the repository.
+
+    Returns:
+        tuple[bool, str | None]:
+            A tuple containing a boolean indicating if the data was retrieved successfully
+            and the date of the last modification.
+    """
+    url = f"{path}/{version}/{artifact_id}-{version}.pom"
+    response = requests.get(url, auth=auth_info, verify=verify_ssl)
+
+    if response.status_code == 200:
+        last_modified_header = response.headers.get('Last-Modified')
+        return True, parser.parse(last_modified_header).date().isoformat()
+
+    return False, None
+
+
+def get_pom_tree(
+        pom_path: str, verify_ssl: bool, config_parser: ConfigParser, arguments: dict
+) -> ET.ElementTree:
+    """
+    Load the XML tree of a POM file.
+
+    Args:
+        pom_path (str): Path or URL to the POM file.
+        verify_ssl (bool): Whether to verify SSL certificates.
+        config_parser (ConfigParser): Configuration data.
+        arguments (dict): Command line arguments.
+
+    Returns:
+        ET.ElementTree: Parsed XML tree of the POM file.
+    """
+    if pom_path.startswith('http'):
+        auth_info = ()
+        if get_config_value(config_parser, arguments, 'auth', 'pom_http', value_type=bool):
+            auth_info = (
+                get_config_value(config_parser, arguments, 'user'),
+                get_config_value(config_parser, arguments, 'password')
+            )
+        response = requests.get(pom_path, auth=auth_info, verify=verify_ssl)
+        if response.status_code != 200:
+            raise FileNotFoundError(f'{pom_path} not found')
+        return ET.ElementTree(ET.fromstring(response.text))
+    else:
+        if not os.path.exists(pom_path):
+            raise FileNotFoundError(f'{pom_path} not found')
+        return ET.parse(pom_path)

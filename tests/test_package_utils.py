@@ -17,8 +17,8 @@ sys.path.append('../src')
 # noinspection PyUnresolvedReferences
 from maven_check_versions.utils import (  # noqa: E402
     parse_command_line, get_artifact_name, collect_dependencies,
-    get_dependency_identifiers, fail_mode_if_required,
-    resolve_version, get_version, check_versions
+    get_dependency_identifiers, fail_mode_if_required, resolve_version,
+    get_version, check_versions, get_pom_data, get_pom_tree
 )
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
@@ -192,7 +192,10 @@ def test_check_versions(mocker):
         'repo_section', 'path', (), True, vers, mocker.Mock()
     )
 
-    mock_get_pom_data = mocker.patch('maven_check_versions.get_pom_data')
+    # mocker used direct link otherwise got error
+    # AttributeError: <module 'maven_check_versions' from '__init__.py'>
+    # does not have the attribute 'get_pom_data'
+    mock_get_pom_data = mocker.patch('maven_check_versions.utils.get_pom_data')
     mock_get_pom_data.return_value = (True, '2025-01-25')
     args = {
         'skip_current': True, 'fail_mode': True,
@@ -211,3 +214,52 @@ def test_check_versions(mocker):
 
     mock_get_pom_data.return_value = (False, None)
     assert not _check_versions(args, cache_data, '1.1', ['1.2'])
+
+
+# noinspection PyShadowingNames
+def test_get_pom_data(mocker):
+    pom_path = 'http://example.com/pom.pom'
+    headers = {'Last-Modified': 'Wed, 18 Jan 2025 12:00:00 GMT'}
+    mock_response = mocker.Mock(status_code=200, headers=headers)
+    mock_requests = mocker.patch('requests.get', return_value=mock_response)
+    is_valid, last_modified = get_pom_data((), True, 'artifact', '1.0', pom_path)
+    assert is_valid is True and last_modified == '2025-01-18'
+
+    mock_requests.return_value = mocker.Mock(status_code=404)
+    is_valid, last_modified = get_pom_data((), True, 'artifact', '1.0', pom_path)
+    assert is_valid is False and last_modified is None
+
+
+# noinspection PyShadowingNames
+def test_get_pom_tree(mocker):
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+    <project xmlns="http://maven.apache.org/POM/4.0.0">
+        <groupId>group</groupId>
+        <artifactId>artifact</artifactId>
+        <version>1.0</version>
+    </project>
+    """
+    config_parser = ConfigParser()
+    config_parser.optionxform = str
+    config_parser.read_string("""
+    [pom_http]
+    auth = true
+    """)
+    mocker.patch('os.path.exists', return_value=True)
+    mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data=xml))
+    tree = get_pom_tree('pom.xml', True, config_parser, {})
+    mock_open.assert_called_once_with('pom.xml', 'rb')
+    assert isinstance(tree, ET.ElementTree)
+
+    mocker.patch('os.path.exists', return_value=False)
+    with pytest.raises(FileNotFoundError):
+        get_pom_tree('pom.xml', True, config_parser, {})
+
+    pom_path = 'http://example.com/pom.pom'
+    mock_response = mocker.Mock(status_code=200, text=xml)
+    mock_requests = mocker.patch('requests.get', return_value=mock_response)
+    assert isinstance(get_pom_tree(pom_path, True, config_parser, {}), ET.ElementTree)
+
+    mock_requests.return_value.status_code = 404
+    with pytest.raises(FileNotFoundError):
+        get_pom_tree(pom_path, True, config_parser, {})
