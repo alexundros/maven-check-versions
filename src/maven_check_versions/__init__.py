@@ -12,10 +12,7 @@ from configparser import ConfigParser
 import requests
 import urllib3
 from bs4 import BeautifulSoup
-from .cache import (
-    load_cache, save_cache,
-    update_cache, process_cache
-)
+from .cache import load_cache, save_cache, update_cache, process_cache
 from .config import get_config_parser, get_config_value, config_items
 from .logutils import (
     log_skip_if_required, log_search_if_required,
