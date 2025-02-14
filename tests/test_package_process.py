@@ -37,7 +37,7 @@ from maven_check_versions.utils import (  # noqa: E402
     resolve_version, get_version,
 )
 
-ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
+ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}  # NOSONAR
 
 
 # noinspection PyShadowingNames
@@ -68,7 +68,7 @@ def test_process_main(mocker, monkeypatch):
 def test_process_rest(mocker):
     _service_rest = lambda: process_rest(
         {}, mocker.Mock(), {}, 'group', 'artifact', '1.0', 'section',
-        'repository', 'http://example.com/pom.pom', (), True
+        'repository', 'http://example.com/pom.pom', (), True  # NOSONAR
     )
 
     mock_check_versions = mocker.patch('maven_check_versions.utils.check_versions')
@@ -105,7 +105,7 @@ def test_process_repository(mocker):
     service_rest = true
     auth = true
     """)
-    args = {'user': 'user', 'password': 'pass'}
+    args = {'user': 'user', 'password': 'pass'}  # NOSONAR
     _process_repository = lambda: process_repository(
         {}, config_parser, args, 'group', 'artifact', '1.0',
         'repository', 'section', True

@@ -21,7 +21,7 @@ from maven_check_versions.utils import (  # noqa: E402
     get_version, check_versions, get_pom_data, get_pom_tree
 )
 
-ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}
+ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}  # NOSONAR
 
 
 # noinspection PyShadowingNames
@@ -218,7 +218,7 @@ def test_check_versions(mocker):
 
 # noinspection PyShadowingNames
 def test_get_pom_data(mocker):
-    pom_path = 'http://example.com/pom.pom'
+    pom_path = 'http://example.com/pom.pom'  # NOSONAR
     headers = {'Last-Modified': 'Wed, 18 Jan 2025 12:00:00 GMT'}
     mock_response = mocker.Mock(status_code=200, headers=headers)
     mock_requests = mocker.patch('requests.get', return_value=mock_response)
@@ -255,7 +255,7 @@ def test_get_pom_tree(mocker):
     with pytest.raises(FileNotFoundError):
         get_pom_tree('pom.xml', True, config_parser, {})
 
-    pom_path = 'http://example.com/pom.pom'
+    pom_path = 'http://example.com/pom.pom'  # NOSONAR
     mock_response = mocker.Mock(status_code=200, text=xml)
     mock_requests = mocker.patch('requests.get', return_value=mock_response)
     assert isinstance(get_pom_tree(pom_path, True, config_parser, {}), ET.ElementTree)
