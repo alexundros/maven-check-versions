@@ -47,7 +47,7 @@ def test_process_rest(mocker):
         'repository', 'http://example.com/pom.pom', (), True
     )
 
-    mock_check_versions = mocker.patch('maven_check_versions.check_versions')
+    mock_check_versions = mocker.patch('maven_check_versions.utils.check_versions')
     mock_check_versions.return_value = True
     mock_requests = mocker.patch('requests.get')
     mock_requests.return_value = mocker.Mock(status_code=200, text="""
@@ -99,7 +99,7 @@ def test_process_repository(mocker):
         </versioning>
     </metadata>
     """.lstrip())
-    mock_check_versions = mocker.patch('maven_check_versions.check_versions')
+    mock_check_versions = mocker.patch('maven_check_versions.utils.check_versions')
     mock_check_versions.return_value = True
     assert _process_repository()
 
@@ -212,21 +212,21 @@ def test_process_dependencies(mocker):
         data, config_parser, {}, dependencies, ns_mappings, root, True
     )
 
-    mock_gdi = mocker.patch('maven_check_versions.get_dependency_identifiers')
+    mock_gdi = mocker.patch('maven_check_versions.utils.get_dependency_identifiers')
     mock_gdi.return_value = ('artifact', None)
     mock_logging = mocker.patch('logging.error')
     _process_dependencies()
     mock_logging.assert_called_once()
 
     mock_gdi.return_value = ('artifact', 'group')
-    mock_get_version = mocker.patch('maven_check_versions.get_version')
+    mock_get_version = mocker.patch('maven_check_versions.utils.get_version')
     mock_get_version.return_value = ('1.0', True)
     mock_logging = mocker.patch('logging.warning')
     _process_dependencies()
     mock_logging.assert_called_once()
 
     mock_get_version.return_value = ('1.0', False)
-    mocker.patch('maven_check_versions.process_cache', return_value=True)
+    mocker.patch('maven_check_versions.cache.process_cache', return_value=True)
     _process_dependencies({'group:artifact': ()})
 
     mocker.patch('maven_check_versions.process_repositories', return_value=False)
@@ -237,7 +237,7 @@ def test_process_dependencies(mocker):
 
 # noinspection PyShadowingNames
 def test_process_pom(mocker):
-    mock_get_pom_tree = mocker.patch('maven_check_versions.get_pom_tree')
+    mock_get_pom_tree = mocker.patch('maven_check_versions.utils.get_pom_tree')
     mock_get_pom_tree.return_value = ET.ElementTree(ET.fromstring("""
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <artifactId>artifact</artifactId>
@@ -252,7 +252,7 @@ def test_process_pom(mocker):
         </dependencies>
     </project>
     """))
-    mock_cd = mocker.patch('maven_check_versions.collect_dependencies')
+    mock_cd = mocker.patch('maven_check_versions.utils.collect_dependencies')
     mock_pd = mocker.patch('maven_check_versions.process_dependencies')
     mock_pmir = mocker.patch('maven_check_versions.process_modules_if_required')
     process_pom({}, mocker.Mock(), {}, 'pom.xml', 'prefix')
@@ -271,9 +271,9 @@ def test_process_main(mocker, monkeypatch):
     [base]
         cache_off = false
     """))
-    mocker.patch('maven_check_versions.load_cache', return_value={})
+    mocker.patch('maven_check_versions.cache.load_cache', return_value={})
     mocker.patch('maven_check_versions.process_pom')
-    mocker.patch('maven_check_versions.save_cache')
+    mocker.patch('maven_check_versions.cache.save_cache')
     process_main({'pom_file': 'pom.xml'})
 
     mock_exists.side_effect = [False, True]
@@ -281,18 +281,18 @@ def test_process_main(mocker, monkeypatch):
     process_main({'find_artifact': 'pom.xml'})
 
     mock_exists.side_effect = [False, True]
-    mock_config_items = mocker.patch('maven_check_versions.config_items')
+    mock_config_items = mocker.patch('maven_check_versions.config.config_items')
     mock_config_items.return_value = [('key', 'pom.xml')]
     process_main({})
 
 
 # noinspection PyShadowingNames
 def test_main(mocker):
-    mock_pcl = mocker.patch('maven_check_versions.parse_command_line')
+    mock_pcl = mocker.patch('maven_check_versions.utils.parse_command_line')
     mock_pcl.return_value = {'ci_mode': False}
     mock_process_main = mocker.patch('maven_check_versions.process_main')
     mock_input = mocker.patch('builtins.input', return_value='')
-    mocker.patch('maven_check_versions.configure_logging')
+    mocker.patch('maven_check_versions.logutils.configure_logging')
     mocker.patch('sys.exit')
     main()
     mock_process_main.side_effect = FileNotFoundError

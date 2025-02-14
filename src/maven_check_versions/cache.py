@@ -9,7 +9,7 @@ import time
 from configparser import ConfigParser
 from pathlib import Path
 
-from .config import get_config_value
+import maven_check_versions.config as _config
 
 
 def load_cache(cache_file: str) -> dict:
@@ -66,7 +66,7 @@ def process_cache(
     if cached_version == version:
         return True
 
-    cache_time_threshold = get_config_value(config_parser, arguments, 'cache_time', value_type=int)
+    cache_time_threshold = _config.get_config_value(config_parser, arguments, 'cache_time', value_type=int)
 
     if cache_time_threshold == 0 or time.time() - cached_time < cache_time_threshold:
         message_format = '*{}: {}:{}, current:{} versions: {} updated: {}'

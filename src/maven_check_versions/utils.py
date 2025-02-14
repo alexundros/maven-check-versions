@@ -10,10 +10,10 @@ from argparse import ArgumentParser
 from configparser import ConfigParser
 
 import dateutil.parser as parser
+import maven_check_versions.cache as _cache
+import maven_check_versions.config as _config
+import maven_check_versions.logutils as _logutils
 import requests
-from .cache import update_cache
-from .config import get_config_value
-from .logutils import log_invalid_if_required
 
 
 def parse_command_line() -> dict:
@@ -81,7 +81,7 @@ def collect_dependencies(
         list: List of dependencies from the POM file.
     """
     dependencies = root.findall('.//xmlns:dependency', namespaces=ns_mapping)
-    if get_config_value(config_parser, arguments, 'search_plugins', value_type=bool):
+    if _config.get_config_value(config_parser, arguments, 'search_plugins', value_type=bool):
         plugin_xpath = './/xmlns:plugins/xmlns:plugin'
         plugins = root.findall(plugin_xpath, namespaces=ns_mapping)
         dependencies.extend(plugins)
@@ -122,7 +122,7 @@ def fail_mode_if_required(
         arguments (dict): Dictionary of parsed command-line arguments to check runtime options.
         version (str): The version of the Maven artifact being processed.
     """
-    if get_config_value(config_parser, arguments, 'fail_mode', value_type=bool):
+    if _config.get_config_value(config_parser, arguments, 'fail_mode', value_type=bool):
         item_major_version = 0
         item_minor_version = 0
 
@@ -177,7 +177,7 @@ def get_version(
     version = dependency.find('xmlns:version', namespaces=ns_mapping)
 
     if version is None:
-        if not get_config_value(config_parser, arguments, 'empty_version', value_type=bool):
+        if not _config.get_config_value(config_parser, arguments, 'empty_version', value_type=bool):
             return None, True
     else:
         version_text = resolve_version(version.text, root, ns_mapping)
@@ -187,7 +187,7 @@ def get_version(
             version_text = resolve_version(project_version_text, root, ns_mapping)
 
         if re.match('^\\${([^}]+)}$', version_text):
-            if not get_config_value(config_parser, arguments, 'empty_version', value_type=bool):
+            if not _config.get_config_value(config_parser, arguments, 'empty_version', value_type=bool):
                 return version_text, True
 
     return version_text, False
@@ -224,19 +224,19 @@ def check_versions(
     major_threshold = minor_threshold = 0
     current_major = current_minor = 0
 
-    if get_config_value(config_parser, arguments, 'fail_mode', value_type=bool):
-        major_threshold = int(get_config_value(config_parser, arguments, 'fail_major'))
-        minor_threshold = int(get_config_value(config_parser, arguments, 'fail_minor'))
+    if _config.get_config_value(config_parser, arguments, 'fail_mode', value_type=bool):
+        major_threshold = int(_config.get_config_value(config_parser, arguments, 'fail_major'))
+        minor_threshold = int(_config.get_config_value(config_parser, arguments, 'fail_minor'))
 
         if version_match := re.match('^(\\d+)\\.(\\d+).?', version):
             current_major, current_minor = int(version_match.group(1)), int(version_match.group(2))
 
-    skip_current = get_config_value(config_parser, arguments, 'skip_current', value_type=bool)
+    skip_current = _config.get_config_value(config_parser, arguments, 'skip_current', value_type=bool)
     invalid_flag = False
 
     for item in available_versions:
         if item == version and skip_current:
-            update_cache(cache_data, available_versions, artifact_id, group_id, item, None, section_key)
+            _cache.update_cache(cache_data, available_versions, artifact_id, group_id, item, None, section_key)
             return True
 
         is_valid, last_modified = get_pom_data(auth_info, verify_ssl, artifact_id, item, path)
@@ -244,7 +244,7 @@ def check_versions(
             logging.info('{}: {}:{}, current:{} {} {}'.format(
                 section_key, group_id, artifact_id, version, available_versions[:3], last_modified).rstrip())
 
-            update_cache(cache_data, available_versions, artifact_id, group_id, item, last_modified, section_key)
+            _cache.update_cache(cache_data, available_versions, artifact_id, group_id, item, last_modified, section_key)
 
             fail_mode_if_required(
                 config_parser, current_major, current_minor, item,
@@ -252,7 +252,8 @@ def check_versions(
             return True
 
         else:
-            log_invalid_if_required(config_parser, arguments, response, group_id, artifact_id, item, invalid_flag)
+            _logutils.log_invalid_if_required(
+                config_parser, arguments, response, group_id, artifact_id, item, invalid_flag)
             invalid_flag = True
 
     return False
@@ -303,10 +304,10 @@ def get_pom_tree(
     """
     if pom_path.startswith('http'):
         auth_info = ()
-        if get_config_value(config_parser, arguments, 'auth', 'pom_http', value_type=bool):
+        if _config.get_config_value(config_parser, arguments, 'auth', 'pom_http', value_type=bool):
             auth_info = (
-                get_config_value(config_parser, arguments, 'user'),
-                get_config_value(config_parser, arguments, 'password')
+                _config.get_config_value(config_parser, arguments, 'user'),
+                _config.get_config_value(config_parser, arguments, 'password')
             )
         response = requests.get(pom_path, auth=auth_info, verify=verify_ssl)
         if response.status_code != 200:

@@ -7,8 +7,8 @@ import re
 import sys
 from configparser import ConfigParser
 
+import maven_check_versions.config as _config
 import requests
-from .config import get_config_value
 
 
 def configure_logging(arguments: dict) -> None:
@@ -45,7 +45,7 @@ def log_skip_if_required(
         artifact_id (str): The artifact ID of the Maven artifact being processed.
         version (str): The version of the Maven artifact being processed.
     """
-    if get_config_value(config_parser, arguments, 'show_skip', value_type=bool):
+    if _config.get_config_value(config_parser, arguments, 'show_skip', value_type=bool):
         logging.warning(f"Skip: {group_id}:{artifact_id}:{version}")
 
 
@@ -62,7 +62,7 @@ def log_search_if_required(
         artifact_id (str): The artifact ID of the Maven artifact being processed.
         version (str): The version of the Maven artifact being processed; can be None or a property placeholder.
     """
-    if get_config_value(config_parser, arguments, 'show_search', value_type=bool):
+    if _config.get_config_value(config_parser, arguments, 'show_search', value_type=bool):
         if version is None or re.match('^\\${([^}]+)}$', version):
             logging.warning(f"Search: {group_id}:{artifact_id}:{version}")
         else:
@@ -85,7 +85,7 @@ def log_invalid_if_required(
             item (str): The version item.
             invalid_flag (bool): Flag indicating if invalid versions have been logged.
         """
-    if get_config_value(config_parser, arguments, 'show_invalid', value_type=bool):
+    if _config.get_config_value(config_parser, arguments, 'show_invalid', value_type=bool):
         if not invalid_flag:
             logging.info(response.url)
         logging.warning(f"Invalid: {group_id}:{artifact_id}:{item}")
