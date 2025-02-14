@@ -45,10 +45,7 @@ def test_process_main(mocker, monkeypatch):
     monkeypatch.setenv('HOME', os.path.dirname(__file__))
     mock_exists = mocker.patch('os.path.exists')
     mock_exists.side_effect = [False, True]
-    mocker.patch('builtins.open', mocker.mock_open(read_data="""
-    [base]
-        cache_off = false
-    """))
+    mocker.patch('builtins.open', mocker.mock_open(read_data="[base]\ncache_off = false"))
     mocker.patch('maven_check_versions.cache.load_cache', return_value={})
     mocker.patch('maven_check_versions.process.process_pom')
     mocker.patch('maven_check_versions.cache.save_cache')
@@ -214,11 +211,7 @@ def test_process_artifact(mocker):
 def test_process_dependencies(mocker):
     config_parser = ConfigParser()
     config_parser.optionxform = str
-    config_parser.read_string("""
-    [base]
-        empty_version = true
-        show_skip = true
-    """)
+    config_parser.read_string("[base]\nempty_version = true\nshow_skip = true")
     root = ET.fromstring("""
         <?xml version="1.0" encoding="UTF-8"?>
         <project xmlns="http://maven.apache.org/POM/4.0.0">

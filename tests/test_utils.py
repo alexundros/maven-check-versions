@@ -241,10 +241,7 @@ def test_get_pom_tree(mocker):
     """
     config_parser = ConfigParser()
     config_parser.optionxform = str
-    config_parser.read_string("""
-    [pom_http]
-    auth = true
-    """)
+    config_parser.read_string("[pom_http]\nauth = true")
     mocker.patch('os.path.exists', return_value=True)
     mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data=xml))
     tree = get_pom_tree('pom.xml', True, config_parser, {})
