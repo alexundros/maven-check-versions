@@ -17,7 +17,7 @@ sys.path.append('../src')
 from maven_check_versions import (  # noqa: E402
     process_rest, process_repository, process_repositories,
     process_modules_if_required, process_artifact,
-    process_dependencies, process_pom, process_main, main
+    process_dependencies, process_pom, main
 )
 
 # noinspection PyUnresolvedReferences
@@ -263,34 +263,10 @@ def test_process_pom(mocker):
 
 
 # noinspection PyShadowingNames
-def test_process_main(mocker, monkeypatch):
-    monkeypatch.setenv('HOME', os.path.dirname(__file__))
-    mock_exists = mocker.patch('os.path.exists')
-    mock_exists.side_effect = [False, True]
-    mocker.patch('builtins.open', mocker.mock_open(read_data="""
-    [base]
-        cache_off = false
-    """))
-    mocker.patch('maven_check_versions.cache.load_cache', return_value={})
-    mocker.patch('maven_check_versions.process_pom')
-    mocker.patch('maven_check_versions.cache.save_cache')
-    process_main({'pom_file': 'pom.xml'})
-
-    mock_exists.side_effect = [False, True]
-    mocker.patch('maven_check_versions.process_artifact')
-    process_main({'find_artifact': 'pom.xml'})
-
-    mock_exists.side_effect = [False, True]
-    mock_config_items = mocker.patch('maven_check_versions.config.config_items')
-    mock_config_items.return_value = [('key', 'pom.xml')]
-    process_main({})
-
-
-# noinspection PyShadowingNames
 def test_main(mocker):
     mock_pcl = mocker.patch('maven_check_versions.utils.parse_command_line')
     mock_pcl.return_value = {'ci_mode': False}
-    mock_process_main = mocker.patch('maven_check_versions.process_main')
+    mock_process_main = mocker.patch('maven_check_versions.process.process_main')
     mock_input = mocker.patch('builtins.input', return_value='')
     mocker.patch('maven_check_versions.logutils.configure_logging')
     mocker.patch('sys.exit')

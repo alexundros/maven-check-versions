@@ -12,39 +12,10 @@ from configparser import ConfigParser
 import maven_check_versions.cache as _cache
 import maven_check_versions.config as _config
 import maven_check_versions.logutils as _logutils
+import maven_check_versions.process as _process
 import maven_check_versions.utils as _utils
 import requests
-import urllib3
 from bs4 import BeautifulSoup
-
-
-def process_main(arguments: dict) -> None:
-    """
-    Main processing function.
-
-    Args:
-        arguments (dict): Dictionary of parsed command line arguments.
-    """
-    config_parser = _config.get_config_parser(arguments)
-
-    if not _config.get_config_value(config_parser, arguments, 'warnings', 'urllib3', value_type=bool):
-        urllib3.disable_warnings()
-
-    cache_disabled = _config.get_config_value(config_parser, arguments, 'cache_off', value_type=bool)
-    if (cache_file_path := arguments.get('cache_file')) is None:
-        cache_file_path = 'maven_check_versions.cache'
-    cache_data = _cache.load_cache(cache_file_path) if not cache_disabled else None
-
-    if pom_file := arguments.get('pom_file'):
-        process_pom(cache_data, config_parser, arguments, pom_file)
-    elif artifact_to_find := arguments.get('find_artifact'):
-        process_artifact(cache_data, config_parser, arguments, artifact_to_find)
-    else:
-        for key, pom in _config.config_items(config_parser, 'pom_files'):
-            process_pom(cache_data, config_parser, arguments, pom)
-
-    if cache_data is not None:
-        _cache.save_cache(cache_data, cache_file_path)
 
 
 def process_pom(
@@ -321,7 +292,7 @@ def main() -> None:
         _logutils.configure_logging(arguments)
         ci_mode_enabled = arguments.get('ci_mode')
 
-        process_main(arguments)
+        _process.process_main(arguments)
 
         elapsed_time = f"{time.time() - start_time:.2f} sec."
         logging.info(f"Processing is completed, {elapsed_time}")
