@@ -44,8 +44,8 @@ def save_cache(cache_data: dict, cache_file: str) -> None:
 
 
 def process_cache(
-        arguments: dict, cache_data: dict | None, config_parser: ConfigParser, artifact_id_text: str,
-        group_id_text: str, version: str
+        arguments: dict, cache_data: dict | None, config_parser: ConfigParser, artifact_id: str,
+        group_id: str, version: str
 ) -> bool:
     """
     Process cached data for a dependency.
@@ -54,14 +54,14 @@ def process_cache(
         arguments (dict): Parsed command line arguments.
         cache_data (dict | None): Cache data containing dependency information.
         config_parser (ConfigParser): Configuration parser for settings.
-        artifact_id_text (str): Artifact ID of the dependency.
-        group_id_text (str): Group ID of the dependency.
+        artifact_id (str): Artifact ID of the dependency.
+        group_id (str): Group ID of the dependency.
         version (str): Version of the dependency.
 
     Returns:
         bool: True if the cached data is valid and up-to-date, False otherwise.
     """
-    data = cache_data.get(f"{group_id_text}:{artifact_id_text}")
+    data = cache_data.get(f"{group_id}:{artifact_id}")
     cached_time, cached_version, cached_key, cached_date, cached_versions = data
     if cached_version == version:
         return True
@@ -72,7 +72,7 @@ def process_cache(
         message_format = '*{}: {}:{}, current:{} versions: {} updated: {}'
         formatted_date = cached_date if cached_date is not None else ''
         logging.info(message_format.format(
-            cached_key, group_id_text, artifact_id_text, version, ', '.join(cached_versions),
+            cached_key, group_id, artifact_id, version, ', '.join(cached_versions),
             formatted_date).rstrip())
         return True
     return False
