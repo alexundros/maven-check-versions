@@ -11,6 +11,9 @@ jobs:
   start:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write # IMPORTANT: mandatory for making GitHub Releases
+
     strategy:
       fail-fast: false
 
