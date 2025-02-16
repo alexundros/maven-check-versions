@@ -4,11 +4,12 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: maven_check_versions
+  IMAGE_NAME: localhost:5000/maven_check_versions
 
 jobs:
   start:
     runs-on: ubuntu-latest
+
     services:
       registry:
         image: registry:2
@@ -28,8 +29,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: localhost:5000/${{ env.IMAGE_NAME }}
+          tags: ${{ env.IMAGE_NAME }}
 
       - name: Inspect
-        run: |
-          docker buildx imagetools inspect localhost:5000/${{ env.IMAGE_NAME }}
+        run: docker buildx imagetools inspect ${{ env.IMAGE_NAME }}

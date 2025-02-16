@@ -11,10 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write # IMPORTANT for making Releases
-
-    strategy:
-      fail-fast: false
+      contents: write
 
     steps:
     - uses: actions/checkout@v4
@@ -33,19 +30,15 @@ jobs:
     - name: Test with pytest
       run: pytest
 
-    - name: Read VERSION file
-      id: getversion
-      run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
-
     - name: Build project
       run: python -m build
 
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: gh release create v${{ github.ref_name }} --notes "" --draft
+      run: gh release create ${{ github.ref_name }} --notes "" --draft
 
     - name: Upload Release Asset
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: gh release upload v${{ github.ref_name }} dist/**
+      run: gh release upload ${{ github.ref_name }} dist/*.whl

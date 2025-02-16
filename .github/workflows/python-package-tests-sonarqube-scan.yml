@@ -2,17 +2,13 @@ name: Python package Tests SonarQube Scan
 
 on:
   workflow_dispatch:
-  #push:
-  #  branches: [ "main" ]
-  #pull_request:
-  #  branches: [ "main" ]
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   start:
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
 
     steps:
     - uses: actions/checkout@v4
@@ -34,15 +30,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Test with pytest
-      run: |
-        pytest --cov=src --cov-report=xml:coverage.xml --cov-config=tests/.coveragerc
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: pytest-results
-        path: coverage.xml
-        if-no-files-found: error
+      run: pytest --cov=src --cov-report=xml:coverage.xml --cov-config=tests/.coveragerc
 
     - name: Upload coverage data to coveralls.io
       run: coveralls --rcfile=tests/.coveragerc
