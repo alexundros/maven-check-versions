@@ -38,29 +38,16 @@ jobs:
     - name: Build project
       run: python -m build
 
-    # - name: Upload artifact
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: python-package-distributions
-    #     path: dist/
-    #     if-no-files-found: error
-
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
+    - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ steps.getversion.outputs.version }}
-        draft: true
-        prerelease: true
+      run: >-
+        gh release create v${{ steps.getversion.outputs.version }}
+        --notes "" --draft
 
     - name: Upload Release Asset
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/**
+      run: >-
+        gh release upload v${{ steps.getversion.outputs.version }}
+        dist/**
