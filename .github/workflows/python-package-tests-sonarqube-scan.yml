@@ -9,7 +9,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  start:
+  python-package-tests-sonarqube-scan:
     runs-on: ubuntu-latest
 
     steps:
