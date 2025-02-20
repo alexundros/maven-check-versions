@@ -6,7 +6,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  start:
+  python-package-tests-versions:
     runs-on: ubuntu-latest
 
     strategy:

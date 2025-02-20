@@ -7,7 +7,7 @@ env:
   IMAGE_NAME: localhost:5000/maven_check_versions
 
 jobs:
-  start:
+  build-push-docker-image-local:
     runs-on: ubuntu-latest
 
     services:
