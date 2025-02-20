@@ -112,7 +112,7 @@ docker run --rm alexundros/maven_check_versions -ci
 
 ## Configuration
 
-You can customize the tool’s behavior using a configuration file `maven_check_versions.cfg`.
+You can customize the tool’s behavior using a configuration file [`maven_check_versions.cfg`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/maven_check_versions.cfg.dist).
 The following settings can be adjusted:
 
 - **SSL Verification:** Enable or disable SSL verification for HTTP requests.
@@ -177,6 +177,6 @@ auth = false
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. See the [`LICENSE`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/LICENSE) file for more details.
 
 ---
