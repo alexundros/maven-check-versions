@@ -21,7 +21,7 @@ def process_main(arguments: dict) -> None:
     Main processing function.
 
     Args:
-        arguments (dict): Dictionary of parsed command line arguments.
+        arguments (dict): Command-line arguments.
     """
     config_parser = _config.get_config_parser(arguments)
 
@@ -49,14 +49,14 @@ def process_pom(
         cache_data: dict | None, config_parser: ConfigParser, arguments: dict, pom_path: str, prefix: str = None
 ) -> None:
     """
-    Process POM files.
+    Processes a POM file.
 
     Args:
-        cache_data (dict | None): Cache data for dependencies.
-        config_parser (ConfigParser): Configuration data.
-        arguments (dict): Command line arguments.
-        pom_path (str): Path or URL to the POM file to process.
-        prefix (str, optional): Prefix for the artifact name. Defaults to None.
+        cache_data (dict | None): Cache data.
+        config_parser (ConfigParser): Configuration parser.
+        arguments (dict): Command-line arguments.
+        pom_path (str): Path or URL to the POM file.
+        prefix (str, optional): Prefix for the artifact name.
     """
     verify_ssl = _config.get_config_value(config_parser, arguments, 'verify', 'requests', value_type=bool)
 
@@ -80,16 +80,16 @@ def process_dependencies(
         ns_mapping: dict, root: ET.Element, verify_ssl: bool
 ) -> None:
     """
-    Process dependencies in a POM file.
+    Processes dependencies in a POM file.
 
     Args:
-        cache_data (dict | None): Cache object to store dependencies.
-        config_parser (ConfigParser): Configuration object.
+        cache_data (dict | None): Cache data.
+        config_parser (ConfigParser): Configuration parser.
         arguments (dict): Command-line arguments.
-        dependencies (list): List of dependencies from the POM file.
+        dependencies (list): List of dependencies.
         ns_mapping (dict): XML namespace mapping.
-        root (ET.Element): Root XML element of the POM file.
-        verify_ssl (bool): Whether to verify HTTPS certificates.
+        root (ET.Element): Root element of the POM file.
+        verify_ssl (bool): SSL verification flag.
     """
     for dependency in dependencies:
         artifact_id, group_id = _utils.get_dependency_identifiers(dependency, ns_mapping)
@@ -117,19 +117,19 @@ def process_repositories(
         arguments: dict, verify_ssl: bool, version: str
 ):
     """
-    Process repositories to find a dependency.
+    Processes repositories to find a dependency.
 
     Args:
-        artifact_id (str): Artifact ID of the dependency.
-        cache_data (dict | None): Cache data containing dependency information.
-        config_parser (ConfigParser): Configuration parser for settings.
-        group_id (str): Group ID of the dependency.
-        arguments (dict): Parsed command line arguments.
-        verify_ssl (bool): Whether to verify SSL certificates.
-        version (str): Version of the dependency.
+        artifact_id (str): Artifact ID.
+        cache_data (dict | None): Cache data.
+        config_parser (ConfigParser): Configuration parser.
+        group_id (str): Group ID.
+        arguments (dict): Command-line arguments.
+        verify_ssl (bool): SSL verification flag.
+        version (str): Dependency version.
 
     Returns:
-        bool: True if the dependency is found in any repository, False otherwise.
+        bool: True if the dependency is found, False otherwise.
     """
     if len(items := _config.config_items(config_parser, 'repositories')):
         for section_key, repository_section in items:
@@ -145,16 +145,16 @@ def process_modules_if_required(
         pom_path: str, ns_mapping: dict, prefix: str = None
 ) -> None:
     """
-    Process modules listed in the POM file if required.
+    Processes modules in a POM file if required.
 
     Args:
-        cache_data (dict | None): Cache data for dependencies.
-        config_parser (ConfigParser): Configuration data.
-        arguments (dict): Command line arguments.
+        cache_data (dict | None): Cache data.
+        config_parser (ConfigParser): Configuration parser.
+        arguments (dict): Command-line arguments.
         root (ET.Element): Root element of the POM file.
         pom_path (str): Path to the POM file.
         ns_mapping (dict): XML namespace mapping.
-        prefix (str): Prefix for the artifact name.
+        prefix (str, optional): Prefix for the artifact name.
     """
     if _config.get_config_value(config_parser, arguments, 'process_modules', value_type=bool):
         directory_path = os.path.dirname(pom_path)
@@ -170,13 +170,13 @@ def process_artifact(
         cache_data: dict | None, config_parser: ConfigParser, arguments: dict, artifact_to_find: str
 ) -> None:
     """
-    Process finding artifacts.
+    Processes the search for a specified artifact.
 
     Args:
         cache_data (dict | None): Cache data.
-        config_parser (ConfigParser): Configuration settings.
+        config_parser (ConfigParser): Configuration parser.
         arguments (dict): Command-line arguments.
-        artifact_to_find (str): Artifact to search for.
+        artifact_to_find (str): Artifact to search for in groupId:artifactId:version format.
     """
     verify_ssl = _config.get_config_value(config_parser, arguments, 'verify', 'requests', value_type=bool)
     group_id, artifact_id, version = artifact_to_find.split(sep=":", maxsplit=3)
@@ -198,18 +198,18 @@ def process_repository(
         artifact_id: str, version: str, section_key: str, repository_section: str, verify_ssl: bool
 ) -> bool:
     """
-    Process a repository section.
+    Processes a repository section.
 
     Args:
-        cache_data (dict | None): The cache dictionary.
-        config_parser (ConfigParser): The configuration parser.
-        arguments (dict): Dictionary containing the parsed command line arguments.
-        group_id (str): The group ID of the artifact.
-        artifact_id (str): The artifact ID.
-        version (str): The version of the artifact.
-        section_key (str): The key for the repository section.
-        repository_section (str): The repository section name.
-        verify_ssl (bool): Whether to verify SSL certificates.
+        cache_data (dict | None): Cache data.
+        config_parser (ConfigParser): Configuration parser.
+        arguments (dict): Command-line arguments.
+        group_id (str): Group ID.
+        artifact_id (str): Artifact ID.
+        version (str): Artifact version.
+        section_key (str): Repository section key.
+        repository_section (str): Repository section name.
+        verify_ssl (bool): SSL verification flag.
 
     Returns:
         bool: True if the dependency is found, False otherwise.
@@ -257,20 +257,20 @@ def process_rest(
         auth_info: tuple, verify_ssl: bool
 ) -> bool:
     """
-    Process REST services.
+    Processes REST services for a repository.
 
     Args:
-        cache_data (dict | None): The cache dictionary.
-        config_parser (ConfigParser): The configuration parser.
-        arguments (dict): Dictionary containing the parsed command line arguments.
-        group_id (str): The group ID of the artifact.
-        artifact_id (str): The artifact ID.
-        version (str): The version of the artifact.
-        section_key (str): The key for the repository section.
-        repository_section (str): The repository section name.
-        base_url (str): The base URL of the repository.
-        auth_info (tuple): Tuple containing basic authentication credentials.
-        verify_ssl (bool): Whether to verify SSL certificates.
+        cache_data (dict | None): Cache data.
+        config_parser (ConfigParser): Configuration parser.
+        arguments (dict): Command-line arguments.
+        group_id (str): Group ID.
+        artifact_id (str): Artifact ID.
+        version (str): Artifact version.
+        section_key (str): Repository section key.
+        repository_section (str): Repository section name.
+        base_url (str): Base URL of the repository.
+        auth_info (tuple): Authentication credentials.
+        verify_ssl (bool): SSL verification flag.
 
     Returns:
         bool: True if the dependency is found, False otherwise.

@@ -18,10 +18,10 @@ import requests
 
 def parse_command_line() -> dict:
     """
-    Parse command line arguments.
+    Parses command-line arguments.
 
     Returns:
-        dict: A dictionary containing parsed command line arguments.
+        dict: Dictionary with parsed command-line arguments.
     """
     argument_parser = ArgumentParser(prog='maven_check_versions')
     argument_parser.add_argument('-ci', '--ci_mode', help='Enable CI Mode', action='store_true', default=False)
@@ -51,14 +51,14 @@ def parse_command_line() -> dict:
 
 def get_artifact_name(root: ET.Element, ns_mapping: dict) -> str:
     """
-    Get the full name of the artifact from the POM file.
+    Extracts the full artifact name from a POM file.
 
     Args:
         root (ET.Element): Root element of the POM file.
         ns_mapping (dict): XML namespace mapping.
 
     Returns:
-        str: Full artifact name.
+        str: Full artifact name (groupId:artifactId).
     """
     artifact_id = root.find('./xmlns:artifactId', namespaces=ns_mapping).text
     group_id_element = root.find('./xmlns:groupId', namespaces=ns_mapping)
@@ -69,16 +69,16 @@ def collect_dependencies(
         root: ET.Element, ns_mapping: dict, config_parser: ConfigParser, arguments: dict
 ) -> list:
     """
-    Collect dependencies from the POM file.
+    Collects dependencies from a POM file.
 
     Args:
         root (ET.Element): Root element of the POM file.
         ns_mapping (dict): XML namespace mapping.
-        config_parser (ConfigParser): Configuration data.
-        arguments (dict): Command line arguments.
+        config_parser (ConfigParser): Configuration parser.
+        arguments (dict): Command-line arguments.
 
     Returns:
-        list: List of dependencies from the POM file.
+        list: List of dependency elements.
     """
     dependencies = root.findall('.//xmlns:dependency', namespaces=ns_mapping)
     if _config.get_config_value(config_parser, arguments, 'search_plugins', value_type=bool):
@@ -90,14 +90,14 @@ def collect_dependencies(
 
 def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tuple[str, str | None]:
     """
-    Extract artifactId and groupId from a dependency.
+    Extracts artifactId and groupId from a dependency.
 
     Args:
         dependency (ET.Element): Dependency element.
         ns_mapping (dict): XML namespace mapping.
 
     Returns:
-        tuple[str, str | None]: artifactId and groupId (if present).
+        tuple[str, str | None]: Tuple of artifactId and groupId (or None if groupId is missing).
     """
     artifact_id = dependency.find('xmlns:artifactId', namespaces=ns_mapping)
     group_id = dependency.find('xmlns:groupId', namespaces=ns_mapping)
@@ -109,18 +109,17 @@ def fail_mode_if_required(
         major_version_threshold: int, minor_version_threshold: int, arguments: dict, version: str
 ) -> None:
     """
-    Check if the fail mode is enabled and if the version difference exceeds the thresholds.
-    If so, log a warning and raise an AssertionError.
+    Checks fail mode and raises an exception if version exceeds thresholds.
 
     Args:
-        config_parser (ConfigParser): Configuration parser to fetch values from configuration files.
-        current_major_version (int): The current major version of the artifact.
-        current_minor_version (int): The current minor version of the artifact.
-        item (str): The specific version item being processed.
-        major_version_threshold (int): The major version threshold for failure.
-        minor_version_threshold (int): The minor version threshold for failure.
-        arguments (dict): Dictionary of parsed command-line arguments to check runtime options.
-        version (str): The version of the Maven artifact being processed.
+        config_parser (ConfigParser): Configuration parser.
+        current_major_version (int): Current major version.
+        current_minor_version (int): Current minor version.
+        item (str): Version to check.
+        major_version_threshold (int): Major version threshold for failure.
+        minor_version_threshold (int): Minor version threshold for failure.
+        arguments (dict): Command-line arguments.
+        version (str): Current artifact version.
     """
     if _config.get_config_value(config_parser, arguments, 'fail_mode', value_type=bool):
         item_major_version = 0
@@ -137,15 +136,15 @@ def fail_mode_if_required(
 
 def resolve_version(version: str, root: ET.Element, ns_mapping: dict) -> str:
     """
-    Resolves in version text by checking POM properties.
+    Resolves version text by checking POM properties.
 
     Args:
-        version (str): The version text, potentially containing placeholders.
+        version (str): Version text, possibly with placeholders.
         root (ET.Element): Root element of the POM file.
-        ns_mapping (dict): XML namespace mapping for parsing.
+        ns_mapping (dict): XML namespace mapping.
 
     Returns:
-        str: Resolved version text or None if unresolved.
+        str: Resolved version or original text if unresolved.
     """
     if match := re.match(r'^\${([^}]+)}$', version):
         property_xpath = f"./xmlns:properties/xmlns:{match.group(1)}"
@@ -160,18 +159,17 @@ def get_version(
         dependency: ET.Element
 ) -> tuple[str | None, bool]:
     """
-    Get version information.
+    Extracts version information from a dependency.
 
     Args:
-        config_parser (ConfigParser): The configuration parser.
-        arguments (dict): Dictionary containing the parsed command line arguments.
-        ns_mapping (dict): Namespace dictionary for XML parsing.
+        config_parser (ConfigParser): Configuration parser.
+        arguments (dict): Command-line arguments.
+        ns_mapping (dict): XML namespace mapping.
         root (ET.Element): Root element of the POM file.
-        dependency (ET.Element): Dependency element from which to extract version.
+        dependency (ET.Element): Dependency element.
 
     Returns:
-        tuple[str | None, bool]:
-            A tuple containing the resolved version and a boolean indicating if the version should be skipped.
+        tuple[str | None, bool]: Tuple of version (or None) and skip flag.
     """
     version_text = ''
     version = dependency.find('xmlns:version', namespaces=ns_mapping)
@@ -199,21 +197,21 @@ def check_versions(
         available_versions: list[str], response: requests.Response
 ) -> bool:
     """
-    Check versions.
+    Checks dependency versions in a repository.
 
     Args:
-        cache_data (dict | None): The cache dictionary.
-        config_parser (ConfigParser): The configuration parser.
-        arguments (dict): Dictionary containing the parsed command line arguments.
-        group_id (str): The group ID of the artifact.
-        artifact_id (str): The artifact ID.
-        version (str): The version of the artifact.
-        section_key (str): The key for the repository section.
-        path (str): The path to the dependency in the repository.
-        auth_info (tuple): Tuple containing basic authentication credentials.
-        verify_ssl (bool): Whether to verify SSL certificates.
+        cache_data (dict | None): Cache data.
+        config_parser (ConfigParser): Configuration parser.
+        arguments (dict): Command-line arguments.
+        group_id (str): Group ID.
+        artifact_id (str): Artifact ID.
+        version (str): Current version.
+        section_key (str): Repository section key.
+        path (str): Path to the dependency in the repository.
+        auth_info (tuple): Authentication credentials.
+        verify_ssl (bool): SSL verification flag.
         available_versions (list[str]): List of available versions.
-        response (requests.Response): The response object from the repository.
+        response (requests.Response): Repository response.
 
     Returns:
         bool: True if the current version is valid, False otherwise.
@@ -263,19 +261,17 @@ def get_pom_data(
         auth_info: tuple, verify_ssl: bool, artifact_id: str, version: str, path: str
 ) -> tuple[bool, str | None]:
     """
-    Get POM data.
+    Retrieves POM file data from a repository.
 
     Args:
-        auth_info (tuple): Tuple containing basic authentication credentials.
-        verify_ssl (bool): Whether to verify SSL certificates.
-        artifact_id (str): The artifact ID.
-        version (str): The version of the artifact.
-        path (str): The path to the dependency in the repository.
+        auth_info (tuple): Authentication credentials.
+        verify_ssl (bool): SSL verification flag.
+        artifact_id (str): Artifact ID.
+        version (str): Artifact version.
+        path (str): Path to the dependency in the repository.
 
     Returns:
-        tuple[bool, str | None]:
-            A tuple containing a boolean indicating if the data was retrieved successfully
-            and the date of the last modification.
+        tuple[bool, str | None]: Tuple of success flag and last modified date (or None).
     """
     url = f"{path}/{version}/{artifact_id}-{version}.pom"
     response = requests.get(url, auth=auth_info, verify=verify_ssl)
@@ -291,13 +287,13 @@ def get_pom_tree(
         pom_path: str, verify_ssl: bool, config_parser: ConfigParser, arguments: dict
 ) -> ET.ElementTree:
     """
-    Load the XML tree of a POM file.
+    Loads the XML tree of a POM file.
 
     Args:
         pom_path (str): Path or URL to the POM file.
-        verify_ssl (bool): Whether to verify SSL certificates.
-        config_parser (ConfigParser): Configuration data.
-        arguments (dict): Command line arguments.
+        verify_ssl (bool): SSL verification flag.
+        config_parser (ConfigParser): Configuration parser.
+        arguments (dict): Command-line arguments.
 
     Returns:
         ET.ElementTree: Parsed XML tree of the POM file.
