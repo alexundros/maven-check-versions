@@ -36,7 +36,7 @@ docker pull alexundros/maven-check-versions
 
 - Analyze a specific pom file:
 ```bash
-docker run --rm -v '<path-to-pom.xml>:/app/pom.xml' alexundros/maven_check_versions -pf /app/pom.xml
+docker run --rm -v 'path/to/pom.xml:/app/pom.xml' alexundros/maven_check_versions -pf /app/pom.xml
 ```
 
 - Search for a specific artifact:
@@ -123,13 +123,13 @@ The following settings can be adjusted:
 Use a default configuration file name:
 
 ```bash
-docker run --rm -v './config.cfg:/app/maven_check_versions.cfg' -v '<path-to-pom.xml>:/app/pom.xml' alexundros/maven_check_versions -pf /app/pom.xml
+docker run --rm -v './config.cfg:/app/maven_check_versions.cfg' -v 'path/to/pom.xml:/app/pom.xml' alexundros/maven_check_versions -pf /app/pom.xml
 ```
 
 Use a specific configuration file name:
 
 ```bash
-docker run --rm -v './config.cfg:/app/cfg.cfg' -v '<path-to-pom.xml>:/app/pom.xml' alexundros/maven_check_versions -cfg /app/cfg.cfg -pf /app/pom.xml
+docker run --rm -v './config.cfg:/app/cfg.cfg' -v 'path/to/pom.xml:/app/pom.xml' alexundros/maven_check_versions -cfg /app/cfg.cfg -pf /app/pom.xml
 ```
 
 ### Example configuration
@@ -162,7 +162,7 @@ warnings = true
 verify = true
 
 [pom_files]
-pom-name = <path-to-pom.xml>
+pom-name = path/to/pom.xml
 
 [repositories]
 Central (repo1.maven.org) = repo1.maven
@@ -171,6 +171,39 @@ Central (repo1.maven.org) = repo1.maven
 base = https://repo1.maven.org
 path = maven2
 auth = false
+```
+
+---
+
+## Environment Variables
+
+The tool supports environment variables to override configuration settings or provide credentials for external services. Below is a list of supported environment variables:
+
+### Configuration Overrides
+These variables override settings from the `maven_check_versions.cfg` file or command-line arguments. The format is `CV_<KEY>` where `<KEY>` corresponds to a configuration key in the `[base]` section (case-insensitive).
+
+| Variable            | Description                                                                 | Example Value          |
+|---------------------|-----------------------------------------------------------------------------|------------------------|
+| `CV_CACHE_OFF`      | Disables caching if set to `true`.                                          | `true`                |
+| `CV_CACHE_TIME`     | Sets cache expiration time in seconds.                                      | `3600`                |
+| `CV_FAIL_MODE`      | Enables fail mode if set to `true`.                                         | `true`                |
+| `CV_FAIL_MAJOR`     | Sets the major version threshold for failure.                               | `1`                   |
+| `CV_FAIL_MINOR`     | Sets the minor version threshold for failure.                               | `2`                   |
+| `CV_SEARCH_PLUGINS` | Enables searching plugins if set to `true`.                                 | `true`                |
+| `CV_PROCESS_MODULES`| Enables processing of modules if set to `true`.                             | `true`                |
+| `CV_SHOW_SKIP`      | Logs skipped dependencies if set to `true`.                                 | `true`                |
+| `CV_SHOW_SEARCH`    | Logs search actions if set to `true`.                                       | `true`                |
+| `CV_EMPTY_VERSION`  | Allows empty versions if set to `true`.                                     | `true`                |
+| `CV_SHOW_INVALID`   | Logs invalid dependencies if set to `true`.                                 | `true`                |
+| `CV_USER`           | Specifies the username for repository authentication.                       | `my_username`         |
+| `CV_PASSWORD`       | Specifies the password for repository authentication.                       | `my_password`         |
+
+### Usage Example
+
+To override cache settings:
+
+```bash
+docker run --rm -e CV_CACHE_OFF=true -e CV_CACHE_TIME=1800 -v 'path/to/pom.xml:/app/pom.xml' alexundros/maven_check_versions -pf /app/pom.xml
 ```
 
 ---
