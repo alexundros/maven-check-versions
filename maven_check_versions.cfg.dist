@@ -24,7 +24,7 @@ warnings = true
 verify = true
 
 [pom_files]
-pom-name = <path-to-pom.xml>
+pom-name = path/to/pom.xml
 
 [repositories]
 Central (repo1.maven.org) = repo1.maven
