@@ -14,13 +14,13 @@ import maven_check_versions.config as _config
 
 def load_cache(cache_file: str) -> dict:
     """
-    Load cache from a file.
+    Loads the cache from a file.
 
     Args:
         cache_file (str): Path to the cache file.
 
     Returns:
-        dict: A dictionary representing the loaded cache.
+        dict: Cache data dictionary or an empty dictionary if the file does not exist.
     """
     if os.path.exists(cache_file):
         logging.info(f"Load Cache: {Path(cache_file).absolute()}")
@@ -31,10 +31,10 @@ def load_cache(cache_file: str) -> dict:
 
 def save_cache(cache_data: dict, cache_file: str) -> None:
     """
-    Save cache to a file.
+    Saves the cache to a file.
 
     Args:
-        cache_data (dict): The cache data to be saved.
+        cache_data (dict): Cache data to save.
         cache_file (str): Path to the file where the cache will be saved.
     """
     if cache_data is not None:
@@ -48,18 +48,18 @@ def process_cache(
         group_id: str, version: str
 ) -> bool:
     """
-    Process cached data for a dependency.
+    Processes cached data for a dependency.
 
     Args:
-        arguments (dict): Parsed command line arguments.
-        cache_data (dict | None): Cache data containing dependency information.
-        config_parser (ConfigParser): Configuration parser for settings.
+        arguments (dict): Command-line arguments.
+        cache_data (dict | None): Cache data for dependencies.
+        config_parser (ConfigParser): Configuration parser.
         artifact_id (str): Artifact ID of the dependency.
         group_id (str): Group ID of the dependency.
         version (str): Version of the dependency.
 
     Returns:
-        bool: True if the cached data is valid and up-to-date, False otherwise.
+        bool: True if the cache is valid and up-to-date, False otherwise.
     """
     data = cache_data.get(f"{group_id}:{artifact_id}")
     cached_time, cached_version, cached_key, cached_date, cached_versions = data
@@ -83,16 +83,16 @@ def update_cache(
         last_modified_date: str | None, section_key: str
 ) -> None:
     """
-    Update the cache data with the latest information about the artifact.
+    Updates the cache with new artifact data.
 
     Args:
-        cache_data (dict | None): The cache dictionary where data is stored.
+        cache_data (dict | None): Cache dictionary to update.
         available_versions (list): List of available versions for the artifact.
-        artifact_id (str): The artifact ID of the Maven dependency.
-        group_id (str): The group ID of the Maven dependency.
-        item (str): The specific version item being processed.
-        last_modified_date (str | None): The last modified date of the artifact.
-        section_key (str): The key for the repository section.
+        artifact_id (str): Artifact ID.
+        group_id (str): Group ID.
+        item (str): Current artifact version.
+        last_modified_date (str | None): Last modified date of the artifact.
+        section_key (str): Repository section key.
     """
     if cache_data is not None:
         value = (math.trunc(time.time()), item, section_key, last_modified_date, available_versions[:3])

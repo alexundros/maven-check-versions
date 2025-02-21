@@ -10,13 +10,13 @@ from pathlib import Path
 
 def get_config_parser(arguments: dict) -> ConfigParser:
     """
-    Get config parser.
+    Creates and configures a configuration parser.
 
     Args:
-        arguments (dict): Dictionary of parsed command line arguments.
+        arguments (dict): Command-line arguments.
 
     Returns:
-        ConfigParser: Config parser.
+        ConfigParser: Configured configuration parser.
     """
     config_parser = ConfigParser()
     config_parser.optionxform = str
@@ -34,17 +34,17 @@ def get_config_value(
         config_parser: ConfigParser, arguments: dict, key: str, section: str = 'base', value_type=None
 ) -> any:
     """
-    Get configuration value with optional type conversion.
+    Retrieves a configuration value with optional type conversion.
 
     Args:
-        config_parser (ConfigParser): Configuration data.
-        arguments (dict): Command line arguments.
-        key (str): Configuration section name.
-        section (str, optional): Configuration option name. Defaults to None.
-        value_type (type, optional): Value type for conversion. Defaults to str.
+        config_parser (ConfigParser): Configuration parser.
+        arguments (dict): Command-line arguments.
+        key (str): Configuration key.
+        section (str, optional): Configuration section (default is 'base').
+        value_type (type, optional): Type for value conversion.
 
     Returns:
-        Any: Value of the configuration option or None if not found.
+        any: Configuration value or None if not found.
     """
     try:
         value = None
@@ -67,14 +67,14 @@ def get_config_value(
 
 def config_items(config_parser: ConfigParser, section: str) -> list[tuple[str, str]]:
     """
-    Retrieve all items from a configuration section.
+    Retrieves all items from a configuration section.
 
     Args:
-        config_parser (ConfigParser): The configuration parser.
-        section (str): The section of the configuration file.
+        config_parser (ConfigParser): Configuration parser.
+        section (str): Section name.
 
     Returns:
-        list[tuple[str, str]]: A list of tuples containing the key-value pairs for the specified section.
+        list[tuple[str, str]]: List of key-value pair tuples.
     """
     try:
         return config_parser.items(section)
