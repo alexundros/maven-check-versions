@@ -6,7 +6,7 @@ on:
     types: published
 
 jobs:
-  python-package-publish-pypi:
+  python-package-publish-to-pypi:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,10 +25,14 @@ jobs:
     - name: Build a binary wheel and a source tarball
       run: python3 -m build
 
+    - name: Read VERSION file
+      id: getversion
+      run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+
     - name: Store the distribution packages
       uses: actions/upload-artifact@v4
       with:
-        name: python-package-dist
+        name: maven-check-versions-${{ steps.getversion.outputs.version }}-dist
         path: dist/
 
     - name: Publish to PyPI
