@@ -1,9 +1,14 @@
 #!/usr/bin/python3
 """Main entry point for the package"""
 
+import importlib.util
 import logging
+import os
 import sys
 import time
+
+if importlib.util.find_spec('maven_check_versions') is None:
+    sys.path.append(os.path.dirname(__file__) + '/..')
 
 import maven_check_versions.logutils as _logutils
 import maven_check_versions.process as _process
