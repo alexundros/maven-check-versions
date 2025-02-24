@@ -44,18 +44,18 @@ ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}  # NOSONAR
 def test_process_main(mocker, monkeypatch):
     monkeypatch.setenv('HOME', os.path.dirname(__file__))
     mock_exists = mocker.patch('os.path.exists')
-    mock_exists.side_effect = [False, True]
+    mock_exists.side_effect = [False, False, False, True]
     mocker.patch('builtins.open', mocker.mock_open(read_data="[base]\ncache_off = false"))
     mocker.patch('maven_check_versions.cache.load_cache', return_value={})
     mocker.patch('maven_check_versions.process.process_pom')
     mocker.patch('maven_check_versions.cache.save_cache')
     process_main({'pom_file': 'pom.xml'})
 
-    mock_exists.side_effect = [False, True]
+    mock_exists.side_effect = [False, False, False, True]
     mocker.patch('maven_check_versions.process.process_artifact')
     process_main({'find_artifact': 'pom.xml'})
 
-    mock_exists.side_effect = [False, True]
+    mock_exists.side_effect = [False, False, False, True]
     mock_config_items = mocker.patch('maven_check_versions.config.config_items')
     mock_config_items.return_value = [('key', 'pom.xml')]
     process_main({})

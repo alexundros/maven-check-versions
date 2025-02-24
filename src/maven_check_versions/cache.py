@@ -44,7 +44,7 @@ def save_cache(cache_data: dict, cache_file: str) -> None:
 
 
 def process_cache(
-        arguments: dict, cache_data: dict | None, config_parser: ConfigParser, artifact_id: str,
+        arguments: dict, cache_data: dict | None, config: dict | ConfigParser, artifact_id: str,
         group_id: str, version: str
 ) -> bool:
     """
@@ -53,7 +53,7 @@ def process_cache(
     Args:
         arguments (dict): Command-line arguments.
         cache_data (dict | None): Cache data for dependencies.
-        config_parser (ConfigParser): Configuration parser.
+        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
         artifact_id (str): Artifact ID of the dependency.
         group_id (str): Group ID of the dependency.
         version (str): Version of the dependency.
@@ -66,7 +66,7 @@ def process_cache(
     if cached_version == version:
         return True
 
-    cache_time_threshold = _config.get_config_value(config_parser, arguments, 'cache_time', value_type=int)
+    cache_time_threshold = _config.get_config_value(config, arguments, 'cache_time', value_type=int)
 
     if cache_time_threshold == 0 or time.time() - cached_time < cache_time_threshold:
         message_format = '*{}: {}:{}, current:{} versions: {} updated: {}'
