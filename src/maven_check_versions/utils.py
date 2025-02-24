@@ -66,7 +66,7 @@ def get_artifact_name(root: ET.Element, ns_mapping: dict) -> str:
 
 
 def collect_dependencies(
-        root: ET.Element, ns_mapping: dict, config_parser: ConfigParser, arguments: dict
+        root: ET.Element, ns_mapping: dict, config: dict | ConfigParser, arguments: dict
 ) -> list:
     """
     Collects dependencies from a POM file.
@@ -74,14 +74,14 @@ def collect_dependencies(
     Args:
         root (ET.Element): Root element of the POM file.
         ns_mapping (dict): XML namespace mapping.
-        config_parser (ConfigParser): Configuration parser.
+        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
         arguments (dict): Command-line arguments.
 
     Returns:
         list: List of dependency elements.
     """
     dependencies = root.findall('.//xmlns:dependency', namespaces=ns_mapping)
-    if _config.get_config_value(config_parser, arguments, 'search_plugins', value_type=bool):
+    if _config.get_config_value(config, arguments, 'search_plugins', value_type=bool):
         plugin_xpath = './/xmlns:plugins/xmlns:plugin'
         plugins = root.findall(plugin_xpath, namespaces=ns_mapping)
         dependencies.extend(plugins)
@@ -105,14 +105,14 @@ def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tupl
 
 
 def fail_mode_if_required(
-        config_parser: ConfigParser, current_major_version: int, current_minor_version: int, item: str,
+        config: dict | ConfigParser, current_major_version: int, current_minor_version: int, item: str,
         major_version_threshold: int, minor_version_threshold: int, arguments: dict, version: str
 ) -> None:
     """
     Checks fail mode and raises an exception if version exceeds thresholds.
 
     Args:
-        config_parser (ConfigParser): Configuration parser.
+        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
         current_major_version (int): Current major version.
         current_minor_version (int): Current minor version.
         item (str): Version to check.
@@ -121,7 +121,7 @@ def fail_mode_if_required(
         arguments (dict): Command-line arguments.
         version (str): Current artifact version.
     """
-    if _config.get_config_value(config_parser, arguments, 'fail_mode', value_type=bool):
+    if _config.get_config_value(config, arguments, 'fail_mode', value_type=bool):
         item_major_version = 0
         item_minor_version = 0
 
@@ -155,14 +155,14 @@ def resolve_version(version: str, root: ET.Element, ns_mapping: dict) -> str:
 
 
 def get_version(
-        config_parser: ConfigParser, arguments: dict, ns_mapping: dict, root: ET.Element,
+        config: dict | ConfigParser, arguments: dict, ns_mapping: dict, root: ET.Element,
         dependency: ET.Element
 ) -> tuple[str | None, bool]:
     """
     Extracts version information from a dependency.
 
     Args:
-        config_parser (ConfigParser): Configuration parser.
+        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
         arguments (dict): Command-line arguments.
         ns_mapping (dict): XML namespace mapping.
         root (ET.Element): Root element of the POM file.
@@ -175,7 +175,7 @@ def get_version(
     version = dependency.find('xmlns:version', namespaces=ns_mapping)
 
     if version is None:
-        if not _config.get_config_value(config_parser, arguments, 'empty_version', value_type=bool):
+        if not _config.get_config_value(config, arguments, 'empty_version', value_type=bool):
             return None, True
     else:
         version_text = resolve_version(version.text, root, ns_mapping)
@@ -185,14 +185,14 @@ def get_version(
             version_text = resolve_version(project_version_text, root, ns_mapping)
 
         if re.match('^\\${([^}]+)}$', version_text):
-            if not _config.get_config_value(config_parser, arguments, 'empty_version', value_type=bool):
+            if not _config.get_config_value(config, arguments, 'empty_version', value_type=bool):
                 return version_text, True
 
     return version_text, False
 
 
 def check_versions(
-        cache_data: dict | None, config_parser: ConfigParser, arguments: dict, group_id: str,
+        cache_data: dict | None, config: dict | ConfigParser, arguments: dict, group_id: str,
         artifact_id: str, version: str, section_key: str, path: str, auth_info: tuple, verify_ssl: bool,
         available_versions: list[str], response: requests.Response
 ) -> bool:
@@ -201,7 +201,7 @@ def check_versions(
 
     Args:
         cache_data (dict | None): Cache data.
-        config_parser (ConfigParser): Configuration parser.
+        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
         arguments (dict): Command-line arguments.
         group_id (str): Group ID.
         artifact_id (str): Artifact ID.
@@ -222,14 +222,14 @@ def check_versions(
     major_threshold = minor_threshold = 0
     current_major = current_minor = 0
 
-    if _config.get_config_value(config_parser, arguments, 'fail_mode', value_type=bool):
-        major_threshold = int(_config.get_config_value(config_parser, arguments, 'fail_major'))
-        minor_threshold = int(_config.get_config_value(config_parser, arguments, 'fail_minor'))
+    if _config.get_config_value(config, arguments, 'fail_mode', value_type=bool):
+        major_threshold = int(_config.get_config_value(config, arguments, 'fail_major'))
+        minor_threshold = int(_config.get_config_value(config, arguments, 'fail_minor'))
 
         if version_match := re.match('^(\\d+)\\.(\\d+).?', version):
             current_major, current_minor = int(version_match.group(1)), int(version_match.group(2))
 
-    skip_current = _config.get_config_value(config_parser, arguments, 'skip_current', value_type=bool)
+    skip_current = _config.get_config_value(config, arguments, 'skip_current', value_type=bool)
     invalid_flag = False
 
     for item in available_versions:
@@ -245,13 +245,13 @@ def check_versions(
             _cache.update_cache(cache_data, available_versions, artifact_id, group_id, item, last_modified, section_key)
 
             fail_mode_if_required(
-                config_parser, current_major, current_minor, item,
+                config, current_major, current_minor, item,
                 major_threshold, minor_threshold, arguments, version)
             return True
 
         else:
             _logutils.log_invalid_if_required(
-                config_parser, arguments, response, group_id, artifact_id, item, invalid_flag)
+                config, arguments, response, group_id, artifact_id, item, invalid_flag)
             invalid_flag = True
 
     return False
@@ -284,7 +284,7 @@ def get_pom_data(
 
 
 def get_pom_tree(
-        pom_path: str, verify_ssl: bool, config_parser: ConfigParser, arguments: dict
+        pom_path: str, verify_ssl: bool, config: dict | ConfigParser, arguments: dict
 ) -> ET.ElementTree:
     """
     Loads the XML tree of a POM file.
@@ -292,7 +292,7 @@ def get_pom_tree(
     Args:
         pom_path (str): Path or URL to the POM file.
         verify_ssl (bool): SSL verification flag.
-        config_parser (ConfigParser): Configuration parser.
+        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
         arguments (dict): Command-line arguments.
 
     Returns:
@@ -300,10 +300,10 @@ def get_pom_tree(
     """
     if pom_path.startswith('http'):
         auth_info = ()
-        if _config.get_config_value(config_parser, arguments, 'auth', 'pom_http', value_type=bool):
+        if _config.get_config_value(config, arguments, 'auth', 'pom_http', value_type=bool):
             auth_info = (
-                _config.get_config_value(config_parser, arguments, 'user'),
-                _config.get_config_value(config_parser, arguments, 'password')
+                _config.get_config_value(config, arguments, 'user'),
+                _config.get_config_value(config, arguments, 'password')
             )
         response = requests.get(pom_path, auth=auth_info, verify=verify_ssl)
         if response.status_code != 200:
