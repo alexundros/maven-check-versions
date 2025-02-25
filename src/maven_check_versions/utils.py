@@ -46,6 +46,8 @@ def parse_command_line() -> dict:
     argument_parser.add_argument('-si', '--show_invalid', help='Show Invalid', action='store_true', default=None)
     argument_parser.add_argument('-un', '--user', help='Basic Auth user')
     argument_parser.add_argument('-up', '--password', help='Basic Auth password')
+    argument_parser.add_argument('-th', '--threading', help='Enable threading', action='store_true', default=None)
+    argument_parser.add_argument('-mt', '--max_threads', help='Maximum number of threads', type=int)
     return vars(argument_parser.parse_args())
 
 

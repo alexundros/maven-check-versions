@@ -17,7 +17,7 @@ sys.path.append('../src')
 from maven_check_versions.process import (  # noqa: E402
     process_rest, process_repository, process_repositories,
     process_modules_if_required, process_artifact,
-    process_dependencies, process_pom, process_main
+    process_dependency, process_pom, process_main
 )
 
 # noinspection PyUnresolvedReferences
@@ -208,7 +208,7 @@ def test_process_artifact(mocker):
 
 
 # noinspection PyShadowingNames
-def test_process_dependencies(mocker):
+def test_process_dependency(mocker):
     config_parser = ConfigParser()
     config_parser.optionxform = str
     config_parser.read_string("[base]\nempty_version = true\nshow_skip = true")
@@ -225,9 +225,10 @@ def test_process_dependencies(mocker):
         </project>
         """.lstrip())
     dependencies = collect_dependencies(root, ns_mappings, config_parser, {})
-    _process_dependencies = lambda data=None: process_dependencies(
-        data, config_parser, {}, dependencies, ns_mappings, root, True
-    )
+
+    def _process_dependencies(data: dict | None = None) -> None:
+        for dep in dependencies:
+            process_dependency((data, config_parser, {}, dep, ns_mappings, root, True))
 
     mock_gdi = mocker.patch('maven_check_versions.utils.get_dependency_identifiers')
     mock_gdi.return_value = ('artifact', None)
@@ -269,11 +270,17 @@ def test_process_pom(mocker):
         </dependencies>
     </project>
     """))
-    mock_cd = mocker.patch('maven_check_versions.utils.collect_dependencies')
-    mock_pd = mocker.patch('maven_check_versions.process.process_dependencies')
-    mock_pmir = mocker.patch('maven_check_versions.process.process_modules_if_required')
-    process_pom({}, mocker.Mock(), {}, 'pom.xml', 'prefix')
+    mock_pd = mocker.patch('maven_check_versions.process.process_dependency')
+    mock_pm = mocker.patch('maven_check_versions.process.process_modules_if_required')
+    config_parser = ConfigParser()
+    config_parser.optionxform = str
+    config_parser.read_string("[base]\nthreading = true\nmax_threads = 4")
+    process_pom({}, config_parser, {}, 'pom.xml', 'prefix')
     mock_get_pom_tree.assert_called_once()
-    mock_cd.assert_called_once()
     mock_pd.assert_called_once()
-    mock_pmir.assert_called_once()
+    mock_pm.assert_called_once()
+
+    config_parser.read_string("[base]\nthreading = false")
+    mock_pd = mocker.patch('maven_check_versions.process.process_dependency')
+    process_pom({}, config_parser, {}, 'pom.xml', 'prefix')
+    mock_pd.assert_called_once()

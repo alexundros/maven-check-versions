@@ -5,6 +5,7 @@ import logging
 import os
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from configparser import ConfigParser
 
 import maven_check_versions.cache as _cache
@@ -70,46 +71,56 @@ def process_pom(
     logging.info(f"=== Processing: {artifact_name} ===")
 
     dependencies = _utils.collect_dependencies(root, ns_mapping, config, arguments)
-    process_dependencies(cache_data, config, arguments, dependencies, ns_mapping, root, verify_ssl)
+    threading_enabled = _config.get_config_value(config, arguments, 'threading', value_type=bool)
+    max_threads = _config.get_config_value(config, arguments, 'max_threads', value_type=int)
+
+    if threading_enabled:
+        logging.info(f"=== Threading with {max_threads} threads ===")
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            future_to_dep = {
+                executor.submit(
+                    process_dependency, (cache_data, config, arguments, dep, ns_mapping, root, verify_ssl)
+                ): dep for dep in dependencies
+            }
+            for future in as_completed(future_to_dep):
+                try:
+                    future.result()
+                except Exception as e:  # pragma: no cover
+                    logging.error(f"Error processing dependency: {e}")
+    else:
+        for dep in dependencies:
+            process_dependency((cache_data, config, arguments, dep, ns_mapping, root, verify_ssl))
 
     process_modules_if_required(cache_data, config, arguments, root, pom_path, ns_mapping, prefix)
 
 
-def process_dependencies(
-        cache_data: dict | None, config: dict | ConfigParser, arguments: dict, dependencies: list,
-        ns_mapping: dict, root: ET.Element, verify_ssl: bool
-) -> None:
+def process_dependency(args) -> None:
     """
-    Processes dependencies in a POM file.
+    Processes dependency in a POM file.
 
     Args:
-        cache_data (dict | None): Cache data.
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
-        arguments (dict): Command-line arguments.
-        dependencies (list): List of dependencies.
-        ns_mapping (dict): XML namespace mapping.
-        root (ET.Element): Root element of the POM file.
-        verify_ssl (bool): SSL verification flag.
+        args (tuple): Processes dependency arguments.
     """
-    for dependency in dependencies:
-        artifact_id, group_id = _utils.get_dependency_identifiers(dependency, ns_mapping)
-        if artifact_id is None or group_id is None:
-            logging.error("Missing artifactId or groupId in a dependency.")
-            continue
+    (cache_data, config, arguments, dependency, ns_mapping, root, verify_ssl) = args
 
-        version, skip_flag = _utils.get_version(config, arguments, ns_mapping, root, dependency)
-        if skip_flag is True:
-            _logutils.log_skip_if_required(config, arguments, group_id, artifact_id, version)
-            continue
+    artifact_id, group_id = _utils.get_dependency_identifiers(dependency, ns_mapping)
+    if artifact_id is None or group_id is None:
+        logging.error("Missing artifactId or groupId in a dependency.")
+        return
 
-        _logutils.log_search_if_required(config, arguments, group_id, artifact_id, version)
+    version, skip_flag = _utils.get_version(config, arguments, ns_mapping, root, dependency)
+    if skip_flag is True:
+        _logutils.log_skip_if_required(config, arguments, group_id, artifact_id, version)
+        return
 
-        if cache_data is not None and cache_data.get(f"{group_id}:{artifact_id}") is not None:
-            if _cache.process_cache(arguments, cache_data, config, artifact_id, group_id, version):
-                continue
+    _logutils.log_search_if_required(config, arguments, group_id, artifact_id, version)
 
-        if not process_repositories(artifact_id, cache_data, config, group_id, arguments, verify_ssl, version):
-            logging.warning(f"Not Found: {group_id}:{artifact_id}, current:{version}")
+    if cache_data is not None and cache_data.get(f"{group_id}:{artifact_id}") is not None:
+        if _cache.process_cache(arguments, cache_data, config, artifact_id, group_id, version):
+            return
+
+    if not process_repositories(artifact_id, cache_data, config, group_id, arguments, verify_ssl, version):
+        logging.warning(f"Not Found: {group_id}:{artifact_id}, current:{version}")
 
 
 def process_repositories(

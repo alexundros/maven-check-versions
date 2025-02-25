@@ -13,6 +13,8 @@ base:
   skip_version: true
   user: "USER"
   password: "PASSWORD"
+  threading: false
+  max_threads: 8
 
 pom_http:
   auth: true
