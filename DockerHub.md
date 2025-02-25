@@ -142,8 +142,8 @@ base:
   fail_mode: false
   fail_major: 0
   fail_minor: 0
-  plugins: false
-  modules: false
+  search_plugins: false
+  process_modules: false
   show_skip: false
   show_search: false
   empty_version: false
@@ -181,8 +181,8 @@ cache_time = 600
 fail_mode = false
 fail_major = 0
 fail_minor = 0
-plugins = false
-modules = false
+search_plugins = false
+process_modules = false
 show_skip = false
 show_search = false
 empty_version = false
