@@ -67,42 +67,48 @@ def process_pom(
 
     artifact_name = _utils.get_artifact_name(root, ns_mapping)
     if prefix is not None:
-        prefix = artifact_name = f"{prefix} / {artifact_name}"
+        artifact_name = f"{prefix} / {artifact_name}"
     logging.info(f"=== Processing: {artifact_name} ===")
 
     dependencies = _utils.collect_dependencies(root, ns_mapping, config, arguments)
-    threading_enabled = _config.get_config_value(config, arguments, 'threading', value_type=bool)
-    max_threads = _config.get_config_value(config, arguments, 'max_threads', value_type=int)
 
-    if threading_enabled:
-        logging.info(f"=== Threading with {max_threads} threads ===")
+    if _config.get_config_value(config, arguments, 'threading', value_type=bool):
+        max_threads = _config.get_config_value(config, arguments, 'max_threads', value_type=int)
+
         with ThreadPoolExecutor(max_workers=max_threads) as executor:
-            future_to_dep = {
-                executor.submit(
-                    process_dependency, (cache_data, config, arguments, dep, ns_mapping, root, verify_ssl)
-                ): dep for dep in dependencies
-            }
-            for future in as_completed(future_to_dep):
+            futures = []
+            for dep in dependencies:
+                args = (cache_data, config, arguments, dep, ns_mapping, root, verify_ssl)
+                futures.append(executor.submit(process_dependency, *args))
+
+            for future in as_completed(futures):
                 try:
                     future.result()
                 except Exception as e:  # pragma: no cover
                     logging.error(f"Error processing dependency: {e}")
     else:
         for dep in dependencies:
-            process_dependency((cache_data, config, arguments, dep, ns_mapping, root, verify_ssl))
+            process_dependency(cache_data, config, arguments, dep, ns_mapping, root, verify_ssl)
 
-    process_modules_if_required(cache_data, config, arguments, root, pom_path, ns_mapping, prefix)
+    process_modules_if_required(cache_data, config, arguments, root, pom_path, ns_mapping, artifact_name)
 
 
-def process_dependency(args) -> None:
+def process_dependency(
+        cache_data: dict | None, config: dict | ConfigParser, arguments: dict, dependency: ET.Element,
+        ns_mapping: dict, root: ET.Element, verify_ssl: bool
+) -> None:
     """
     Processes dependency in a POM file.
 
     Args:
-        args (tuple): Processes dependency arguments.
+        cache_data (dict | None): Cache data.
+        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        arguments (dict): Command-line arguments.
+        dependency (ET.Element): Dependency.
+        ns_mapping (dict): XML namespace mapping.
+        root (ET.Element): Root element of the POM file.
+        verify_ssl (bool): SSL verification flag.
     """
-    (cache_data, config, arguments, dependency, ns_mapping, root, verify_ssl) = args
-
     artifact_id, group_id = _utils.get_dependency_identifiers(dependency, ns_mapping)
     if artifact_id is None or group_id is None:
         logging.error("Missing artifactId or groupId in a dependency.")
@@ -171,10 +177,27 @@ def process_modules_if_required(
         directory_path = os.path.dirname(pom_path)
         module_xpath = './/xmlns:modules/xmlns:module'
 
-        for module in root.findall(module_xpath, namespaces=ns_mapping):
-            module_pom_path = f"{directory_path}/{module.text}/pom.xml"
-            if os.path.exists(module_pom_path):
-                process_pom(cache_data, config, arguments, module_pom_path, prefix)
+        if _config.get_config_value(config, arguments, 'threading', value_type=bool):
+            max_threads = _config.get_config_value(config, arguments, 'max_threads', value_type=int)
+
+            with ThreadPoolExecutor(max_workers=max_threads) as executor:
+                futures = []
+                for module in root.findall(module_xpath, namespaces=ns_mapping):
+                    module_pom_path = f"{directory_path}/{module.text}/pom.xml"
+                    if module_pom_path.startswith('http') or os.path.exists(module_pom_path):
+                        args = (cache_data, config, arguments, module_pom_path, prefix)
+                        futures.append(executor.submit(process_pom, *args))
+
+                for future in as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as e:  # pragma: no cover
+                        logging.error(f"Error processing module: {e}")
+        else:
+            for module in root.findall(module_xpath, namespaces=ns_mapping):
+                module_pom_path = f"{directory_path}/{module.text}/pom.xml"
+                if module_pom_path.startswith('http') or os.path.exists(module_pom_path):
+                    process_pom(cache_data, config, arguments, module_pom_path, prefix)
 
 
 def process_artifact(

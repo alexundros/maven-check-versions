@@ -161,7 +161,7 @@ def test_process_repositories(mocker):
 def test_process_modules_if_required(mocker):
     config_parser = ConfigParser()
     config_parser.optionxform = str
-    config_parser.read_string("[base]\nprocess_modules = true")
+    config_parser.read_string("[base]\nprocess_modules = true\nthreading = true")
     root = ET.fromstring("""
     <?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
@@ -172,6 +172,11 @@ def test_process_modules_if_required(mocker):
     </project>
     """.lstrip())
     mocker.patch('os.path.exists', return_value=True)
+    mock_process_pom = mocker.patch('maven_check_versions.process.process_pom')
+    process_modules_if_required({}, config_parser, {}, root, 'pom.xml', ns_mappings)
+    assert mock_process_pom.call_count == 2
+
+    config_parser.read_string("[base]\nprocess_modules = true\nthreading = false")
     mock_process_pom = mocker.patch('maven_check_versions.process.process_pom')
     process_modules_if_required({}, config_parser, {}, root, 'pom.xml', ns_mappings)
     assert mock_process_pom.call_count == 2
@@ -228,7 +233,7 @@ def test_process_dependency(mocker):
 
     def _process_dependencies(data: dict | None = None) -> None:
         for dep in dependencies:
-            process_dependency((data, config_parser, {}, dep, ns_mappings, root, True))
+            process_dependency(data, config_parser, {}, dep, ns_mappings, root, True)
 
     mock_gdi = mocker.patch('maven_check_versions.utils.get_dependency_identifiers')
     mock_gdi.return_value = ('artifact', None)
