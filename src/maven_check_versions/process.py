@@ -76,12 +76,11 @@ def process_pom(
         max_threads = _config.get_config_value(config, arguments, 'max_threads', value_type=int)
 
         with ThreadPoolExecutor(max_workers=max_threads) as executor:
-            futures = []
-            for dep in dependencies:
-                args = (cache_data, config, arguments, dep, ns_mapping, root, verify_ssl)
-                futures.append(executor.submit(process_dependency, *args))
-
-            for future in as_completed(futures):
+            for future in as_completed([
+                executor.submit(process_dependency,
+                                cache_data, config, arguments, dep, ns_mapping, root, verify_ssl)
+                for dep in dependencies
+            ]):
                 try:
                     future.result()
                 except Exception as e:  # pragma: no cover
@@ -175,29 +174,24 @@ def process_modules_if_required(
     """
     if _config.get_config_value(config, arguments, 'process_modules', value_type=bool):
         directory_path = os.path.dirname(pom_path)
-        module_xpath = './/xmlns:modules/xmlns:module'
+        modules = root.findall('.//xmlns:modules/xmlns:module', namespaces=ns_mapping)
+        module_paths = [f"{directory_path}/{module.text}/pom.xml" for module in modules]
+        valid_module_paths = [p for p in module_paths if p.startswith('http') or os.path.exists(p)]
 
         if _config.get_config_value(config, arguments, 'threading', value_type=bool):
             max_threads = _config.get_config_value(config, arguments, 'max_threads', value_type=int)
-
             with ThreadPoolExecutor(max_workers=max_threads) as executor:
-                futures = []
-                for module in root.findall(module_xpath, namespaces=ns_mapping):
-                    module_pom_path = f"{directory_path}/{module.text}/pom.xml"
-                    if module_pom_path.startswith('http') or os.path.exists(module_pom_path):
-                        args = (cache_data, config, arguments, module_pom_path, prefix)
-                        futures.append(executor.submit(process_pom, *args))
-
-                for future in as_completed(futures):
+                for future in as_completed([
+                    executor.submit(process_pom, cache_data, config, arguments, module_path, prefix)
+                    for module_path in valid_module_paths
+                ]):
                     try:
                         future.result()
                     except Exception as e:  # pragma: no cover
                         logging.error(f"Error processing module: {e}")
         else:
-            for module in root.findall(module_xpath, namespaces=ns_mapping):
-                module_pom_path = f"{directory_path}/{module.text}/pom.xml"
-                if module_pom_path.startswith('http') or os.path.exists(module_pom_path):
-                    process_pom(cache_data, config, arguments, module_pom_path, prefix)
+            for module_path in valid_module_paths:
+                process_pom(cache_data, config, arguments, module_path, prefix)
 
 
 def process_artifact(
