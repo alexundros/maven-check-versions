@@ -11,19 +11,24 @@ on:
 jobs:
   python-package-tests-sonarqube-scan:
     runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["pypy3.10", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Python 3.12
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
-        python-version: 3.12
+        python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install flake8 pytest pytest-cov pytest-mock coveralls
+        python -m pip install flake8 pytest pytest-cov pytest-mock
         python -m pip install -r requirements.txt
 
     - name: Lint with flake8
@@ -35,16 +40,20 @@ jobs:
       run: pytest --cov=src --cov-report=xml:coverage.xml --cov-config=tests/.coveragerc
 
     - name: Upload coverage data to coveralls.io
-      if: ${{ github.event_name != 'pull_request' }}
-      run: coveralls --rcfile=tests/.coveragerc
+      if: ${{ matrix.python-version == '3.12' && github.event_name != 'pull_request' }}
+      run: |
+        python -m pip install coveralls
+        coveralls --rcfile=tests/.coveragerc
       env:
         COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
 
     - name: Read VERSION file
+      if: ${{ matrix.python-version == '3.13' }}
       id: getversion
       run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
 
     - name: SonarQube Scan
+      if: ${{ matrix.python-version == '3.13' }}
       uses: sonarsource/sonarqube-scan-action@v4
       with:
         args: >
