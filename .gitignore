@@ -17,6 +17,7 @@ coverage.xml
 *.yml
 *.cache
 *.log
+*.patch
 .idea
 .vscode
 .artifacts

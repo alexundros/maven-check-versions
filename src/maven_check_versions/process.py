@@ -39,7 +39,7 @@ def process_main(arguments: dict) -> None:
     elif artifact_to_find := arguments.get('find_artifact'):
         process_artifact(cache_data, config, arguments, artifact_to_find)
     else:
-        for key, pom in _config.config_items(config, 'pom_files'):
+        for _, pom in _config.config_items(config, 'pom_files'):
             process_pom(cache_data, config, arguments, pom)
 
     if cache_data is not None:

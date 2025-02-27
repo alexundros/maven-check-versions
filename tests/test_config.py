@@ -37,11 +37,11 @@ def test_get_config(mocker):
 def test_get_config_value(mocker, monkeypatch):
     mock = mocker.Mock()
     mock.get.return_value = 'true'
-    assert get_config_value(mock, {}, 'key', value_type=bool) == True
+    assert get_config_value(mock, {}, 'key', value_type=bool) is True
     mock.get.return_value = 'true'
-    assert get_config_value(mock, {'key': False}, 'key', value_type=bool) == False
+    assert get_config_value(mock, {'key': False}, 'key', value_type=bool) is False
     monkeypatch.setenv('CV_KEY', 'true')
-    assert get_config_value(mock, {'key': False}, 'key', value_type=bool) == True
+    assert get_config_value(mock, {'key': False}, 'key', value_type=bool) is True
     mock.get.return_value = '123'
     assert get_config_value(mock, {}, 'key', value_type=int) == 123
     mock.get.return_value = '123.45'
