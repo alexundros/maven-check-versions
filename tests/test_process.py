@@ -63,10 +63,11 @@ def test_process_main(mocker, monkeypatch):
 
 # noinspection PyShadowingNames
 def test_process_rest(mocker):
-    _service_rest = lambda: process_rest(
-        {}, mocker.Mock(), {}, 'group', 'artifact', '1.0', 'section',
-        'repository', 'http://example.com/pom.pom', (), True  # NOSONAR
-    )
+    def _service_rest():
+        return process_rest(
+            {}, mocker.Mock(), {}, 'group', 'artifact', '1.0', 'section',
+            'repository', 'http://example.com/pom.pom', (), True  # NOSONAR
+        )
 
     mock_check_versions = mocker.patch('maven_check_versions.utils.check_versions')
     mock_check_versions.return_value = True
@@ -103,10 +104,12 @@ def test_process_repository(mocker):
     auth = true
     """)
     args = {'user': 'user', 'password': 'pass'}  # NOSONAR
-    _process_repository = lambda: process_repository(
-        {}, config_parser, args, 'group', 'artifact', '1.0',
-        'repository', 'section', True
-    )
+
+    def _process_repository():
+        return process_repository(
+            {}, config_parser, args, 'group', 'artifact', '1.0',
+            'repository', 'section', True
+        )
 
     mock_requests = mocker.patch('requests.get')
     mock_requests.return_value = mocker.Mock(status_code=200, text="""

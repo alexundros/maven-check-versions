@@ -100,7 +100,7 @@ def test_collect_dependencies(mocker):
                 <groupId>groupId</groupId>
                 <artifactId>artifactId</artifactId>
             </dependency>
-        </dependencies> 
+        </dependencies>
         <build>
             <plugins>
             <plugin>
@@ -170,7 +170,7 @@ def test_get_version(mocker):
                 <artifactId>dependency</artifactId>
                 <version>${dependency.version}</version>
             </dependency>
-        </dependencies> 
+        </dependencies>
     </project>
     """.lstrip())
     args = {'empty_version': False}
@@ -187,10 +187,11 @@ def test_get_version(mocker):
 
 # noinspection PyShadowingNames
 def test_check_versions(mocker):
-    _check_versions = lambda pa, data, item, vers: check_versions(
-        data, mocker.Mock(), pa, 'group', 'artifact', item,
-        'repo_section', 'path', (), True, vers, mocker.Mock()
-    )
+    def _check_versions(pa, data, item, vers):
+        return check_versions(
+            data, mocker.Mock(), pa, 'group', 'artifact', item,
+            'repo_section', 'path', (), True, vers, mocker.Mock()
+        )
 
     # mocker used direct link otherwise got error
     # AttributeError: <module 'maven_check_versions' from '__init__.py'>
