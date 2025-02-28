@@ -2,43 +2,52 @@ name: Python package Create Release
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_run:
+    workflows: "Python package Tests SonarQube Scan"
+    types:
+      - completed
 
 jobs:
   python-package-create-release:
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+      && startsWith(github.ref, 'refs/tags/v')
 
     permissions:
       contents: write
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python 3.13
-      uses: actions/setup-python@v5
-      with:
-        python-version: 3.13
+      - name: Check if tag is on main branch
+        run: |
+          branch=$(git branch --show-current)
+          echo "Branch is $branch."
+          if [ "$branch" != "main" ]; then
+            echo "Error: Tag must be on main branch!"
+            exit 1
+          fi
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install pytest pytest-cov pytest-mock build
-        python -m pip install -r requirements.txt
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.13
 
-    - name: Test with pytest
-      run: pytest
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+          python -m pip install -r requirements.txt
 
-    - name: Build project
-      run: python -m build
+      - name: Build project
+        run: python -m build
 
-    - name: Create GitHub Release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: gh release create ${{ github.ref_name }} --notes "" --draft
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create ${{ github.ref_name }} --notes "" --draft
 
-    - name: Upload Release Asset
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: gh release upload ${{ github.ref_name }} dist/*.whl
+      - name: Upload Release Asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ github.ref_name }} dist/*.whl

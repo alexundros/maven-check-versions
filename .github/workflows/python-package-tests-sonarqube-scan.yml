@@ -5,7 +5,7 @@ on:
   push:
     branches: [ "main" ]
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
   pull_request:
     branches: [ "main" ]
 
@@ -16,52 +16,53 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["pypy3.10", "3.10", "3.11", "3.12", "3.13"]
+        python-version: [ "pypy3.10", "3.10", "3.11", "3.12", "3.13" ]
         #python-version: ["3.13"]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install flake8 flake8-builtins pep8-naming
-        python -m pip install flake8-functions-names flake8-variables-names
-        python -m pip install pytest pytest-cov pytest-mock
-        python -m pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-cov pytest-mock
+          python -m pip install flake8 flake8-builtins pep8-naming
+          python -m pip install flake8-functions-names flake8-variables-names
+          python -m pip install -r requirements.txt
 
-    - name: Lint with flake8
-      run: |
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 . --count --ignore=FNE005,N817,F401,E402,F811,FNE008,FNE003,FNE004 \
-          --max-complexity=10 --max-line-length=120 --statistics
+      - name: Lint with flake8
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --max-complexity=10 --max-line-length=120 --statistics \
+            --ignore=FNE005,N817,F401,E402,F811,FNE008,FNE003,FNE004
 
-    - name: Test with pytest
-      run: pytest --cov=src --cov-report=xml:coverage.xml --cov-config=tests/.coveragerc
+      - name: Test with pytest and coverage
+        run: pytest --cov=src --cov-report=xml:coverage.xml --cov-config=tests/.coveragerc
 
-    - name: Upload coverage data to coveralls.io
-      if: ${{ matrix.python-version == '3.12' && github.event_name != 'pull_request' }}
-      run: |
-        python -m pip install coveralls
-        coveralls --rcfile=tests/.coveragerc
-      env:
-        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+      - name: Upload coverage data to coveralls.io
+        # requires version 3.12 due to an error in 3.13
+        if: matrix.python-version == '3.12' && github.event_name != 'pull_request'
+        run: |
+          python -m pip install coveralls
+          coveralls --rcfile=tests/.coveragerc
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
 
-    - name: Read VERSION file
-      if: ${{ matrix.python-version == '3.13' }}
-      id: getversion
-      run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+      - name: Read VERSION file
+        if: matrix.python-version == '3.13'
+        id: getversion
+        run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
 
-    - name: SonarQube Scan
-      if: ${{ matrix.python-version == '3.13' }}
-      uses: sonarsource/sonarqube-scan-action@v4
-      with:
-        args: >
-          -Dsonar.projectVersion=${{ steps.getversion.outputs.version }}
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: SonarQube Scan
+        if: matrix.python-version == '3.13'
+        uses: sonarsource/sonarqube-scan-action@v4
+        with:
+          args: >
+            -Dsonar.projectVersion=${{ steps.getversion.outputs.version }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
