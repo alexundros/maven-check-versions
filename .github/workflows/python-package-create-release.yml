@@ -9,6 +9,7 @@ on:
 jobs:
   pre-python-package-create-release:
     uses: ./.github/workflows/python-package-tests-sonarqube-scan.yml
+    secrets: inherit
 
   python-package-create-release:
     needs: pre-python-package-create-release
