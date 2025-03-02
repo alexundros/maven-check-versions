@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-            fetch-depth: 0 # load the entire history, otherwise git will not find the branch
+          fetch-depth: 0 # load the entire history, otherwise git will not find the branch
 
       - name: Check if tag is on main branch
         run: |
