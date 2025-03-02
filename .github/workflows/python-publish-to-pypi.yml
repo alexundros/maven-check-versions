@@ -1,4 +1,4 @@
-name: Python package Publish to PyPI
+name: Python Publish to PyPI
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     types: published
 
 jobs:
-  python-package-publish-to-pypi:
+  python-publish-to-pypi:
     runs-on: ubuntu-latest
 
     steps:

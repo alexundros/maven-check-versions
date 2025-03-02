@@ -1,4 +1,4 @@
-name: Python package Tests SonarQube Scan
+name: Python Tests SonarQube Scan
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  python-package-tests-sonarqube-scan:
+  python-tests-sonarqube-scan:
     runs-on: ubuntu-latest
 
     strategy:
