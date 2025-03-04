@@ -5,7 +5,6 @@ import os
 import sys
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
-from configparser import ConfigParser
 
 import pytest
 # noinspection PyUnresolvedReferences
@@ -133,9 +132,9 @@ def test_get_dependency_identifiers():
 def test_fail_mode_if_required(mocker):
     mock_logging = mocker.patch('logging.warning')
     with pytest.raises(AssertionError):
-        config_parser = ConfigParser()
+        config = dict()
         args = {'fail_mode': True, 'fail_major': 2, 'fail_minor': 2}
-        fail_mode_if_required(config_parser, 1, 0, '4.0', 2, 2, args, '1.0')
+        fail_mode_if_required(config, 1, 0, '4.0', 2, 2, args, '1.0')
     mock_logging.assert_called_once_with("Fail version: 4.0 > 1.0")
 
 
@@ -240,24 +239,22 @@ def test_get_pom_tree(mocker):
         <version>1.0</version>
     </project>
     """
-    config_parser = ConfigParser()
-    config_parser.optionxform = str
-    config_parser.read_string("[pom_http]\nauth = true")
+    config = {'pom_http': {'auth': 'true'}}
     mocker.patch('os.path.exists', return_value=True)
     mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data=xml))
-    tree = get_pom_tree('pom.xml', True, config_parser, {})
+    tree = get_pom_tree('pom.xml', True, config, {})
     mock_open.assert_called_once_with('pom.xml', 'rb')
     assert isinstance(tree, ET.ElementTree)
 
     mocker.patch('os.path.exists', return_value=False)
     with pytest.raises(FileNotFoundError):
-        get_pom_tree('pom.xml', True, config_parser, {})
+        get_pom_tree('pom.xml', True, config, {})
 
     pom_path = 'http://example.com/pom.pom'  # NOSONAR
     mock_response = mocker.Mock(status_code=200, text=xml)
     mock_requests = mocker.patch('requests.get', return_value=mock_response)
-    assert isinstance(get_pom_tree(pom_path, True, config_parser, {}), ET.ElementTree)
+    assert isinstance(get_pom_tree(pom_path, True, config, {}), ET.ElementTree)
 
     mock_requests.return_value.status_code = 404
     with pytest.raises(FileNotFoundError):
-        get_pom_tree(pom_path, True, config_parser, {})
+        get_pom_tree(pom_path, True, config, {})

@@ -4,7 +4,6 @@
 import os
 import sys
 import time
-from configparser import ConfigParser
 
 import pytest
 # noinspection PyUnresolvedReferences
@@ -42,13 +41,13 @@ def test_save_cache(mocker):
 
 # noinspection PyShadowingNames
 def test_process_cache(mocker):
-    config_parser = ConfigParser()
+    config = dict()
     data = {'group:artifact': (time.time() - 100, '1.0', 'key', '23.01.2025', ['1.0', '1.1'])}
-    assert process_cache({'cache_time': 0}, data, config_parser, 'artifact', 'group', '1.0')
-    assert not process_cache({'cache_time': 50}, data, config_parser, 'artifact', 'group', '1.1')
+    assert process_cache({'cache_time': 0}, data, config, 'artifact', 'group', '1.0')
+    assert not process_cache({'cache_time': 50}, data, config, 'artifact', 'group', '1.1')
 
     mock = mocker.patch('logging.info')
-    assert process_cache({'cache_time': 0}, data, config_parser, 'artifact', 'group', '1.1')
+    assert process_cache({'cache_time': 0}, data, config, 'artifact', 'group', '1.1')
     mock.assert_called_once_with('*key: group:artifact, current:1.1 versions: 1.0, 1.1 updated: 23.01.2025')
 
 

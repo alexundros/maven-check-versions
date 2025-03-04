@@ -7,7 +7,6 @@ import re
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser
-from configparser import ConfigParser
 
 import dateutil.parser as parser
 import maven_check_versions.cache as _cache
@@ -68,7 +67,7 @@ def get_artifact_name(root: ET.Element, ns_mapping: dict) -> str:
 
 
 def collect_dependencies(
-        root: ET.Element, ns_mapping: dict, config: dict | ConfigParser, arguments: dict
+        root: ET.Element, ns_mapping: dict, config: dict, arguments: dict
 ) -> list:
     """
     Collects dependencies from a POM file.
@@ -76,7 +75,7 @@ def collect_dependencies(
     Args:
         root (ET.Element): Root element of the POM file.
         ns_mapping (dict): XML namespace mapping.
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
 
     Returns:
@@ -107,14 +106,14 @@ def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tupl
 
 
 def fail_mode_if_required(
-        config: dict | ConfigParser, current_major_version: int, current_minor_version: int, item: str,
+        config: dict, current_major_version: int, current_minor_version: int, item: str,
         major_version_threshold: int, minor_version_threshold: int, arguments: dict, version: str
 ) -> None:
     """
     Checks fail mode and raises an exception if version exceeds thresholds.
 
     Args:
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         current_major_version (int): Current major version.
         current_minor_version (int): Current minor version.
         item (str): Version to check.
@@ -157,14 +156,14 @@ def resolve_version(version: str, root: ET.Element, ns_mapping: dict) -> str:
 
 
 def get_version(
-        config: dict | ConfigParser, arguments: dict, ns_mapping: dict, root: ET.Element,
+        config: dict, arguments: dict, ns_mapping: dict, root: ET.Element,
         dependency: ET.Element
 ) -> tuple[str | None, bool]:
     """
     Extracts version information from a dependency.
 
     Args:
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         ns_mapping (dict): XML namespace mapping.
         root (ET.Element): Root element of the POM file.
@@ -194,7 +193,7 @@ def get_version(
 
 
 def check_versions(
-        cache_data: dict | None, config: dict | ConfigParser, arguments: dict, group_id: str,
+        cache_data: dict | None, config: dict, arguments: dict, group_id: str,
         artifact_id: str, version: str, section_key: str, path: str, auth_info: tuple, verify_ssl: bool,
         available_versions: list[str], response: requests.Response
 ) -> bool:
@@ -203,7 +202,7 @@ def check_versions(
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         group_id (str): Group ID.
         artifact_id (str): Artifact ID.
@@ -286,7 +285,7 @@ def get_pom_data(
 
 
 def get_pom_tree(
-        pom_path: str, verify_ssl: bool, config: dict | ConfigParser, arguments: dict
+        pom_path: str, verify_ssl: bool, config: dict, arguments: dict
 ) -> ET.ElementTree:
     """
     Loads the XML tree of a POM file.
@@ -294,7 +293,7 @@ def get_pom_tree(
     Args:
         pom_path (str): Path or URL to the POM file.
         verify_ssl (bool): SSL verification flag.
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
 
     Returns:
