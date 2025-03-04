@@ -6,7 +6,6 @@ import logging
 import math
 import os
 import time
-from configparser import ConfigParser
 from pathlib import Path
 
 import maven_check_versions.config as _config
@@ -44,7 +43,7 @@ def save_cache(cache_data: dict, cache_file: str) -> None:
 
 
 def process_cache(
-        arguments: dict, cache_data: dict | None, config: dict | ConfigParser, artifact_id: str,
+        arguments: dict, cache_data: dict | None, config: dict, artifact_id: str,
         group_id: str, version: str
 ) -> bool:
     """
@@ -53,7 +52,7 @@ def process_cache(
     Args:
         arguments (dict): Command-line arguments.
         cache_data (dict | None): Cache data for dependencies.
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         artifact_id (str): Artifact ID of the dependency.
         group_id (str): Group ID of the dependency.
         version (str): Version of the dependency.

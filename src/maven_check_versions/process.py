@@ -6,7 +6,6 @@ import os
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from configparser import ConfigParser
 
 import maven_check_versions.cache as _cache
 import maven_check_versions.config as _config
@@ -47,14 +46,14 @@ def process_main(arguments: dict) -> None:
 
 
 def process_pom(
-        cache_data: dict | None, config: dict | ConfigParser, arguments: dict, pom_path: str, prefix: str = None
+        cache_data: dict | None, config: dict, arguments: dict, pom_path: str, prefix: str = None
 ) -> None:
     """
     Processes a POM file.
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         pom_path (str): Path or URL to the POM file.
         prefix (str, optional): Prefix for the artifact name.
@@ -93,7 +92,7 @@ def process_pom(
 
 
 def process_dependency(
-        cache_data: dict | None, config: dict | ConfigParser, arguments: dict, dependency: ET.Element,
+        cache_data: dict | None, config: dict, arguments: dict, dependency: ET.Element,
         ns_mapping: dict, root: ET.Element, verify_ssl: bool
 ) -> None:
     """
@@ -101,7 +100,7 @@ def process_dependency(
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         dependency (ET.Element): Dependency.
         ns_mapping (dict): XML namespace mapping.
@@ -129,7 +128,7 @@ def process_dependency(
 
 
 def process_repositories(
-        artifact_id: str, cache_data: dict | None, config: dict | ConfigParser, group_id: str,
+        artifact_id: str, cache_data: dict | None, config: dict, group_id: str,
         arguments: dict, verify_ssl: bool, version: str
 ):
     """
@@ -138,7 +137,7 @@ def process_repositories(
     Args:
         artifact_id (str): Artifact ID.
         cache_data (dict | None): Cache data.
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         group_id (str): Group ID.
         arguments (dict): Command-line arguments.
         verify_ssl (bool): SSL verification flag.
@@ -157,7 +156,7 @@ def process_repositories(
 
 
 def process_modules_if_required(
-        cache_data: dict | None, config: dict | ConfigParser, arguments: dict, root: ET.Element,
+        cache_data: dict | None, config: dict, arguments: dict, root: ET.Element,
         pom_path: str, ns_mapping: dict, prefix: str = None
 ) -> None:
     """
@@ -165,7 +164,7 @@ def process_modules_if_required(
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         root (ET.Element): Root element of the POM file.
         pom_path (str): Path to the POM file.
@@ -195,14 +194,14 @@ def process_modules_if_required(
 
 
 def process_artifact(
-        cache_data: dict | None, config: dict | ConfigParser, arguments: dict, artifact_to_find: str
+        cache_data: dict | None, config: dict, arguments: dict, artifact_to_find: str
 ) -> None:
     """
     Processes the search for a specified artifact.
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         artifact_to_find (str): Artifact to search for in groupId:artifactId:version format.
     """
@@ -222,7 +221,7 @@ def process_artifact(
 
 
 def process_repository(
-        cache_data: dict | None, config: dict | ConfigParser, arguments: dict, group_id: str,
+        cache_data: dict | None, config: dict, arguments: dict, group_id: str,
         artifact_id: str, version: str, section_key: str, repository_section: str, verify_ssl: bool
 ) -> bool:
     """
@@ -230,7 +229,7 @@ def process_repository(
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         group_id (str): Group ID.
         artifact_id (str): Artifact ID.
@@ -280,7 +279,7 @@ def process_repository(
 
 
 def process_rest(
-        cache_data: dict | None, config: dict | ConfigParser, arguments: dict, group_id: str,
+        cache_data: dict | None, config: dict, arguments: dict, group_id: str,
         artifact_id: str, version: str, section_key: str, repository_section: str, base_url: str,
         auth_info: tuple, verify_ssl: bool
 ) -> bool:
@@ -289,7 +288,7 @@ def process_rest(
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         group_id (str): Group ID.
         artifact_id (str): Artifact ID.

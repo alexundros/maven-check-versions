@@ -5,7 +5,6 @@ import datetime
 import logging
 import re
 import sys
-from configparser import ConfigParser
 
 import maven_check_versions.config as _config
 import requests
@@ -33,13 +32,13 @@ def configure_logging(arguments: dict) -> None:
 
 
 def log_skip_if_required(
-        config: dict | ConfigParser, arguments: dict, group_id: str, artifact_id: str, version: str
+        config: dict, arguments: dict, group_id: str, artifact_id: str, version: str
 ) -> None:
     """
     Logs a skipped dependency if required.
 
     Args:
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         group_id (str): Group ID.
         artifact_id (str): Artifact ID.
@@ -50,17 +49,17 @@ def log_skip_if_required(
 
 
 def log_search_if_required(
-        config: dict | ConfigParser, arguments: dict, group_id: str, artifact_id: str, version: str
+        config: dict, arguments: dict, group_id: str, artifact_id: str, version: str
 ) -> None:
     """
     Logs a dependency search action if required.
 
     Args:
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         group_id (str): Group ID.
         artifact_id (str): Artifact ID.
-        version (str): Dependency version (may be None or a placeholder).
+        version (str): Dependency version (Maybe None or a placeholder).
     """
     if _config.get_config_value(config, arguments, 'show_search', value_type=bool):
         if version is None or re.match('^\\${([^}]+)}$', version):
@@ -70,14 +69,14 @@ def log_search_if_required(
 
 
 def log_invalid_if_required(
-        config: dict | ConfigParser, arguments: dict, response: requests.Response, group_id: str,
+        config: dict, arguments: dict, response: requests.Response, group_id: str,
         artifact_id: str, item: str, invalid_flag: bool
 ) -> None:
     """
     Logs invalid versions if required.
 
     Args:
-        config (dict | ConfigParser): Parsed YAML as dict or INI as ConfigParser.
+        config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         response (requests.Response): Repository response.
         group_id (str): Group ID.
