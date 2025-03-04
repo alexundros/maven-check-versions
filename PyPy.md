@@ -114,7 +114,7 @@ docker run --rm alexundros/maven_check_versions -ci
 
 | Parameter       | Short | Description                                             | Example                     |
 |-----------------|-------|---------------------------------------------------------|-----------------------------|
-| `--config_file` | `-cfg`| Specifies a custom configuration file for the script.   | `--config_file config.cfg`  |
+| `--config_file` | `-cfg`| Specifies a custom configuration file for the script.   | `--config_file config.yml`  |
 
 ### Error Handling and Validation
 
@@ -153,7 +153,7 @@ docker run --rm alexundros/maven_check_versions -ci
 
 ## Configuration
 
-You can customize the tool’s behavior using a configuration file [`maven_check_versions.cfg`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/maven_check_versions.cfg.dist) or [`maven_check_versions.yml`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/maven_check_versions.yml.dist). The following settings can be adjusted:
+You can customize the tool’s behavior using a configuration file [`maven_check_versions.yml`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/maven_check_versions.yml.dist). The following settings can be adjusted:
 
 - **SSL Verification:** Enable or disable SSL verification for HTTP requests.
 - **Cache Preferences:** Control cache duration and behavior.
@@ -163,7 +163,7 @@ You can customize the tool’s behavior using a configuration file [`maven_check
 ### Example configuration
 
 maven_check_versions.yml:
-```maven_check_versions.yml
+```
 base:
   cache_off: false
   cache_time: 600
@@ -202,46 +202,6 @@ repo1.maven:
   path: "maven2"
   auth: false
 ```
-maven_check_versions.cfg:
-```maven_check_versions.cfg
-[base]
-cache_off = false
-cache_time = 600
-fail_mode = false
-fail_major = 0
-fail_minor = 0
-search_plugins = false
-process_modules = false
-show_skip = false
-show_search = false
-empty_version = false
-show_invalid = false
-skip_version = true
-threading = false
-max_threads = 8
-user = USER
-password = PASSWORD
-
-[pom_http]
-auth = true
-
-[urllib3]
-warnings = true
-
-[requests]
-verify = true
-
-[pom_files]
-pom-name = path/to/pom.xml
-
-[repositories]
-Central (repo1.maven.org) = repo1.maven
-
-[repo1.maven]
-base = https://repo1.maven.org
-path = maven2
-auth = false
-```
 
 ---
 
@@ -250,7 +210,7 @@ auth = false
 The tool supports environment variables to override configuration settings or provide credentials for external services. Below is a list of supported environment variables:
 
 ### Configuration Overrides
-These variables override settings from the `maven_check_versions.cfg`/`maven_check_versions.yml` file or command-line arguments. The format is `CV_<KEY>` where `<KEY>` corresponds to a configuration key in the `base` section (case-insensitive).
+These variables override settings from the `maven_check_versions.yml` file or command-line arguments. The format is `CV_<KEY>` where `<KEY>` corresponds to a configuration key in the `base` section (case-insensitive).
 
 | Variable            | Description                                                                 | Example Value |
 |---------------------|-----------------------------------------------------------------------------|---------------|
@@ -275,7 +235,6 @@ These variables override settings from the `maven_check_versions.cfg`/`maven_che
 To override cache settings:
 
 ```bash
-export CV_CACHE_OFF=true
 export CV_CACHE_TIME=1800
 maven_check_versions --pom_file path/to/pom.xml
 ```
