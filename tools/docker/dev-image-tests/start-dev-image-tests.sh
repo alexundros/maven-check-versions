@@ -6,7 +6,7 @@ test() {
   docker run "$1" --rm --name "$nm" maven-check-versions:dev "$2"
 }
 
-cn="maven_check_versions.cfg"
+cn="maven_check_versions.yml"
 
 # test find artifact
 fa="org.apache.maven.plugins:maven-compiler-plugin:3.8.1"
