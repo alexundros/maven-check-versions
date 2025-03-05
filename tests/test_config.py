@@ -27,20 +27,22 @@ def test_get_config(mocker):
 
 
 # noinspection PyShadowingNames
-def test_get_config_value(mocker, monkeypatch):
+def test_get_config_value(monkeypatch):
     config = {'base': {'key': 'true'}}
     assert get_config_value(config, {}, 'key', value_type=bool) is True
-    config = {'base': {'key': 'true'}}
+    assert get_config_value(config, {}, 'val', value_type=bool, default_value='true') is True
     assert get_config_value(config, {'key': False}, 'key', value_type=bool) is False
     monkeypatch.setenv('CV_KEY', 'true')
-    config = {'base': {'key': 'true'}}
     assert get_config_value(config, {'key': False}, 'key', value_type=bool) is True
     config = {'base': {'key': '123'}}
     assert get_config_value(config, {}, 'key', value_type=int) == 123
+    assert get_config_value(config, {}, 'val', value_type=int, default_value='123') == 123
     config = {'base': {'key': '123.45'}}
     assert get_config_value(config, {}, 'key', value_type=float) == 123.45  # NOSONAR
+    assert get_config_value(config, {}, 'val', value_type=float, default_value='123.45') == 123.45  # NOSONAR
     config = {'base': {'key': 'value'}}
     assert get_config_value(config, {}, 'key') == 'value'
+    assert get_config_value(config, {}, 'val', default_value='value') == 'value'
 
 
 def test_config_items():
