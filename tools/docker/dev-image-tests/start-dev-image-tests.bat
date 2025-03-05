@@ -11,7 +11,7 @@ goto :start
 exit /b
 
 :start
-set cn=maven_check_versions.cfg
+set cn=maven_check_versions.yml
 
 :: test find artifact
 set fa=org.apache.maven.plugins:maven-compiler-plugin:3.8.1
