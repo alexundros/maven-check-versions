@@ -30,6 +30,7 @@ def parse_command_line() -> dict:
     argument_parser.add_argument('-co', '--cache_off', help='Disable Cache', action='store_true', default=None)
     argument_parser.add_argument('-cf', '--cache_file', help='Path to Cache File')
     argument_parser.add_argument('-ct', '--cache_time', help='Cache expiration time in seconds')
+    argument_parser.add_argument('-cb', '--cache_backend', help='Cache backend')
     argument_parser.add_argument('-lfo', '--logfile_off', help='Disable Log file', action='store_true', default=None)
     argument_parser.add_argument('-lf', '--log_file', help='Path to Log File')
     argument_parser.add_argument('-cfg', '--config_file', help='Path to Config File')
