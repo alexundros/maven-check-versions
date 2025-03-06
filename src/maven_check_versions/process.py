@@ -29,9 +29,7 @@ def process_main(arguments: dict) -> None:
         urllib3.disable_warnings()
 
     cache_disabled = _config.get_config_value(config, arguments, 'cache_off', value_type=bool)
-    if (cache_file_path := arguments.get('cache_file')) is None:
-        cache_file_path = 'maven_check_versions.cache'
-    cache_data = _cache.load_cache(cache_file_path) if not cache_disabled else None
+    cache_data = _cache.load_cache(config, arguments) if not cache_disabled else None
 
     if pom_file := arguments.get('pom_file'):
         process_pom(cache_data, config, arguments, pom_file)
@@ -42,7 +40,7 @@ def process_main(arguments: dict) -> None:
             process_pom(cache_data, config, arguments, pom)
 
     if cache_data is not None:
-        _cache.save_cache(cache_data, cache_file_path)
+        _cache.save_cache(config, arguments, cache_data)
 
 
 def process_pom(
@@ -120,7 +118,7 @@ def process_dependency(
     _logutils.log_search_if_required(config, arguments, group_id, artifact_id, version)
 
     if cache_data is not None and cache_data.get(f"{group_id}:{artifact_id}") is not None:
-        if _cache.process_cache(arguments, cache_data, config, artifact_id, group_id, version):
+        if _cache.process_cache(config, arguments, cache_data, artifact_id, group_id, version):
             return
 
     if not process_repositories(artifact_id, cache_data, config, group_id, arguments, verify_ssl, version):

@@ -67,7 +67,7 @@ def get_config_value(
         if value_type == float:
             value = float(value)
         return value
-    except (AttributeError, KeyError):
+    except (AttributeError, KeyError, ValueError):
         return None
 
 
