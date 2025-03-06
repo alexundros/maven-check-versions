@@ -111,7 +111,7 @@ def test_collect_dependencies(mocker):
     </project>
     """.lstrip())
     args = {'search_plugins': True}
-    result = collect_dependencies(root, ns_mappings, mocker.Mock(), args)
+    result = collect_dependencies(root, ns_mappings, {}, args)
     assert len(result) == 3
 
 
@@ -174,13 +174,13 @@ def test_get_version(mocker):
     """.lstrip())
     args = {'empty_version': False}
     deps = root.findall('.//xmlns:dependency', namespaces=ns_mappings)
-    version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[0])
+    version, skip_flag = get_version({}, args, ns_mappings, root, deps[0])
     assert version is None and skip_flag
 
-    version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[1])
+    version, skip_flag = get_version({}, args, ns_mappings, root, deps[1])
     assert version == '1.0' and not skip_flag
 
-    version, skip_flag = get_version(mocker.Mock(), args, ns_mappings, root, deps[2])
+    version, skip_flag = get_version({}, args, ns_mappings, root, deps[2])
     assert version == '${dependency.version}' and skip_flag
 
 
@@ -188,13 +188,10 @@ def test_get_version(mocker):
 def test_check_versions(mocker):
     def _check_versions(pa, data, item, vers):
         return check_versions(
-            data, mocker.Mock(), pa, 'group', 'artifact', item,
+            data, {}, pa, 'group', 'artifact', item,
             'repo_section', 'path', (), True, vers, mocker.Mock()
         )
 
-    # mocker used direct link otherwise got error
-    # AttributeError: <module 'maven_check_versions' from '__init__.py'>
-    # does not have the attribute 'get_pom_data'
     mock_get_pom_data = mocker.patch('maven_check_versions.utils.get_pom_data')
     mock_get_pom_data.return_value = (True, '2025-01-25')
     args = {

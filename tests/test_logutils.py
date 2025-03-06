@@ -39,7 +39,7 @@ def test_configure_logging(mocker):
 def test_log_skip_if_required(mocker):
     mock_logging = mocker.patch('logging.warning')
     args = {'show_skip': True}
-    log_skip_if_required(mocker.Mock(), args, 'group', 'artifact', '1.0')
+    log_skip_if_required({}, args, 'group', 'artifact', '1.0')
     mock_logging.assert_called_once_with("Skip: group:artifact:1.0")
 
 
@@ -47,11 +47,11 @@ def test_log_skip_if_required(mocker):
 def test_log_search_if_required(mocker):
     args = {'show_search': True}
     mock_logging = mocker.patch('logging.warning')
-    log_search_if_required(mocker.Mock(), args, 'group', 'artifact', '${version}')
+    log_search_if_required({}, args, 'group', 'artifact', '${version}')
     mock_logging.assert_called_once_with("Search: group:artifact:${version}")
 
     mock_logging = mocker.patch('logging.info')
-    log_search_if_required(mocker.Mock(), args, 'group', 'artifact', '1.0')
+    log_search_if_required({}, args, 'group', 'artifact', '1.0')
     mock_logging.assert_called_once_with("Search: group:artifact:1.0")
 
 
@@ -59,5 +59,5 @@ def test_log_search_if_required(mocker):
 def test_log_invalid_if_required(mocker):
     mock_logging = mocker.patch('logging.warning')
     args = {'show_invalid': True}
-    log_invalid_if_required(mocker.Mock(), args, mocker.Mock(), 'group', 'artifact', '1.0', False)
+    log_invalid_if_required({}, args, mocker.Mock(), 'group', 'artifact', '1.0', False)
     mock_logging.assert_called_once_with("Invalid: group:artifact:1.0")

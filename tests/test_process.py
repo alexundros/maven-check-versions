@@ -44,7 +44,7 @@ def test_process_main(mocker, monkeypatch):
     monkeypatch.setenv('HOME', os.path.dirname(__file__))
     mock_exists = mocker.patch('os.path.exists')
     mock_exists.side_effect = [False, False, True]
-    mocker.patch('builtins.open', mocker.mock_open(read_data="[base]\ncache_off = false"))
+    mocker.patch('builtins.open', mocker.mock_open(read_data="base.cache_off: false"))
     mocker.patch('maven_check_versions.cache.load_cache', return_value={})
     mocker.patch('maven_check_versions.process.process_pom')
     mocker.patch('maven_check_versions.cache.save_cache')
@@ -64,7 +64,7 @@ def test_process_main(mocker, monkeypatch):
 def test_process_rest(mocker):
     def _service_rest():
         return process_rest(
-            {}, mocker.Mock(), {}, 'group', 'artifact', '1.0', 'section',
+            {}, {}, {}, 'group', 'artifact', '1.0', 'section',
             'repository', 'http://example.com/pom.pom', (), True  # NOSONAR
         )
 
