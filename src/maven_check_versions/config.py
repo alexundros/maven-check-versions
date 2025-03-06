@@ -56,7 +56,7 @@ def get_config_value(
             value = arguments.get(key)
             if 'CV_' + key.upper() in os.environ:
                 value = os.environ.get('CV_' + key.upper())
-        if value is None:
+        if value is None and section in config:
             value = config.get(section).get(key)
         if value is None:
             value = default_value
