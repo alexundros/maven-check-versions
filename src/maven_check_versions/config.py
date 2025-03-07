@@ -33,8 +33,7 @@ def get_config(arguments: dict) -> dict:
 
 
 def get_config_value(
-        config: dict, arguments: dict, key: str, section: str = 'base', value_type=None,
-        default_value: str = None
+        config: dict, arguments: dict, key: str, section: str = 'base', value_type=None, default: str = None
 ) -> any:
     """
     Get configuration value with optional type conversion.
@@ -45,7 +44,7 @@ def get_config_value(
         key (str): Configuration key.
         section (str, optional): Configuration section (default is 'base').
         value_type (type, optional): Type for value conversion.
-        default_value (str, optional): Default value.
+        default (str, optional): Default value.
 
     Returns:
         any: Configuration value or None if not found.
@@ -59,7 +58,7 @@ def get_config_value(
         if value is None and section in config:
             value = config.get(section).get(key)
         if value is None:
-            value = default_value
+            value = default
         if value_type == bool:
             value = str(value).lower() == 'true'
         if value_type == int:

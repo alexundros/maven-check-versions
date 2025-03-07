@@ -244,7 +244,8 @@ def check_versions(
             logging.info('{}: {}:{}, current:{} {} {}'.format(
                 section_key, group_id, artifact_id, version, available_versions[:3], last_modified).rstrip())
 
-            _cache.update_cache(cache_data, available_versions, artifact_id, group_id, item, last_modified, section_key)
+            _cache.update_cache(
+                cache_data, available_versions, artifact_id, group_id, item, last_modified, section_key)
 
             fail_mode_if_required(
                 config, current_major, current_minor, item,
