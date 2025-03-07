@@ -10,6 +10,11 @@ from pathlib import Path
 
 import maven_check_versions.config as _config
 
+FILE = 'maven_check_versions.cache'
+DEFAULT_HOST = 'localhost'
+REDIS_PORT = '6379'
+TARANTOOL_PORT = '3301'
+
 
 def load_cache(config: dict, arguments: dict) -> dict:
     """
@@ -22,17 +27,71 @@ def load_cache(config: dict, arguments: dict) -> dict:
     Returns:
         dict: Cache data dictionary or an empty dictionary.
     """
-    match _config.get_config_value(
-        config, arguments, 'cache_backend', value_type=str, default_value='json'
-    ):
+    match _config.get_config_value(config, arguments, 'cache_backend', value_type=str, default='json'):
         case 'json':
-            if (cache_file := arguments.get('cache_file')) is None:
-                cache_file = 'maven_check_versions.cache'
-            if os.path.exists(cache_file):
-                logging.info(f"Load Cache: {Path(cache_file).absolute()}")
-                with open(cache_file) as cf:
-                    return json.load(cf)
+            success, value = _load_cache_json(config, arguments)
+            if success:
+                return value
+        case 'redis':
+            success, value = _load_cache_redis(config, arguments)
+            if success:
+                return value
+        case 'tarantool':
+            success, value = _load_cache_tarantool(config, arguments)
+            if success:
+                return value
     return {}
+
+
+def _load_cache_json(config: dict, arguments: dict) -> tuple[bool, dict]:
+    """
+        Loads the cache from JSON file.
+
+        Args:
+            config (dict): Parsed YAML as dict.
+            arguments (dict): Command-line arguments.
+
+        Returns:
+            dict: Cache data dictionary or an empty dictionary.
+        """
+    cache_file = _config.get_config_value(config, arguments, 'cache_file', value_type=str, default=FILE)
+    if os.path.exists(cache_file):
+        logging.info(f"Load Cache: {Path(cache_file).absolute()}")
+        with open(cache_file) as cf:
+            return True, json.load(cf)
+    return False, {}
+
+
+def _load_cache_redis(config: dict, arguments: dict) -> tuple[bool, dict]:
+    """
+        Loads the cache from Redis.
+
+        Args:
+            config (dict): Parsed YAML as dict.
+            arguments (dict): Command-line arguments.
+
+        Returns:
+            dict: Cache data dictionary or an empty dictionary.
+        """
+    host = _config.get_config_value(config, arguments, 'redis_host', value_type=str, default=DEFAULT_HOST)
+    port = _config.get_config_value(config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
+    return False, {}
+
+
+def _load_cache_tarantool(config: dict, arguments: dict) -> tuple[bool, dict]:
+    """
+        Loads the cache from Tarantool.
+
+        Args:
+            config (dict): Parsed YAML as dict.
+            arguments (dict): Command-line arguments.
+
+        Returns:
+            dict: Cache data dictionary or an empty dictionary.
+        """
+    host = _config.get_config_value(config, arguments, 'tarantool_host', value_type=str, default=DEFAULT_HOST)
+    port = _config.get_config_value(config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
+    return False, {}
 
 
 def save_cache(config: dict, arguments: dict, cache_data: dict) -> None:
@@ -45,20 +104,58 @@ def save_cache(config: dict, arguments: dict, cache_data: dict) -> None:
         cache_data (dict): Cache data to save.
     """
     if cache_data is not None:
-        match _config.get_config_value(
-            config, arguments, 'cache_backend', value_type=str, default_value='json'
-        ):
+        match _config.get_config_value(config, arguments, 'cache_backend', value_type=str, default='json'):
             case 'json':
-                if (cache_file := arguments.get('cache_file')) is None:
-                    cache_file = 'maven_check_versions.cache'
-                logging.info(f"Save Cache: {Path(cache_file).absolute()}")
-                with open(cache_file, 'w') as cf:
-                    json.dump(cache_data, cf)
+                _save_cache_json(config, arguments, cache_data)
+            case 'redis':
+                _save_cache_redis(config, arguments, cache_data)
+            case 'tarantool':
+                _save_cache_tarantool(config, arguments, cache_data)
+
+
+def _save_cache_json(config: dict, arguments: dict, cache_data: dict) -> None:
+    """
+    Saves the cache to JSON file.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+        cache_data (dict): Cache data to save.
+    """
+    cache_file = _config.get_config_value(config, arguments, 'cache_file', value_type=str, default=FILE)
+    logging.info(f"Save Cache: {Path(cache_file).absolute()}")
+    with open(cache_file, 'w') as cf:
+        json.dump(cache_data, cf)
+
+
+def _save_cache_redis(config: dict, arguments: dict, cache_data: dict) -> None:
+    """
+    Saves the cache to Redis.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+        cache_data (dict): Cache data to save.
+    """
+    host = _config.get_config_value(config, arguments, 'redis_host', value_type=str, default=DEFAULT_HOST)
+    port = _config.get_config_value(config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
+
+
+def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict) -> None:
+    """
+    Saves the cache to Tarantool.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+        cache_data (dict): Cache data to save.
+    """
+    host = _config.get_config_value(config, arguments, 'tarantool_host', value_type=str, default=DEFAULT_HOST)
+    port = _config.get_config_value(config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
 
 
 def process_cache(
-        config: dict, arguments: dict, cache_data: dict | None, artifact_id: str,
-        group_id: str, version: str
+        config: dict, arguments: dict, cache_data: dict | None, artifact_id: str, group_id: str, version: str
 ) -> bool:
     """
     Processes cached data for a dependency.
@@ -92,7 +189,7 @@ def process_cache(
 
 
 def update_cache(
-        cache_data: dict | None, available: list, artifact_id: str, group_id, item: str,
+        cache_data: dict | None, versions: list, artifact_id: str, group_id, item: str,
         last_modified_date: str | None, section_key: str
 ) -> None:
     """
@@ -100,7 +197,7 @@ def update_cache(
 
     Args:
         cache_data (dict | None): Cache dictionary to update.
-        available (list): List of available versions for the artifact.
+        versions (list): List of available versions for the artifact.
         artifact_id (str): Artifact ID.
         group_id (str): Group ID.
         item (str): Current artifact version.
@@ -108,5 +205,5 @@ def update_cache(
         section_key (str): Repository section key.
     """
     if cache_data is not None:
-        value = (math.trunc(time.time()), item, section_key, last_modified_date, available[:3])
+        value = (math.trunc(time.time()), item, section_key, last_modified_date, versions[:3])
         cache_data[f"{group_id}:{artifact_id}"] = value
