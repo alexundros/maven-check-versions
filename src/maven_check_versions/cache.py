@@ -73,8 +73,8 @@ def _load_cache_redis(config: dict, arguments: dict) -> tuple[bool, dict]:
         Returns:
             dict: Cache data dictionary or an empty dictionary.
         """
-    host = _config.get_config_value(config, arguments, 'redis_host', value_type=str, default=DEFAULT_HOST)
-    port = _config.get_config_value(config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
+    # host = _config.get_config_value(config, arguments, 'redis_host', value_type=str, default=DEFAULT_HOST)
+    # port = _config.get_config_value(config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
     return False, {}
 
 
@@ -89,8 +89,8 @@ def _load_cache_tarantool(config: dict, arguments: dict) -> tuple[bool, dict]:
         Returns:
             dict: Cache data dictionary or an empty dictionary.
         """
-    host = _config.get_config_value(config, arguments, 'tarantool_host', value_type=str, default=DEFAULT_HOST)
-    port = _config.get_config_value(config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
+    # host = _config.get_config_value(config, arguments, 'tarantool_host', value_type=str, default=DEFAULT_HOST)
+    # port = _config.get_config_value(config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
     return False, {}
 
 
@@ -137,8 +137,8 @@ def _save_cache_redis(config: dict, arguments: dict, cache_data: dict) -> None:
         arguments (dict): Command-line arguments.
         cache_data (dict): Cache data to save.
     """
-    host = _config.get_config_value(config, arguments, 'redis_host', value_type=str, default=DEFAULT_HOST)
-    port = _config.get_config_value(config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
+    # host = _config.get_config_value(config, arguments, 'redis_host', value_type=str, default=DEFAULT_HOST)
+    # port = _config.get_config_value(config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
 
 
 def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict) -> None:
@@ -150,8 +150,8 @@ def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict) -> No
         arguments (dict): Command-line arguments.
         cache_data (dict): Cache data to save.
     """
-    host = _config.get_config_value(config, arguments, 'tarantool_host', value_type=str, default=DEFAULT_HOST)
-    port = _config.get_config_value(config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
+    # host = _config.get_config_value(config, arguments, 'tarantool_host', value_type=str, default=DEFAULT_HOST)
+    # port = _config.get_config_value(config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
 
 
 def process_cache(
