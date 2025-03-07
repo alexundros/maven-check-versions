@@ -66,7 +66,8 @@ def get_config_value(
         if value_type == float:
             value = float(value)
         return value
-    except (AttributeError, KeyError, ValueError):
+    except (AttributeError, KeyError, ValueError) as e:
+        logging.error(f"Failed to get_config_value: {e}")
         return None
 
 
