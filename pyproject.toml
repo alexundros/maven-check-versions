@@ -17,7 +17,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["requests", "beautifulsoup4", "python-dateutil", "pyyaml"]
+dependencies = [
+    "requests", "beautifulsoup4", "python-dateutil", "pyyaml",
+    "redis", "tarantool"
+]
 dynamic = ["version"]
 
 [tool.setuptools.dynamic]

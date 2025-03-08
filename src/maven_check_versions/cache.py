@@ -9,9 +9,12 @@ import time
 from pathlib import Path
 
 import maven_check_versions.config as _config
+import redis
+import tarantool
 
-FILE = 'maven_check_versions.cache'
-DEFAULT_HOST = 'localhost'
+FILE = 'maven_check_versions.cache.json'
+KEY = 'maven_check_versions_cache'
+HOST = 'localhost'
 REDIS_PORT = '6379'
 TARANTOOL_PORT = '3301'
 
@@ -27,7 +30,9 @@ def load_cache(config: dict, arguments: dict) -> dict:
     Returns:
         dict: Cache data dictionary or an empty dictionary.
     """
-    match _config.get_config_value(config, arguments, 'cache_backend', value_type=str, default='json'):
+    match _config.get_config_value(
+        config, arguments, 'cache_backend', value_type=str, default='json'
+    ):
         case 'json':
             success, value = _load_cache_json(config, arguments)
             if success:
@@ -54,7 +59,8 @@ def _load_cache_json(config: dict, arguments: dict) -> tuple[bool, dict]:
         Returns:
             dict: Cache data dictionary or an empty dictionary.
         """
-    cache_file = _config.get_config_value(config, arguments, 'cache_file', value_type=str, default=FILE)
+    cache_file = _config.get_config_value(
+        config, arguments, 'cache_file', value_type=str, default=FILE)
     if os.path.exists(cache_file):
         logging.info(f"Load Cache: {Path(cache_file).absolute()}")
         with open(cache_file) as cf:
@@ -62,35 +68,89 @@ def _load_cache_json(config: dict, arguments: dict) -> tuple[bool, dict]:
     return False, {}
 
 
-def _load_cache_redis(config: dict, arguments: dict) -> tuple[bool, dict]:
+def _redis_config(arguments, config) -> tuple:
+    """Get Redis parameters.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+
+    Returns:
+        tuple: Redis parameters.
     """
-        Loads the cache from Redis.
+    host = _config.get_config_value(
+        config, arguments, 'redis_host', value_type=str, default=HOST)
+    port = _config.get_config_value(
+        config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
+    key = _config.get_config_value(
+        config, arguments, 'redis_key', value_type=str, default=KEY)
 
-        Args:
-            config (dict): Parsed YAML as dict.
-            arguments (dict): Command-line arguments.
+    return host, port, key
 
-        Returns:
-            dict: Cache data dictionary or an empty dictionary.
-        """
-    # host = _config.get_config_value(config, arguments, 'redis_host', value_type=str, default=DEFAULT_HOST)
-    # port = _config.get_config_value(config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
-    return False, {}
+
+def _load_cache_redis(config: dict, arguments: dict) -> tuple[bool, dict]:
+    """Loads the cache from Redis.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+
+    Returns:
+        tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
+    """
+    try:
+        host, port, key = _redis_config(arguments, config)
+        rsp = redis.Redis(host=host, port=port, decode_responses=True)
+        cache_data = rsp.hgetall(key)
+
+        return True, cache_data
+    except Exception as e:
+        logging.error(f"Failed to load cache from Redis: {e}")
+        return False, {}
+
+
+def _tarantool_config(arguments, config) -> tuple:
+    """Get Tarantool parameters.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+
+    Returns:
+        tuple: Tarantool parameters.
+    """
+    host = _config.get_config_value(
+        config, arguments, 'tarantool_host', value_type=str, default=HOST)
+    port = _config.get_config_value(
+        config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
+    space = _config.get_config_value(
+        config, arguments, 'tarantool_space', value_type=str, default=KEY)
+    user = _config.get_config_value(config, arguments, 'tarantool_user')
+    password = _config.get_config_value(config, arguments, 'tarantool_password')
+
+    return host, port, space, user, password
 
 
 def _load_cache_tarantool(config: dict, arguments: dict) -> tuple[bool, dict]:
+    """Loads the cache from Tarantool.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+
+    Returns:
+        tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
-        Loads the cache from Tarantool.
+    try:
+        cache_data = {}
+        host, port, space, user, password = _tarantool_config(arguments, config)
+        conn = tarantool.connect(host, port, user=user, password=password)
+        for record in conn.space(space).select():
+            cache_data[record[0]] = json.loads(record[1])
 
-        Args:
-            config (dict): Parsed YAML as dict.
-            arguments (dict): Command-line arguments.
-
-        Returns:
-            dict: Cache data dictionary or an empty dictionary.
-        """
-    # host = _config.get_config_value(config, arguments, 'tarantool_host', value_type=str, default=DEFAULT_HOST)
-    # port = _config.get_config_value(config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
+        return True, cache_data
+    except Exception as e:
+        logging.error(f"Failed to load cache from Tarantool: {e}")
     return False, {}
 
 
@@ -104,7 +164,9 @@ def save_cache(config: dict, arguments: dict, cache_data: dict) -> None:
         cache_data (dict): Cache data to save.
     """
     if cache_data is not None:
-        match _config.get_config_value(config, arguments, 'cache_backend', value_type=str, default='json'):
+        match _config.get_config_value(
+            config, arguments, 'cache_backend', value_type=str, default='json'
+        ):
             case 'json':
                 _save_cache_json(config, arguments, cache_data)
             case 'redis':
@@ -122,40 +184,53 @@ def _save_cache_json(config: dict, arguments: dict, cache_data: dict) -> None:
         arguments (dict): Command-line arguments.
         cache_data (dict): Cache data to save.
     """
-    cache_file = _config.get_config_value(config, arguments, 'cache_file', value_type=str, default=FILE)
+    cache_file = _config.get_config_value(
+        config, arguments, 'cache_file', value_type=str, default=FILE)
     logging.info(f"Save Cache: {Path(cache_file).absolute()}")
     with open(cache_file, 'w') as cf:
         json.dump(cache_data, cf)
 
 
 def _save_cache_redis(config: dict, arguments: dict, cache_data: dict) -> None:
-    """
-    Saves the cache to Redis.
+    """Saves the cache to Redis.
 
     Args:
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         cache_data (dict): Cache data to save.
     """
-    # host = _config.get_config_value(config, arguments, 'redis_host', value_type=str, default=DEFAULT_HOST)
-    # port = _config.get_config_value(config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
+    try:
+        host, port, key = _redis_config(arguments, config)
+        rsp = redis.Redis(host=host, port=port, decode_responses=True)
+        for key, value in cache_data.items():
+            rsp.hset(key, key, json.dumps(value))
+
+    except Exception as e:
+        logging.error(f"Failed to save cache to Redis: {e}")
 
 
 def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict) -> None:
-    """
-    Saves the cache to Tarantool.
+    """Saves the cache to Tarantool.
 
     Args:
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         cache_data (dict): Cache data to save.
     """
-    # host = _config.get_config_value(config, arguments, 'tarantool_host', value_type=str, default=DEFAULT_HOST)
-    # port = _config.get_config_value(config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
+    try:
+        host, port, space, user, password = _tarantool_config(arguments, config)
+        conn = tarantool.connect(host, port, user=user, password=password)
+        space = conn.space(space)
+        for key, value in cache_data.items():
+            space.replace((key, json.dumps(value)))
+
+    except Exception as e:
+        logging.error(f"Failed to save cache to Tarantool: {e}")
 
 
 def process_cache(
-        config: dict, arguments: dict, cache_data: dict | None, artifact_id: str, group_id: str, version: str
+        config: dict, arguments: dict, cache_data: dict | None, artifact_id: str, group_id: str,
+        version: str
 ) -> bool:
     """
     Processes cached data for a dependency.
