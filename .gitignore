@@ -16,7 +16,7 @@ coverage.xml
 # other
 *.cfg
 *.yml
-*.cache
+*.json
 *.log
 *.patch
 .idea

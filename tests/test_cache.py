@@ -20,13 +20,25 @@ from maven_check_versions.cache import (
 # noinspection PyShadowingNames
 def test_load_cache(mocker):
     mocker.patch('os.path.exists', return_value=True)
-    mocker.patch('builtins.open', mocker.mock_open(read_data='{"key": "value"}'))
-    assert load_cache({}, {}) == {'key': 'value'}
+    mocker.patch('builtins.open', mocker.mock_open(read_data='{"k": "v"}'))
+    assert load_cache({}, {}) == {'k': 'v'}
 
     mocker.patch('os.path.exists', return_value=False)
     assert load_cache({}, {}) == {}
 
+    mock_redis = mocker.patch('redis.Redis')
+    mock_redis.return_value.hgetall.return_value = {'k': 'v'}
+    assert load_cache({'base': {'cache_backend': 'redis'}}, {}) == {'k': 'v'}
+
+    mock_redis.side_effect = Exception
     assert load_cache({'base': {'cache_backend': 'redis'}}, {}) == {}
+
+    mock_tarantool = mocker.patch('tarantool.connect')
+    space = mock_tarantool.return_value.space
+    space.return_value.select.return_value = [('key', '{"k":"v"}')]
+    assert load_cache({'base': {'cache_backend': 'tarantool'}}, {}) == {'key': {'k': 'v'}}
+
+    mock_tarantool.side_effect = Exception
     assert load_cache({'base': {'cache_backend': 'tarantool'}}, {}) == {}
     mocker.stopall()
 
@@ -35,13 +47,22 @@ def test_load_cache(mocker):
 def test_save_cache(mocker):
     mock_open = mocker.patch('builtins.open')
     mock_json = mocker.patch('json.dump')
-    save_cache({}, {}, {'key': 'value'})
-    mock_open.assert_called_once_with('maven_check_versions.cache', 'w')
+    save_cache({}, {}, {'k': 'v'})
+    mock_open.assert_called_once_with('maven_check_versions.cache.json', 'w')
     mock_open_rv = mock_open.return_value.__enter__.return_value
-    mock_json.assert_called_once_with({'key': 'value'}, mock_open_rv)
+    mock_json.assert_called_once_with({'k': 'v'}, mock_open_rv)
 
-    save_cache({'base': {'cache_backend': 'redis'}}, {}, {'key': 'value'})
-    save_cache({'base': {'cache_backend': 'tarantool'}}, {}, {'key': 'value'})
+    mock_redis = mocker.patch('redis.Redis')
+    save_cache({'base': {'cache_backend': 'redis'}}, {}, {'k': 'v'})
+
+    mock_redis.side_effect = Exception
+    save_cache({'base': {'cache_backend': 'redis'}}, {}, {'k': 'v'})
+
+    mock_tarantool = mocker.patch('tarantool.connect')
+    save_cache({'base': {'cache_backend': 'tarantool'}}, {}, {'k': 'v'})
+
+    mock_tarantool.side_effect = Exception
+    save_cache({'base': {'cache_backend': 'tarantool'}}, {}, {'k': 'v'})
     mocker.stopall()
 
 

@@ -33,7 +33,8 @@ def get_config(arguments: dict) -> dict:
 
 
 def get_config_value(
-        config: dict, arguments: dict, key: str, section: str = 'base', value_type=None, default: str = None
+        config: dict, arguments: dict, key: str, section: str = 'base',
+        value_type=None, default: str = None
 ) -> any:
     """
     Get configuration value with optional type conversion.
