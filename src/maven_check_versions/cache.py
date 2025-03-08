@@ -68,6 +68,26 @@ def _load_cache_json(config: dict, arguments: dict) -> tuple[bool, dict]:
     return False, {}
 
 
+def _redis_config(arguments, config) -> tuple:
+    """Get Redis parameters.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+
+    Returns:
+        tuple: Redis parameters.
+    """
+    host = _config.get_config_value(
+        config, arguments, 'redis_host', value_type=str, default=HOST)
+    port = _config.get_config_value(
+        config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
+    key = _config.get_config_value(
+        config, arguments, 'redis_key', value_type=str, default=KEY)
+
+    return host, port, key
+
+
 def _load_cache_redis(config: dict, arguments: dict) -> tuple[bool, dict]:
     """Loads the cache from Redis.
 
@@ -79,20 +99,36 @@ def _load_cache_redis(config: dict, arguments: dict) -> tuple[bool, dict]:
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
     try:
-        redis_host = _config.get_config_value(
-            config, arguments, 'redis_host', value_type=str, default=HOST)
-        redis_port = _config.get_config_value(
-            config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
-        redis_key = _config.get_config_value(
-            config, arguments, 'redis_key', value_type=str, default=KEY)
-
-        rsp = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
-        cache_data = rsp.hgetall(redis_key)
+        host, port, key = _redis_config(arguments, config)
+        rsp = redis.Redis(host=host, port=port, decode_responses=True)
+        cache_data = rsp.hgetall(key)
 
         return True, cache_data
     except Exception as e:
         logging.error(f"Failed to load cache from Redis: {e}")
         return False, {}
+
+
+def _tarantool_config(arguments, config) -> tuple:
+    """Get Tarantool parameters.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+
+    Returns:
+        tuple: Tarantool parameters.
+    """
+    host = _config.get_config_value(
+        config, arguments, 'tarantool_host', value_type=str, default=HOST)
+    port = _config.get_config_value(
+        config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
+    space = _config.get_config_value(
+        config, arguments, 'tarantool_space', value_type=str, default=KEY)
+    user = _config.get_config_value(config, arguments, 'tarantool_user')
+    password = _config.get_config_value(config, arguments, 'tarantool_password')
+
+    return host, port, space, user, password
 
 
 def _load_cache_tarantool(config: dict, arguments: dict) -> tuple[bool, dict]:
@@ -107,18 +143,9 @@ def _load_cache_tarantool(config: dict, arguments: dict) -> tuple[bool, dict]:
     """
     try:
         cache_data = {}
-        tarantool_host = _config.get_config_value(
-            config, arguments, 'tarantool_host', value_type=str, default=HOST)
-        tarantool_port = _config.get_config_value(
-            config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
-        tarantool_space = _config.get_config_value(
-            config, arguments, 'tarantool_space', value_type=str, default=KEY)
-        user = _config.get_config_value(config, arguments, 'tarantool_user')
-        password = _config.get_config_value(config, arguments, 'tarantool_password')
-
-        conn = tarantool.connect(tarantool_host, tarantool_port, user=user, password=password)
-        space = conn.space(tarantool_space)
-        for record in space.select():
+        host, port, space, user, password = _tarantool_config(arguments, config)
+        conn = tarantool.connect(host, port, user=user, password=password)
+        for record in conn.space(space).select():
             cache_data[record[0]] = json.loads(record[1])
 
         return True, cache_data
@@ -173,16 +200,10 @@ def _save_cache_redis(config: dict, arguments: dict, cache_data: dict) -> None:
         cache_data (dict): Cache data to save.
     """
     try:
-        redis_host = _config.get_config_value(
-            config, arguments, 'redis_host', value_type=str, default=HOST)
-        redis_port = _config.get_config_value(
-            config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
-        redis_key = _config.get_config_value(
-            config, arguments, 'redis_key', value_type=str, default=KEY)
-
-        rsp = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
+        host, port, key = _redis_config(arguments, config)
+        rsp = redis.Redis(host=host, port=port, decode_responses=True)
         for key, value in cache_data.items():
-            rsp.hset(redis_key, key, json.dumps(value))
+            rsp.hset(key, key, json.dumps(value))
 
     except Exception as e:
         logging.error(f"Failed to save cache to Redis: {e}")
@@ -197,17 +218,9 @@ def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict) -> No
         cache_data (dict): Cache data to save.
     """
     try:
-        tarantool_host = _config.get_config_value(
-            config, arguments, 'tarantool_host', value_type=str, default=HOST)
-        tarantool_port = _config.get_config_value(
-            config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
-        tarantool_space = _config.get_config_value(
-            config, arguments, 'tarantool_space', value_type=str, default=KEY)
-        user = _config.get_config_value(config, arguments, 'tarantool_user')
-        password = _config.get_config_value(config, arguments, 'tarantool_password')
-
-        conn = tarantool.connect(tarantool_host, tarantool_port, user=user, password=password)
-        space = conn.space(tarantool_space)
+        host, port, space, user, password = _tarantool_config(arguments, config)
+        conn = tarantool.connect(host, port, user=user, password=password)
+        space = conn.space(space)
         for key, value in cache_data.items():
             space.replace((key, json.dumps(value)))
 
