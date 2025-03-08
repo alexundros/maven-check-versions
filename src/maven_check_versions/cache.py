@@ -31,7 +31,8 @@ def load_cache(config: dict, arguments: dict) -> dict:
         dict: Cache data dictionary or an empty dictionary.
     """
     match _config.get_config_value(
-        config, arguments, 'cache_backend', value_type=str, default='json'):
+        config, arguments, 'cache_backend', value_type=str, default='json'
+    ):
         case 'json':
             success, value = _load_cache_json(config, arguments)
             if success:
@@ -137,7 +138,8 @@ def save_cache(config: dict, arguments: dict, cache_data: dict) -> None:
     """
     if cache_data is not None:
         match _config.get_config_value(
-            config, arguments, 'cache_backend', value_type=str, default='json'):
+            config, arguments, 'cache_backend', value_type=str, default='json'
+        ):
             case 'json':
                 _save_cache_json(config, arguments, cache_data)
             case 'redis':
@@ -178,9 +180,9 @@ def _save_cache_redis(config: dict, arguments: dict, cache_data: dict) -> None:
         redis_key = _config.get_config_value(
             config, arguments, 'redis_key', value_type=str, default=KEY)
 
-        r = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
+        rsp = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
         for key, value in cache_data.items():
-            r.hset(redis_key, key, json.dumps(value))
+            rsp.hset(redis_key, key, json.dumps(value))
 
     except Exception as e:
         logging.error(f"Failed to save cache to Redis: {e}")
