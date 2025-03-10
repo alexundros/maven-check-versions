@@ -61,6 +61,8 @@ def add_cache_args(argument_parser: ArgumentParser) -> None:
     argument_parser.add_argument('-rsh', '--redis_host', help='Redis host', default=None)
     argument_parser.add_argument('-rsp', '--redis_port', help='Redis port', default=None)
     argument_parser.add_argument('-rsk', '--redis_key', help='Redis key', default=None)
+    argument_parser.add_argument('-rsu', '--redis_user', help='Tarantool user', default=None)
+    argument_parser.add_argument('-rsup', '--redis_password', help='Tarantool password', default=None)
 
     argument_parser.add_argument('-tlh', '--tarantool_host', help='Tarantool host', default=None)
     argument_parser.add_argument('-tlp', '--tarantool_port', help='Tarantool port', default=None)

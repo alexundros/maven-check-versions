@@ -84,8 +84,10 @@ def _redis_config(arguments, config) -> tuple:
         config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
     key = _config.get_config_value(
         config, arguments, 'redis_key', value_type=str, default=KEY)
+    user = _config.get_config_value(config, arguments, 'redis_user')
+    password = _config.get_config_value(config, arguments, 'redis_password')
 
-    return host, port, key
+    return host, port, key, user, password
 
 
 def _load_cache_redis(config: dict, arguments: dict) -> tuple[bool, dict]:
@@ -99,9 +101,13 @@ def _load_cache_redis(config: dict, arguments: dict) -> tuple[bool, dict]:
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
     try:
-        host, port, key = _redis_config(arguments, config)
-        rsp = redis.Redis(host=host, port=port, decode_responses=True)
-        cache_data = rsp.hgetall(key)
+        host, port, ckey, user, password = _redis_config(arguments, config)
+        inst = redis.Redis(
+            host=host, port=port, username=user, password=password,
+            decode_responses=True)
+        cache_data = {}
+        for key, value in inst.hgetall(ckey).items():
+            cache_data[key] = json.loads(value)
 
         return True, cache_data
     except Exception as e:
@@ -142,9 +148,9 @@ def _load_cache_tarantool(config: dict, arguments: dict) -> tuple[bool, dict]:
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
     try:
-        cache_data = {}
         host, port, space, user, password = _tarantool_config(arguments, config)
         conn = tarantool.connect(host, port, user=user, password=password)
+        cache_data = {}
         for record in conn.space(space).select():
             cache_data[record[0]] = json.loads(record[1])
 
@@ -200,10 +206,12 @@ def _save_cache_redis(config: dict, arguments: dict, cache_data: dict) -> None:
         cache_data (dict): Cache data to save.
     """
     try:
-        host, port, key = _redis_config(arguments, config)
-        rsp = redis.Redis(host=host, port=port, decode_responses=True)
+        host, port, ckey, user, password = _redis_config(arguments, config)
+        inst = redis.Redis(
+            host=host, port=port, username=user, password=password,
+            decode_responses=True)
         for key, value in cache_data.items():
-            rsp.hset(key, key, json.dumps(value))
+            inst.hset(ckey, key, json.dumps(value))
 
     except Exception as e:
         logging.error(f"Failed to save cache to Redis: {e}")

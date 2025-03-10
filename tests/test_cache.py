@@ -27,8 +27,8 @@ def test_load_cache(mocker):
     assert load_cache({}, {}) == {}
 
     mock_redis = mocker.patch('redis.Redis')
-    mock_redis.return_value.hgetall.return_value = {'k': 'v'}
-    assert load_cache({'base': {'cache_backend': 'redis'}}, {}) == {'k': 'v'}
+    mock_redis.return_value.hgetall.return_value = {'key': '{"k":"v"}'}
+    assert load_cache({'base': {'cache_backend': 'redis'}}, {}) == {'key': {'k': 'v'}}
 
     mock_redis.side_effect = Exception
     assert load_cache({'base': {'cache_backend': 'redis'}}, {}) == {}
