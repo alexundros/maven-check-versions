@@ -70,6 +70,10 @@ def add_cache_args(argument_parser: ArgumentParser) -> None:
     argument_parser.add_argument('-tlu', '--tarantool_user', help='Tarantool user', default=None)
     argument_parser.add_argument('-tlup', '--tarantool_password', help='Tarantool password', default=None)
 
+    argument_parser.add_argument('-mch', '--memcached_host', help='Memcached host', default=None)
+    argument_parser.add_argument('-mcp', '--memcached_port', help='Memcached port', default=None)
+    argument_parser.add_argument('-mck', '--memcached_key', help='Memcached key', default=None)
+
 
 def add_logging_args(argument_parser: ArgumentParser) -> None:
     """
