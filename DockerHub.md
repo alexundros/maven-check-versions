@@ -55,19 +55,50 @@ docker run --rm alexundros/maven_check_versions -ci
 
 ### General Options
 
-| Parameter         | Short | Description                                                                                      | Example                               |
-|-------------------|-------|--------------------------------------------------------------------------------------------------|---------------------------------------|
-| `--ci_mode`       | `-ci` | Enables CI (Continuous Integration) mode. Suppresses prompts and waits for user input.           | `--ci_mode`                           |
-| `--pom_file`      | `-pf` | Specifies the path to the Maven POM file to process.                                             | `--pom_file path/to/pom.xml`          |
-| `--find_artifact` | `-fa` | Searches for a specific artifact. Provide the artifact in `groupId:artifactId:version` format.   | `--find_artifact com.example:lib:1.0` |
+| Parameter         | Short | Description                                                                                     | Example                               |
+|-------------------|-------|-------------------------------------------------------------------------------------------------|---------------------------------------|
+| `--ci_mode`       | `-ci` | Enables CI (Continuous Integration) mode. Suppresses prompts and waits for user input.          | `--ci_mode`                           |
+| `--pom_file`      | `-pf` | Specifies the path to the Maven POM file to process.                                            | `--pom_file path/to/pom.xml`          |
+| `--find_artifact` | `-fa` | Searches for a specific artifact. Provide the artifact in `groupId:artifactId:version` format.  | `--find_artifact com.example:lib:1.0` |
 
 ### Cache Control
 
-| Parameter      | Short | Description                                        | Example                      |
-|----------------|-------|----------------------------------------------------|------------------------------|
-| `--cache_off`  | `-co` | Disables caching to force fresh dependency checks. | `--cache_off`                |
-| `--cache_file` | `-cf` | Specifies a custom path for the cache file.        | `--cache_file my_cache.json` |
-| `--cache_time` | `-cf` | Specifies the cache expiration time in seconds.    | `--cache_time 1800`          |
+| Parameter         | Short | Description                                                             | Example                   |
+|-------------------|-------|-------------------------------------------------------------------------|---------------------------|
+| `--cache_off`     | `-co` | Disables caching to force fresh dependency checks.                      | `--cache_off`             |
+| `--cache_file`    | `-cf` | Specifies a custom path for the cache file (only for JSON backend).     | `--cache_file cache.json` |
+| `--cache_time`    | `-ct` | Specifies the cache expiration time in seconds.                         | `--cache_time 1800`       |
+| `--cache_backend` | `-cb` | Specifies the cache backend to use (json, redis, tarantool, memcached). | `--cache_backend redis`   |
+
+Depending on the selected cache backend, additional command-line arguments may be required:
+
+#### Redis Cache Backend
+
+| Parameter          | Short   | Description                                      | Example                  |
+|--------------------|---------|--------------------------------------------------|--------------------------|
+| `--redis_host`     | `-rsh`  | Redis host (default: localhost).                 | `--redis_host redis`     |
+| `--redis_port`     | `-rsp`  | Redis port (default: 6379).                      | `--redis_port 6379`      |
+| `--redis_key`      | `-rsk`  | Redis key (default: maven_check_versions_cache). | `--redis_key mycache`    |
+| `--redis_user`     | `-rsu`  | Redis username (optional).                       | `--redis_user user`      |
+| `--redis_password` | `-rsup` | Redis password (optional).                       | `--redis_password pass`  |
+
+#### Tarantool Cache Backend
+
+| Parameter              | Short   | Description                                            | Example                      |
+|------------------------|---------|--------------------------------------------------------|------------------------------|
+| `--tarantool_host`     | `-tlh`  | Tarantool host (default: localhost).                   | `--tarantool_host tarantool` |
+| `--tarantool_port`     | `-tlp`  | Tarantool port (default: 3301).                        | `--tarantool_port 3301`      |
+| `--tarantool_space`    | `-tls`  | Tarantool space (default: maven_check_versions_cache). | `--tarantool_space myspace`  |
+| `--tarantool_user`     | `-tlu`  | Tarantool username (optional).                         | `--tarantool_user user`      |
+| `--tarantool_password` | `-tlup` | Tarantool password (optional).                         | `--tarantool_password pass`  |
+
+#### Memcached Cache Backend
+
+| Parameter           | Short  | Description                                          | Example                      |
+|---------------------|--------|------------------------------------------------------|------------------------------|
+| `--memcached_host`  | `-mch` | Memcached host (default: localhost).                 | `--memcached_host memcached` |
+| `--memcached_port`  | `-mcp` | Memcached port (default: 11211).                     | `--memcached_port 11211`     |
+| `--memcached_key`   | `-mck` | Memcached key (default: maven_check_versions_cache). | `--memcached_key mycache`    |
 
 ### Logging Options
 
@@ -139,6 +170,15 @@ Use a specific configuration file name:
 docker run --rm -v './config.cfg:/app/cfg.yml' -v 'path/to/pom.xml:/app/pom.xml' alexundros/maven_check_versions -cfg /app/cfg.yml -pf /app/pom.xml
 ```
 
+### Cache Configuration
+
+The tool supports multiple cache backends:
+
+- **JSON** (default): Stores cache data in a local JSON file specified by `cache_file`.
+- **Redis**: Uses a Redis server for caching.
+- **Tarantool**: Uses a Tarantool server for caching.
+- **Memcached**: Uses a Memcached server for caching.
+
 ### Example configuration
 
 maven_check_versions.yml:
@@ -146,6 +186,12 @@ maven_check_versions.yml:
 base:
   cache_off: false
   cache_time: 600
+  cache_backend: redis
+  redis_host: redis
+  redis_port: 6379
+  redis_key: mycache
+  redis_user: user
+  redis_password: pass
   fail_mode: false
   fail_major: 0
   fail_minor: 0
