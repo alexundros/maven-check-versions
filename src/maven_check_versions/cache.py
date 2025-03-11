@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 import maven_check_versions.config as _config
+import pymemcache
 import redis
 import tarantool
 
@@ -17,6 +18,7 @@ KEY = 'maven_check_versions_cache'
 HOST = 'localhost'
 REDIS_PORT = '6379'
 TARANTOOL_PORT = '3301'
+MEMCACHED_PORT = '11211'
 
 
 def load_cache(config: dict, arguments: dict) -> dict:
@@ -43,6 +45,10 @@ def load_cache(config: dict, arguments: dict) -> dict:
                 return value
         case 'tarantool':
             success, value = _load_cache_tarantool(config, arguments)
+            if success:
+                return value
+        case 'memcached':
+            success, value = _load_cache_memcached(config, arguments)
             if success:
                 return value
     return {}
@@ -160,6 +166,47 @@ def _load_cache_tarantool(config: dict, arguments: dict) -> tuple[bool, dict]:
     return False, {}
 
 
+def _memcached_config(arguments, config) -> tuple:
+    """Get Memcached parameters.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+
+    Returns:
+        tuple: Memcached host, port, and key.
+    """
+    host = (_config.get_config_value
+            (config, arguments, 'memcached_host', value_type=str, default=HOST))
+    port = _config.get_config_value(
+        config, arguments, 'memcached_port', value_type=int, default=MEMCACHED_PORT)
+    key = _config.get_config_value(
+        config, arguments, 'memcached_key', value_type=str, default=KEY)
+
+    return host, port, key
+
+
+def _load_cache_memcached(config: dict, arguments: dict) -> tuple[bool, dict]:
+    """Loads the cache from Memcached.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+
+    Returns:
+        tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
+    """
+    try:
+        host, port, key = _memcached_config(arguments, config)
+        client = pymemcache.client.base.Client((host, port))
+        if (cache_data := client.get(key)) is not None:
+            return True, json.loads(cache_data)
+
+    except Exception as e:
+        logging.error(f"Failed to load cache from Memcached: {e}")
+    return False, {}
+
+
 def save_cache(config: dict, arguments: dict, cache_data: dict) -> None:
     """
     Saves the cache.
@@ -179,6 +226,8 @@ def save_cache(config: dict, arguments: dict, cache_data: dict) -> None:
                 _save_cache_redis(config, arguments, cache_data)
             case 'tarantool':
                 _save_cache_tarantool(config, arguments, cache_data)
+            case 'memcached':
+                _save_cache_memcached(config, arguments, cache_data)
 
 
 def _save_cache_json(config: dict, arguments: dict, cache_data: dict) -> None:
@@ -234,6 +283,22 @@ def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict) -> No
 
     except Exception as e:
         logging.error(f"Failed to save cache to Tarantool: {e}")
+
+
+def _save_cache_memcached(config: dict, arguments: dict, cache_data: dict) -> None:
+    """Saves the cache to Memcached.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+        cache_data (dict): Cache data to save.
+    """
+    try:
+        host, port, key = _memcached_config(arguments, config)
+        client = pymemcache.client.base.Client((host, port))
+        client.set(key, json.dumps(cache_data))
+    except Exception as e:
+        logging.error(f"Failed to save cache to Memcached: {e}")
 
 
 def process_cache(

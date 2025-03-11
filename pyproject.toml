@@ -19,7 +19,7 @@ classifiers = [
 ]
 dependencies = [
     "requests", "beautifulsoup4", "python-dateutil", "pyyaml",
-    "redis", "tarantool"
+    "redis", "tarantool", "pymemcache"
 ]
 dynamic = ["version"]
 

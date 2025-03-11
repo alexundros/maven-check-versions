@@ -4,3 +4,4 @@ python-dateutil
 pyyaml
 redis
 tarantool
+pymemcache

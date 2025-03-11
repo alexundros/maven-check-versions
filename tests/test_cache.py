@@ -40,6 +40,13 @@ def test_load_cache(mocker):
 
     mock_tarantool.side_effect = Exception
     assert load_cache({'base': {'cache_backend': 'tarantool'}}, {}) == {}
+
+    mock_memcache = mocker.patch('pymemcache.client.base.Client')
+    mock_memcache.return_value.get.return_value = '{"k":"v"}'
+    assert load_cache({'base': {'cache_backend': 'memcached'}}, {}) == {'k': 'v'}
+
+    mock_memcache.side_effect = Exception
+    assert load_cache({'base': {'cache_backend': 'memcached'}}, {}) == {}
     mocker.stopall()
 
 
@@ -63,6 +70,12 @@ def test_save_cache(mocker):
 
     mock_tarantool.side_effect = Exception
     save_cache({'base': {'cache_backend': 'tarantool'}}, {}, {'k': 'v'})
+
+    mock_memcache = mocker.patch('pymemcache.client.base.Client')
+    save_cache({'base': {'cache_backend': 'memcached'}}, {}, {'k': 'v'})
+
+    mock_memcache.side_effect = Exception
+    save_cache({'base': {'cache_backend': 'memcached'}}, {}, {'k': 'v'})
     mocker.stopall()
 
 
