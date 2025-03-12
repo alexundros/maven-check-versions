@@ -13,7 +13,6 @@ import maven_check_versions.cache as _cache
 import maven_check_versions.config as _config
 import maven_check_versions.logutils as _logutils
 import requests
-from requests.auth import HTTPBasicAuth
 
 
 def parse_command_line() -> dict:
@@ -402,39 +401,3 @@ def get_pom_tree(
         if not os.path.exists(pom_path):
             raise FileNotFoundError(f'{pom_path} not found')
         return ET.parse(pom_path)
-
-
-# WIP for CVE Checking
-def fetch_cve_data(  # pragma: no cover
-        coordinates: list[str], config: dict, arguments: dict
-) -> dict[str, list[dict]]:
-    """
-    Loads the XML tree of a POM file.
-
-    Args:
-        coordinates (list[str]): Coordinates.
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
-
-    Returns:
-        dict[str, list[dict]]: CVE Data.
-    """
-    result = {}
-    if _config.get_config_value(
-            config, arguments, 'oss_index_enabled', 'vulnerability', value_type=bool, default='true'):
-        user = _config.get_config_value(config, arguments, 'oss_index_user', 'vulnerability')
-        token = _config.get_config_value(config, arguments, 'oss_index_token', 'vulnerability')
-        try:
-            url = "https://ossindex.sonatype.org/api/v3/component-report"
-            data = {"coordinates": coordinates}
-            response = requests.post(url, json=data, auth=HTTPBasicAuth(user, token))
-            if response.status_code == 200:
-                for item in response.json():
-                    if match := re.match('^pkg:maven/(.+)/(.+)@(.+)$', item['coordinates']):  # NOSONAR
-                        data = item.get('vulnerabilities', [])
-                        result.update({f"{match[1]}:{match[2]}": data})
-            else:
-                logging.error(f"OSS Index API error: {response.status_code}")
-        except Exception as e:
-            logging.error(f"Failed to fetch_cve_data: {e}")
-    return result

@@ -9,11 +9,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import maven_check_versions.cache as _cache
 import maven_check_versions.config as _config
+import maven_check_versions.cveutils as _cveutils
 import maven_check_versions.logutils as _logutils
 import maven_check_versions.utils as _utils
 import requests
 import urllib3
 from bs4 import BeautifulSoup
+from maven_check_versions.cveutils import Vulnerability
 
 
 def process_main(arguments: dict) -> None:
@@ -77,7 +79,7 @@ def process_pom(
         (artifact_id, group_id) = _utils.get_dependency_identifiers(dep, ns_mapping)
         (version, _) = _utils.get_version(config, arguments, ns_mapping, root, dep)
         list.append(coordinates, f"pkg:maven/{group_id}/{artifact_id}@{version}")
-    cve_data = _utils.fetch_cve_data(coordinates, config, arguments)
+    cve_data = _cveutils.fetch_cve_data(coordinates, config, arguments)
 
     if _config.get_config_value(config, arguments, 'threading', value_type=bool):
         max_threads = _config.get_config_value(config, arguments, 'max_threads', value_type=int)
@@ -101,7 +103,7 @@ def process_pom(
 
 def process_dependency(
         cache_data: dict | None, config: dict, arguments: dict, dependency: ET.Element, ns_mapping: dict,
-        root: ET.Element, verify_ssl: bool, cve_data: dict[str, list[dict]] | None = None
+        root: ET.Element, verify_ssl: bool, cve_data: dict[str, list[Vulnerability]] | None = None
 ) -> None:
     """
     Processes dependency in a POM file.
@@ -114,7 +116,7 @@ def process_dependency(
         ns_mapping (dict): XML namespace mapping.
         root (ET.Element): Root element of the POM file.
         verify_ssl (bool): SSL verification flag.
-        cve_data (dict[str, list[dict]]): CVE Data.
+        cve_data (dict[str, list[Vulnerability]]): CVE Data.
     """
     artifact_id, group_id = _utils.get_dependency_identifiers(dependency, ns_mapping)
     if artifact_id is None or group_id is None:
