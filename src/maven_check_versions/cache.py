@@ -21,7 +21,7 @@ TARANTOOL_PORT = '3301'
 MEMCACHED_PORT = '11211'
 
 
-def _redis_config(config, arguments, section: str) -> tuple:
+def _redis_config(config: dict, arguments: dict, section: str) -> tuple:
     """Get Redis parameters.
 
     Args:
@@ -44,7 +44,7 @@ def _redis_config(config, arguments, section: str) -> tuple:
     return host, port, key, user, password
 
 
-def _tarantool_config(config, arguments, section: str) -> tuple:
+def _tarantool_config(config: dict, arguments: dict, section: str) -> tuple:
     """Get Tarantool parameters.
 
     Args:
@@ -67,7 +67,7 @@ def _tarantool_config(config, arguments, section: str) -> tuple:
     return host, port, space, user, password
 
 
-def _memcached_config(config, arguments, section: str) -> tuple:
+def _memcached_config(config: dict, arguments: dict, section: str) -> tuple:
     """Get Memcached parameters.
 
     Args:
