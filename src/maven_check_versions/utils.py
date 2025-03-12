@@ -322,7 +322,7 @@ def check_versions(
 
     for item in available_versions:
         if item == version and skip_current:
-            _cache.update_cache(cache_data, available_versions, artifact_id, group_id, item, None, section_key)
+            _cache.update_cache_artifact(cache_data, available_versions, artifact_id, group_id, item, None, section_key)
             return True
 
         is_valid, last_modified = get_pom_data(auth_info, verify_ssl, artifact_id, item, path)
@@ -330,7 +330,7 @@ def check_versions(
             logging.info('{}: {}:{}, current:{} {} {}'.format(
                 section_key, group_id, artifact_id, version, available_versions[:3], last_modified).rstrip())
 
-            _cache.update_cache(
+            _cache.update_cache_artifact(
                 cache_data, available_versions, artifact_id, group_id, item, last_modified, section_key)
 
             fail_mode_if_required(

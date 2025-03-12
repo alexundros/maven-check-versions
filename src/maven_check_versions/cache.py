@@ -21,52 +21,121 @@ TARANTOOL_PORT = '3301'
 MEMCACHED_PORT = '11211'
 
 
-def load_cache(config: dict, arguments: dict) -> dict:
+def _redis_config(config, arguments, section: str) -> tuple:
+    """Get Redis parameters.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+        section (str): Configuration section.
+
+    Returns:
+        tuple: Redis parameters.
+    """
+    host = _config.get_config_value(
+        config, arguments, 'redis_host', section=section, value_type=str, default=HOST)
+    port = _config.get_config_value(
+        config, arguments, 'redis_port', section=section, value_type=int, default=REDIS_PORT)
+    key = _config.get_config_value(
+        config, arguments, 'redis_key', section=section, value_type=str, default=KEY)
+    user = _config.get_config_value(config, arguments, 'redis_user', section=section)
+    password = _config.get_config_value(config, arguments, 'redis_password', section=section)
+
+    return host, port, key, user, password
+
+
+def _tarantool_config(config, arguments, section: str) -> tuple:
+    """Get Tarantool parameters.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+        section (str): Configuration section.
+
+    Returns:
+        tuple: Tarantool parameters.
+    """
+    host = _config.get_config_value(
+        config, arguments, 'tarantool_host', section=section, value_type=str, default=HOST)
+    port = _config.get_config_value(
+        config, arguments, 'tarantool_port', section=section, value_type=int, default=TARANTOOL_PORT)
+    space = _config.get_config_value(
+        config, arguments, 'tarantool_space', section=section, value_type=str, default=KEY)
+    user = _config.get_config_value(config, arguments, 'tarantool_user', section=section)
+    password = _config.get_config_value(config, arguments, 'tarantool_password', section=section)
+
+    return host, port, space, user, password
+
+
+def _memcached_config(config, arguments, section: str) -> tuple:
+    """Get Memcached parameters.
+
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+        section (str): Configuration section.
+
+    Returns:
+        tuple: Memcached parameters.
+    """
+    host = (_config.get_config_value
+            (config, arguments, 'memcached_host', section=section, value_type=str, default=HOST))
+    port = _config.get_config_value(
+        config, arguments, 'memcached_port', section=section, value_type=int, default=MEMCACHED_PORT)
+    key = _config.get_config_value(
+        config, arguments, 'memcached_key', section=section, value_type=str, default=KEY)
+
+    return host, port, key
+
+
+def load_cache(config: dict, arguments: dict, section: str = 'base') -> dict:
     """
     Loads the cache.
 
     Args:
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
+        section (str, optional): Configuration section (default is 'base').
 
     Returns:
         dict: Cache data dictionary or an empty dictionary.
     """
     match _config.get_config_value(
-        config, arguments, 'cache_backend', value_type=str, default='json'
+        config, arguments, 'cache_backend', section=section, value_type=str, default='json'
     ):
         case 'json':
-            success, value = _load_cache_json(config, arguments)
+            success, value = _load_cache_json(config, arguments, section)
             if success:
                 return value
         case 'redis':
-            success, value = _load_cache_redis(config, arguments)
+            success, value = _load_cache_redis(config, arguments, section)
             if success:
                 return value
         case 'tarantool':
-            success, value = _load_cache_tarantool(config, arguments)
+            success, value = _load_cache_tarantool(config, arguments, section)
             if success:
                 return value
         case 'memcached':
-            success, value = _load_cache_memcached(config, arguments)
+            success, value = _load_cache_memcached(config, arguments, section)
             if success:
                 return value
     return {}
 
 
-def _load_cache_json(config: dict, arguments: dict) -> tuple[bool, dict]:
+def _load_cache_json(config: dict, arguments: dict, section: str) -> tuple[bool, dict]:
     """
         Loads the cache from JSON file.
 
         Args:
             config (dict): Parsed YAML as dict.
             arguments (dict): Command-line arguments.
+            section (str): Configuration section.
 
         Returns:
             dict: Cache data dictionary or an empty dictionary.
         """
     cache_file = _config.get_config_value(
-        config, arguments, 'cache_file', value_type=str, default=FILE)
+        config, arguments, 'cache_file', section=section, value_type=str, default=FILE)
     if os.path.exists(cache_file):
         logging.info(f"Load Cache: {Path(cache_file).absolute()}")
         with open(cache_file) as cf:
@@ -74,29 +143,7 @@ def _load_cache_json(config: dict, arguments: dict) -> tuple[bool, dict]:
     return False, {}
 
 
-def _redis_config(arguments, config) -> tuple:
-    """Get Redis parameters.
-
-    Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
-
-    Returns:
-        tuple: Redis parameters.
-    """
-    host = _config.get_config_value(
-        config, arguments, 'redis_host', value_type=str, default=HOST)
-    port = _config.get_config_value(
-        config, arguments, 'redis_port', value_type=int, default=REDIS_PORT)
-    key = _config.get_config_value(
-        config, arguments, 'redis_key', value_type=str, default=KEY)
-    user = _config.get_config_value(config, arguments, 'redis_user')
-    password = _config.get_config_value(config, arguments, 'redis_password')
-
-    return host, port, key, user, password
-
-
-def _load_cache_redis(config: dict, arguments: dict) -> tuple[bool, dict]:
+def _load_cache_redis(config: dict, arguments: dict, section: str) -> tuple[bool, dict]:
     """Loads the cache from Redis.
 
     Args:
@@ -107,7 +154,7 @@ def _load_cache_redis(config: dict, arguments: dict) -> tuple[bool, dict]:
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
     try:
-        host, port, ckey, user, password = _redis_config(arguments, config)
+        host, port, ckey, user, password = _redis_config(arguments, config, section)
         inst = redis.Redis(
             host=host, port=port, username=user, password=password,
             decode_responses=True)
@@ -121,29 +168,7 @@ def _load_cache_redis(config: dict, arguments: dict) -> tuple[bool, dict]:
         return False, {}
 
 
-def _tarantool_config(arguments, config) -> tuple:
-    """Get Tarantool parameters.
-
-    Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
-
-    Returns:
-        tuple: Tarantool parameters.
-    """
-    host = _config.get_config_value(
-        config, arguments, 'tarantool_host', value_type=str, default=HOST)
-    port = _config.get_config_value(
-        config, arguments, 'tarantool_port', value_type=int, default=TARANTOOL_PORT)
-    space = _config.get_config_value(
-        config, arguments, 'tarantool_space', value_type=str, default=KEY)
-    user = _config.get_config_value(config, arguments, 'tarantool_user')
-    password = _config.get_config_value(config, arguments, 'tarantool_password')
-
-    return host, port, space, user, password
-
-
-def _load_cache_tarantool(config: dict, arguments: dict) -> tuple[bool, dict]:
+def _load_cache_tarantool(config: dict, arguments: dict, section: str) -> tuple[bool, dict]:
     """Loads the cache from Tarantool.
 
     Args:
@@ -154,7 +179,7 @@ def _load_cache_tarantool(config: dict, arguments: dict) -> tuple[bool, dict]:
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
     try:
-        host, port, space, user, password = _tarantool_config(arguments, config)
+        host, port, space, user, password = _tarantool_config(arguments, config, section)
         conn = tarantool.connect(host, port, user=user, password=password)
         cache_data = {}
         for record in conn.space(space).select():
@@ -166,27 +191,7 @@ def _load_cache_tarantool(config: dict, arguments: dict) -> tuple[bool, dict]:
     return False, {}
 
 
-def _memcached_config(arguments, config) -> tuple:
-    """Get Memcached parameters.
-
-    Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
-
-    Returns:
-        tuple: Memcached host, port, and key.
-    """
-    host = (_config.get_config_value
-            (config, arguments, 'memcached_host', value_type=str, default=HOST))
-    port = _config.get_config_value(
-        config, arguments, 'memcached_port', value_type=int, default=MEMCACHED_PORT)
-    key = _config.get_config_value(
-        config, arguments, 'memcached_key', value_type=str, default=KEY)
-
-    return host, port, key
-
-
-def _load_cache_memcached(config: dict, arguments: dict) -> tuple[bool, dict]:
+def _load_cache_memcached(config: dict, arguments: dict, section: str) -> tuple[bool, dict]:
     """Loads the cache from Memcached.
 
     Args:
@@ -197,7 +202,7 @@ def _load_cache_memcached(config: dict, arguments: dict) -> tuple[bool, dict]:
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
     try:
-        host, port, key = _memcached_config(arguments, config)
+        host, port, key = _memcached_config(arguments, config, section)
         client = pymemcache.client.base.Client((host, port))
         if (cache_data := client.get(key)) is not None:
             return True, json.loads(cache_data)
@@ -207,7 +212,7 @@ def _load_cache_memcached(config: dict, arguments: dict) -> tuple[bool, dict]:
     return False, {}
 
 
-def save_cache(config: dict, arguments: dict, cache_data: dict) -> None:
+def save_cache(config: dict, arguments: dict, cache_data: dict, section: str = 'base') -> None:
     """
     Saves the cache.
 
@@ -215,22 +220,23 @@ def save_cache(config: dict, arguments: dict, cache_data: dict) -> None:
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         cache_data (dict): Cache data to save.
+        section (str, optional): Configuration section (default is 'base').
     """
     if cache_data is not None:
         match _config.get_config_value(
-            config, arguments, 'cache_backend', value_type=str, default='json'
+            config, arguments, 'cache_backend', section=section, value_type=str, default='json'
         ):
             case 'json':
-                _save_cache_json(config, arguments, cache_data)
+                _save_cache_json(config, arguments, cache_data, section)
             case 'redis':
-                _save_cache_redis(config, arguments, cache_data)
+                _save_cache_redis(config, arguments, cache_data, section)
             case 'tarantool':
-                _save_cache_tarantool(config, arguments, cache_data)
+                _save_cache_tarantool(config, arguments, cache_data, section)
             case 'memcached':
-                _save_cache_memcached(config, arguments, cache_data)
+                _save_cache_memcached(config, arguments, cache_data, section)
 
 
-def _save_cache_json(config: dict, arguments: dict, cache_data: dict) -> None:
+def _save_cache_json(config: dict, arguments: dict, cache_data: dict, section: str) -> None:
     """
     Saves the cache to JSON file.
 
@@ -238,24 +244,26 @@ def _save_cache_json(config: dict, arguments: dict, cache_data: dict) -> None:
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         cache_data (dict): Cache data to save.
+        section (str): Configuration section.
     """
     cache_file = _config.get_config_value(
-        config, arguments, 'cache_file', value_type=str, default=FILE)
+        config, arguments, 'cache_file', section=section, value_type=str, default=FILE)
     logging.info(f"Save Cache: {Path(cache_file).absolute()}")
     with open(cache_file, 'w') as cf:
         json.dump(cache_data, cf)
 
 
-def _save_cache_redis(config: dict, arguments: dict, cache_data: dict) -> None:
+def _save_cache_redis(config: dict, arguments: dict, cache_data: dict, section: str) -> None:
     """Saves the cache to Redis.
 
     Args:
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         cache_data (dict): Cache data to save.
+        section (str): Configuration section.
     """
     try:
-        host, port, ckey, user, password = _redis_config(arguments, config)
+        host, port, ckey, user, password = _redis_config(arguments, config, section)
         inst = redis.Redis(
             host=host, port=port, username=user, password=password,
             decode_responses=True)
@@ -266,16 +274,17 @@ def _save_cache_redis(config: dict, arguments: dict, cache_data: dict) -> None:
         logging.error(f"Failed to save cache to Redis: {e}")
 
 
-def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict) -> None:
+def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict, section: str) -> None:
     """Saves the cache to Tarantool.
 
     Args:
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         cache_data (dict): Cache data to save.
+        section (str): Configuration section.
     """
     try:
-        host, port, space, user, password = _tarantool_config(arguments, config)
+        host, port, space, user, password = _tarantool_config(arguments, config, section)
         conn = tarantool.connect(host, port, user=user, password=password)
         space = conn.space(space)
         for key, value in cache_data.items():
@@ -285,28 +294,29 @@ def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict) -> No
         logging.error(f"Failed to save cache to Tarantool: {e}")
 
 
-def _save_cache_memcached(config: dict, arguments: dict, cache_data: dict) -> None:
+def _save_cache_memcached(config: dict, arguments: dict, cache_data: dict, section: str) -> None:
     """Saves the cache to Memcached.
 
     Args:
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         cache_data (dict): Cache data to save.
+        section (str): Configuration section.
     """
     try:
-        host, port, key = _memcached_config(arguments, config)
+        host, port, key = _memcached_config(arguments, config, section)
         client = pymemcache.client.base.Client((host, port))
         client.set(key, json.dumps(cache_data))
     except Exception as e:
         logging.error(f"Failed to save cache to Memcached: {e}")
 
 
-def process_cache(
+def process_cache_artifact(
         config: dict, arguments: dict, cache_data: dict | None, artifact_id: str, group_id: str,
         version: str
 ) -> bool:
     """
-    Processes cached data for a dependency.
+    Processes cached data for artifact.
 
     Args:
         config (dict): Parsed YAML as dict.
@@ -336,7 +346,7 @@ def process_cache(
     return False
 
 
-def update_cache(
+def update_cache_artifact(
         cache_data: dict | None, versions: list, artifact_id: str, group_id, item: str,
         last_modified_date: str | None, section_key: str
 ) -> None:
