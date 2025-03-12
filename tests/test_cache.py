@@ -13,7 +13,7 @@ os.chdir(os.path.dirname(__file__))
 sys.path.append('../src')
 
 from maven_check_versions.cache import (
-    load_cache, save_cache, update_cache, process_cache
+    load_cache, save_cache, update_cache_artifact, process_cache_artifact
 )
 
 
@@ -80,19 +80,19 @@ def test_save_cache(mocker):
 
 
 # noinspection PyShadowingNames
-def test_process_cache(mocker):
+def test_process_cache_artifact(mocker):
     config = dict()
     data = {'group:artifact': (time.time() - 100, '1.0', 'key', '23.01.2025', ['1.0', '1.1'])}
-    assert process_cache(config, {'cache_time': 0}, data, 'artifact', 'group', '1.0')
-    assert not process_cache(config, {'cache_time': 50}, data, 'artifact', 'group', '1.1')
+    assert process_cache_artifact(config, {'cache_time': 0}, data, 'artifact', 'group', '1.0')
+    assert not process_cache_artifact(config, {'cache_time': 50}, data, 'artifact', 'group', '1.1')
 
     mock = mocker.patch('logging.info')
-    assert process_cache(config, {'cache_time': 0}, data, 'artifact', 'group', '1.1')
+    assert process_cache_artifact(config, {'cache_time': 0}, data, 'artifact', 'group', '1.1')
     mock.assert_called_once_with('*key: group:artifact, current:1.1 versions: 1.0, 1.1 updated: 23.01.2025')
 
 
-def test_update_cache():
+def test_update_cache_artifact():
     cache_data = {}
-    update_cache(cache_data, ['1.0'], 'artifact', 'group', '1.0', '16.01.2025', 'key')  # NOSONAR
+    update_cache_artifact(cache_data, ['1.0'], 'artifact', 'group', '1.0', '16.01.2025', 'key')  # NOSONAR
     data = (pytest.approx(time.time()), '1.0', 'key', '16.01.2025', ['1.0'])
     assert cache_data == {'group:artifact': data}

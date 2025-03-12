@@ -129,12 +129,12 @@ def process_dependency(
     _logutils.log_search_if_required(config, arguments, group_id, artifact_id, version)
 
     # WIP for CVE Checking
-    key = f"pkg:maven/{group_id}/{artifact_id}@{version}"
+    key = f"{group_id}:{artifact_id}"
     if cve_data is not None and cve_data.get(key) is not None:  # pragma: no cover
         pass
 
     if cache_data is not None and cache_data.get(f"{group_id}:{artifact_id}") is not None:
-        if _cache.process_cache(config, arguments, cache_data, artifact_id, group_id, version):
+        if _cache.process_cache_artifact(config, arguments, cache_data, artifact_id, group_id, version):
             return
 
     if not process_repositories(artifact_id, cache_data, config, group_id, arguments, verify_ssl, version):

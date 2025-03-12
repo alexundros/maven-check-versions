@@ -258,7 +258,7 @@ def test_process_dependency(mocker):
     mock_logging.assert_called_once()
 
     mock_get_version.return_value = ('1.0', False)
-    mocker.patch('maven_check_versions.cache.process_cache', return_value=True)
+    mocker.patch('maven_check_versions.cache.process_cache_artifact', return_value=True)
     _process_dependencies({'group:artifact': ()})
 
     mocker.patch('maven_check_versions.process.process_repositories', return_value=False)
