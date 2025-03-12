@@ -69,13 +69,23 @@ def process_pom(
 
     dependencies = _utils.collect_dependencies(root, ns_mapping, config, arguments)
 
+    # WIP for CVE Checking
+    coordinates = []
+    for dep in dependencies:  # pragma: no cover
+        if len(coordinates) == 128:
+            break
+        (artifact_id, group_id) = _utils.get_dependency_identifiers(dep, ns_mapping)
+        (version, _) = _utils.get_version(config, arguments, ns_mapping, root, dep)
+        list.append(coordinates, f"pkg:maven/{group_id}/{artifact_id}@{version}")
+    cve_data = _utils.fetch_cve_data(coordinates, config, arguments)
+
     if _config.get_config_value(config, arguments, 'threading', value_type=bool):
         max_threads = _config.get_config_value(config, arguments, 'max_threads', value_type=int)
 
         with ThreadPoolExecutor(max_workers=max_threads) as executor:
             for future in as_completed([
                 executor.submit(process_dependency,
-                                cache_data, config, arguments, dep, ns_mapping, root, verify_ssl)
+                                cache_data, config, arguments, dep, ns_mapping, root, verify_ssl, cve_data)
                 for dep in dependencies
             ]):
                 try:
@@ -84,14 +94,14 @@ def process_pom(
                     logging.error(f"Error processing dependency: {e}")
     else:
         for dep in dependencies:
-            process_dependency(cache_data, config, arguments, dep, ns_mapping, root, verify_ssl)
+            process_dependency(cache_data, config, arguments, dep, ns_mapping, root, verify_ssl, cve_data)
 
     process_modules_if_required(cache_data, config, arguments, root, pom_path, ns_mapping, artifact_name)
 
 
 def process_dependency(
-        cache_data: dict | None, config: dict, arguments: dict, dependency: ET.Element,
-        ns_mapping: dict, root: ET.Element, verify_ssl: bool
+        cache_data: dict | None, config: dict, arguments: dict, dependency: ET.Element, ns_mapping: dict,
+        root: ET.Element, verify_ssl: bool, cve_data: dict[str, list[dict]] | None = None
 ) -> None:
     """
     Processes dependency in a POM file.
@@ -104,6 +114,7 @@ def process_dependency(
         ns_mapping (dict): XML namespace mapping.
         root (ET.Element): Root element of the POM file.
         verify_ssl (bool): SSL verification flag.
+        cve_data (dict[str, list[dict]]): CVE Data.
     """
     artifact_id, group_id = _utils.get_dependency_identifiers(dependency, ns_mapping)
     if artifact_id is None or group_id is None:
@@ -116,6 +127,11 @@ def process_dependency(
         return
 
     _logutils.log_search_if_required(config, arguments, group_id, artifact_id, version)
+
+    # WIP for CVE Checking
+    key = f"pkg:maven/{group_id}/{artifact_id}@{version}"
+    if cve_data is not None and cve_data.get(key) is not None and ():  # pragma: no cover
+        pass
 
     if cache_data is not None and cache_data.get(f"{group_id}:{artifact_id}") is not None:
         if _cache.process_cache(config, arguments, cache_data, artifact_id, group_id, version):
