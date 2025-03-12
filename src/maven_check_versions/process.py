@@ -130,7 +130,7 @@ def process_dependency(
 
     # WIP for CVE Checking
     key = f"pkg:maven/{group_id}/{artifact_id}@{version}"
-    if cve_data is not None and cve_data.get(key) is not None and ():  # pragma: no cover
+    if cve_data is not None and cve_data.get(key) is not None:  # pragma: no cover
         pass
 
     if cache_data is not None and cache_data.get(f"{group_id}:{artifact_id}") is not None:

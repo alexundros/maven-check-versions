@@ -430,10 +430,11 @@ def fetch_cve_data(  # pragma: no cover
             response = requests.post(url, json=data, auth=HTTPBasicAuth(user, token))
             if response.status_code == 200:
                 for item in response.json():
-                    if match := re.match('^pkg:maven/(.+?)/(.+?)@(.+?)$', item['coordinates']):
-                        result.update({f"{match[1]}:{match[2]}": item.get('vulnerabilities', [])})
+                    if match := re.match('^pkg:maven/(.+)/(.+)@(.+)$', item['coordinates']):
+                        data = item.get('vulnerabilities', [])
+                        result.update({f"{match[1]}:{match[2]}": data})
             else:
                 logging.error(f"OSS Index API error: {response.status_code}")
         except Exception as e:
-            logging.error(f"Failed to fetch_cves_data: {e}")
+            logging.error(f"Failed to fetch_cve_data: {e}")
     return result
