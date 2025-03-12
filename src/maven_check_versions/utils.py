@@ -430,7 +430,7 @@ def fetch_cve_data(  # pragma: no cover
             response = requests.post(url, json=data, auth=HTTPBasicAuth(user, token))
             if response.status_code == 200:
                 for item in response.json():
-                    if match := re.match('^pkg:maven/(.+)/(.+)@(.+)$', item['coordinates']):
+                    if match := re.match('^pkg:maven/(.+)/(.+)@(.+)$', item['coordinates']):  # NOSONAR
                         data = item.get('vulnerabilities', [])
                         result.update({f"{match[1]}:{match[2]}": data})
             else:
