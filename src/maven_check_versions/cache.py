@@ -32,16 +32,16 @@ def _redis_config(config: dict, arguments: dict, section: str) -> tuple:
     Returns:
         tuple: Redis parameters.
     """
-    host = _config.get_config_value(
-        config, arguments, 'redis_host', section=section, value_type=str, default=HOST)
-    port = _config.get_config_value(
-        config, arguments, 'redis_port', section=section, value_type=int, default=REDIS_PORT)
-    key = _config.get_config_value(
-        config, arguments, 'redis_key', section=section, value_type=str, default=KEY)
-    user = _config.get_config_value(config, arguments, 'redis_user', section=section)
-    password = _config.get_config_value(config, arguments, 'redis_password', section=section)
-
-    return host, port, key, user, password
+    return (
+        _config.get_config_value(
+            config, arguments, 'redis_host', section=section, value_type=str, default=HOST),
+        _config.get_config_value(
+            config, arguments, 'redis_port', section=section, value_type=int, default=REDIS_PORT),
+        _config.get_config_value(
+            config, arguments, 'redis_key', section=section, value_type=str, default=KEY),
+        _config.get_config_value(config, arguments, 'redis_user', section=section),
+        _config.get_config_value(config, arguments, 'redis_password', section=section)
+    )
 
 
 def _tarantool_config(config: dict, arguments: dict, section: str) -> tuple:
@@ -55,16 +55,16 @@ def _tarantool_config(config: dict, arguments: dict, section: str) -> tuple:
     Returns:
         tuple: Tarantool parameters.
     """
-    host = _config.get_config_value(
-        config, arguments, 'tarantool_host', section=section, value_type=str, default=HOST)
-    port = _config.get_config_value(
-        config, arguments, 'tarantool_port', section=section, value_type=int, default=TARANTOOL_PORT)
-    space = _config.get_config_value(
-        config, arguments, 'tarantool_space', section=section, value_type=str, default=KEY)
-    user = _config.get_config_value(config, arguments, 'tarantool_user', section=section)
-    password = _config.get_config_value(config, arguments, 'tarantool_password', section=section)
-
-    return host, port, space, user, password
+    return (
+        _config.get_config_value(
+            config, arguments, 'tarantool_host', section=section, value_type=str, default=HOST),
+        _config.get_config_value(
+            config, arguments, 'tarantool_port', section=section, value_type=int, default=TARANTOOL_PORT),
+        _config.get_config_value(
+            config, arguments, 'tarantool_space', section=section, value_type=str, default=KEY),
+        _config.get_config_value(config, arguments, 'tarantool_user', section=section),
+        _config.get_config_value(config, arguments, 'tarantool_password', section=section)
+    )
 
 
 def _memcached_config(config: dict, arguments: dict, section: str) -> tuple:
@@ -78,14 +78,14 @@ def _memcached_config(config: dict, arguments: dict, section: str) -> tuple:
     Returns:
         tuple: Memcached parameters.
     """
-    host = (_config.get_config_value
-            (config, arguments, 'memcached_host', section=section, value_type=str, default=HOST))
-    port = _config.get_config_value(
-        config, arguments, 'memcached_port', section=section, value_type=int, default=MEMCACHED_PORT)
-    key = _config.get_config_value(
-        config, arguments, 'memcached_key', section=section, value_type=str, default=KEY)
-
-    return host, port, key
+    return (
+        _config.get_config_value(
+            config, arguments, 'memcached_host', section=section, value_type=str, default=HOST),
+        _config.get_config_value(
+            config, arguments, 'memcached_port', section=section, value_type=int, default=MEMCACHED_PORT),
+        _config.get_config_value(
+            config, arguments, 'memcached_key', section=section, value_type=str, default=KEY)
+    )
 
 
 def load_cache(config: dict, arguments: dict, section: str = 'base') -> dict:
