@@ -71,15 +71,7 @@ def process_pom(
 
     dependencies = _utils.collect_dependencies(root, ns_mapping, config, arguments)
 
-    # WIP for CVE Checking
-    coordinates = []
-    for dep in dependencies:  # pragma: no cover
-        if len(coordinates) == 128:
-            break
-        (artifact_id, group_id) = _utils.get_dependency_identifiers(dep, ns_mapping)
-        (version, _) = _utils.get_version(config, arguments, ns_mapping, root, dep)
-        list.append(coordinates, f"pkg:maven/{group_id}/{artifact_id}@{version}")
-    cve_data = _cveutils.fetch_cve_data(coordinates, config, arguments)
+    cve_data = _cveutils.get_cve_data(config, arguments, dependencies, root, ns_mapping)
 
     if _config.get_config_value(config, arguments, 'threading', value_type=bool):
         max_threads = _config.get_config_value(config, arguments, 'max_threads', value_type=int)
