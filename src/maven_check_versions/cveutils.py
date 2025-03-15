@@ -141,16 +141,18 @@ def _fetch_cve_data(  # pragma: no cover
         for i in range(0, len(coordinates), batch_size):
             batch = coordinates[i:i + batch_size]
             response = requests.post(url, json={"coordinates": batch}, auth=auth)
-            if response.status_code == 200:
-                for item in response.json():
-                    cves = []
-                    md = re.match(MVN_PKG_REGEX, item['coordinates'])
-                    if len(data := item.get('vulnerabilities')):
-                        cves = [Vulnerability(**cve) for cve in data]
-                    if len(cves) or keep_safe:
-                        result.update({f"{md[1]}:{md[2]}:{md[3]}": cves})
-            else:
+            if response.status_code != 200:
                 logging.error(f"OSS Index API error: {response.status_code}")
+                continue
+
+            for item in response.json():
+                cves = []
+                md = re.match(MVN_PKG_REGEX, item['coordinates'])
+                if len(data := item.get('vulnerabilities')):
+                    cves = [Vulnerability(**cve) for cve in data]
+                if len(cves) or keep_safe:
+                    result.update({f"{md[1]}:{md[2]}:{md[3]}": cves})
+
     except Exception as e:
         logging.error(f"Failed to fetch_cve_data: {e}")
     return result
