@@ -6,6 +6,7 @@ import logging
 import math
 import os
 import time
+from dataclasses import asdict, is_dataclass
 from pathlib import Path
 
 import maven_check_versions.config as _config
@@ -14,11 +15,26 @@ import redis
 import tarantool
 
 FILE = 'maven_check_versions.cache.json'
-KEY = 'maven_check_versions_cache'
+KEY1 = 'maven_check_versions_artifacts'
+KEY2 = 'maven_check_versions_vulnerabilities'
 HOST = 'localhost'
 REDIS_PORT = '6379'
 TARANTOOL_PORT = '3301'
 MEMCACHED_PORT = '11211'
+
+
+class DCJSONEncoder(json.JSONEncoder):  # pragma: no cover
+    """
+    JSON Encoder for dataclasses.
+    """
+
+    def default(self, obj):
+        """
+        Default encode.
+        """
+        if is_dataclass(obj):
+            return asdict(obj)
+        return super().default(obj)
 
 
 def _redis_config(config: dict, arguments: dict, section: str) -> tuple:
@@ -38,7 +54,8 @@ def _redis_config(config: dict, arguments: dict, section: str) -> tuple:
         _config.get_config_value(
             config, arguments, 'redis_port', section=section, value_type=int, default=REDIS_PORT),
         _config.get_config_value(
-            config, arguments, 'redis_key', section=section, value_type=str, default=KEY),
+            config, arguments, 'redis_key', section=section, value_type=str,
+            default=KEY2 if section == 'vulnerability' else KEY1),
         _config.get_config_value(config, arguments, 'redis_user', section=section),
         _config.get_config_value(config, arguments, 'redis_password', section=section)
     )
@@ -61,7 +78,8 @@ def _tarantool_config(config: dict, arguments: dict, section: str) -> tuple:
         _config.get_config_value(
             config, arguments, 'tarantool_port', section=section, value_type=int, default=TARANTOOL_PORT),
         _config.get_config_value(
-            config, arguments, 'tarantool_space', section=section, value_type=str, default=KEY),
+            config, arguments, 'tarantool_space', section=section, value_type=str,
+            default=KEY2 if section == 'vulnerability' else KEY1),
         _config.get_config_value(config, arguments, 'tarantool_user', section=section),
         _config.get_config_value(config, arguments, 'tarantool_password', section=section)
     )
@@ -84,7 +102,8 @@ def _memcached_config(config: dict, arguments: dict, section: str) -> tuple:
         _config.get_config_value(
             config, arguments, 'memcached_port', section=section, value_type=int, default=MEMCACHED_PORT),
         _config.get_config_value(
-            config, arguments, 'memcached_key', section=section, value_type=str, default=KEY)
+            config, arguments, 'memcached_key', section=section, value_type=str,
+            default=KEY2 if section == 'vulnerability' else KEY1)
     )
 
 
@@ -101,7 +120,8 @@ def load_cache(config: dict, arguments: dict, section: str = 'base') -> dict:
         dict: Cache data dictionary or an empty dictionary.
     """
     match _config.get_config_value(
-        config, arguments, 'cache_backend', section=section, value_type=str, default='json'
+        config, arguments, 'cache_backend', section=section, value_type=str,
+        default='json'
     ):
         case 'json':
             success, value = _load_cache_json(config, arguments, section)
@@ -224,7 +244,8 @@ def save_cache(config: dict, arguments: dict, cache_data: dict, section: str = '
     """
     if cache_data is not None:
         match _config.get_config_value(
-            config, arguments, 'cache_backend', section=section, value_type=str, default='json'
+            config, arguments, 'cache_backend', section=section, value_type=str,
+            default='json'
         ):
             case 'json':
                 _save_cache_json(config, arguments, cache_data, section)
@@ -268,7 +289,7 @@ def _save_cache_redis(config: dict, arguments: dict, cache_data: dict, section: 
             host=host, port=port, username=user, password=password,
             decode_responses=True)
         for key, value in cache_data.items():
-            inst.hset(ckey, key, json.dumps(value))
+            inst.hset(ckey, key, json.dumps(value, cls=DCJSONEncoder))
 
     except Exception as e:
         logging.error(f"Failed to save cache to Redis: {e}")
@@ -288,7 +309,7 @@ def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict, secti
         conn = tarantool.connect(host, port, user=user, password=password)
         space = conn.space(space)
         for key, value in cache_data.items():
-            space.replace((key, json.dumps(value)))
+            space.replace((key, json.dumps(value, cls=DCJSONEncoder)))
 
     except Exception as e:
         logging.error(f"Failed to save cache to Tarantool: {e}")
@@ -306,7 +327,7 @@ def _save_cache_memcached(config: dict, arguments: dict, cache_data: dict, secti
     try:
         host, port, key = _memcached_config(arguments, config, section)
         client = pymemcache.client.base.Client((host, port))
-        client.set(key, json.dumps(cache_data))
+        client.set(key, json.dumps(cache_data, cls=DCJSONEncoder))
     except Exception as e:
         logging.error(f"Failed to save cache to Memcached: {e}")
 

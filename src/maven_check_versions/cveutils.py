@@ -10,7 +10,10 @@ from dataclasses import dataclass
 import maven_check_versions.config as _config
 import maven_check_versions.utils as _utils
 import requests
+from maven_check_versions.cache import save_cache, load_cache
 from requests.auth import HTTPBasicAuth
+
+MVN_PKG_REGEX = '^pkg:maven/(.+)/(.+)@(.+)$'  # NOSONAR
 
 
 @dataclass
@@ -50,10 +53,19 @@ def get_cve_data(  # pragma: no cover
     """
     result = {}
     if _config.get_config_value(
-            config, arguments, 'oss_index_enabled', 'vulnerability', value_type=bool, default='false'
+            config, arguments, 'oss_index_enabled', 'vulnerability', value_type=bool,
+            default='false'
     ):
         coordinates = _get_coordinates(config, arguments, dependencies, ns_mapping, root)
+        if len(cache_data := load_cache(config, arguments, 'vulnerability')):
+            for item in coordinates:
+                if (md := re.match(MVN_PKG_REGEX, item)) \
+                        and cache_data.get(f"{md[1]}:{md[2]}:{md[3]}") is not None:
+                    coordinates.remove(item)
+
         cve_data = _fetch_cve_data(config, arguments, coordinates)
+        if len(cve_data):
+            save_cache(config, arguments, cve_data, 'vulnerability')
 
         result.update(cve_data)
     return result
@@ -127,12 +139,12 @@ def _fetch_cve_data(  # pragma: no cover
             batch = coordinates[i:i + size]
             response = requests.post(url, json={"coordinates": batch}, auth=auth)
             if response.status_code == 200:
-                rgx = '^pkg:maven/(.+)/(.+)@(.+)$'  # NOSONAR
                 for item in response.json():
-                    data = item.get('vulnerabilities')
-                    if (match := re.match(rgx, item['coordinates'])) and len(data):
+                    cves = []
+                    md = re.match(MVN_PKG_REGEX, item['coordinates'])
+                    if len(data := item.get('vulnerabilities')):
                         cves = [Vulnerability(**cve) for cve in data]
-                        result.update({f"{match[1]}:{match[2]}": cves})
+                    result.update({f"{md[1]}:{md[2]}:{md[3]}": cves})
             else:
                 logging.error(f"OSS Index API error: {response.status_code}")
     except Exception as e:
