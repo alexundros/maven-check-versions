@@ -59,8 +59,8 @@ def get_cve_data(  # pragma: no cover
         coordinates = _get_coordinates(config, arguments, dependencies, ns_mapping, root)
         if len(cache_data := load_cache(config, arguments, 'vulnerability')):
             for item in coordinates:
-                if (md := re.match(MVN_PKG_REGEX, item)) \
-                        and cache_data.get(f"{md[1]}:{md[2]}:{md[3]}") is not None:
+                md = re.match(MVN_PKG_REGEX, item)
+                if cache_data.get(f"{md[1]}:{md[2]}:{md[3]}") is not None:
                     coordinates.remove(item)
 
         cve_data = _fetch_cve_data(config, arguments, coordinates)
@@ -112,7 +112,10 @@ def _oss_index_config(config: dict, arguments: dict) -> tuple:  # pragma: no cov
         _config.get_config_value(config, arguments, 'oss_index_token', 'vulnerability'),
         _config.get_config_value(
             config, arguments, 'oss_index_batch_size', 'vulnerability', value_type=int,
-            default='128')
+            default='128'),
+        _config.get_config_value(
+            config, arguments, 'oss_index_keep_safe', 'vulnerability', value_type=bool,
+            default='false')
     )
 
 
@@ -132,21 +135,24 @@ def _fetch_cve_data(  # pragma: no cover
     """
     result = {}
     try:
-        url, user, token, size = _oss_index_config(config, arguments)
+        url, user, token, batch_size, keep_safe = _oss_index_config(config, arguments)
         auth = HTTPBasicAuth(user, token)
 
-        for i in range(0, len(coordinates), size):
-            batch = coordinates[i:i + size]
+        for i in range(0, len(coordinates), batch_size):
+            batch = coordinates[i:i + batch_size]
             response = requests.post(url, json={"coordinates": batch}, auth=auth)
-            if response.status_code == 200:
-                for item in response.json():
-                    cves = []
-                    md = re.match(MVN_PKG_REGEX, item['coordinates'])
-                    if len(data := item.get('vulnerabilities')):
-                        cves = [Vulnerability(**cve) for cve in data]
-                    result.update({f"{md[1]}:{md[2]}:{md[3]}": cves})
-            else:
+            if response.status_code != 200:
                 logging.error(f"OSS Index API error: {response.status_code}")
+                continue
+
+            for item in response.json():
+                cves = []
+                md = re.match(MVN_PKG_REGEX, item['coordinates'])
+                if len(data := item.get('vulnerabilities')):
+                    cves = [Vulnerability(**cve) for cve in data]
+                if len(cves) or keep_safe:
+                    result.update({f"{md[1]}:{md[2]}:{md[3]}": cves})
+
     except Exception as e:
         logging.error(f"Failed to fetch_cve_data: {e}")
     return result
