@@ -33,8 +33,7 @@ def get_config(arguments: dict) -> dict:
 
 
 def get_config_value(
-        config: dict, arguments: dict, key: str, section: str = 'base',
-        default: any = None
+        config: dict, arguments: dict, key: str, section: str = 'base', default: any = None
 ) -> any:
     """
     Get configuration value with optional type conversion.
@@ -49,25 +48,19 @@ def get_config_value(
     Returns:
         any: Configuration value or None if not found.
     """
-    try:
-        value = None
-        if section == 'base' and key in arguments:
-            value = arguments.get(key)
-            env_key = 'CV_' + key.upper()
-            if env_key in os.environ:
-                value = os.environ.get(env_key)
-                if value.lower() == 'true':
-                    return True
-                elif value.lower() == 'false':
-                    return False
-        if value is None and section in config:
-            value = config.get(section).get(key)
-        if value is None:
-            value = default
-        return value
-    except (AttributeError, KeyError, ValueError) as e:
-        logging.error(f"Failed to get_config_value: {e}")
-        return None
+    value = None
+    if section == 'base' and key in arguments:
+        value = arguments.get(key)
+        env_key = 'CV_' + key.upper()
+        if env_key in os.environ:
+            value = os.environ.get(env_key)
+            if value.lower() == 'true':
+                value = True
+            elif value.lower() == 'false':
+                value = False
+    if value is None and section in config:
+        value = config.get(section).get(key)
+    return default if value is None else value
 
 
 def config_items(config: dict, section: str) -> list[tuple[str, str]]:
