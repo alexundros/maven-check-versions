@@ -53,8 +53,7 @@ def get_cve_data(  # pragma: no cover
     """
     result = {}
     if _config.get_config_value(
-            config, arguments, 'oss_index_enabled', 'vulnerability', value_type=bool,
-            default='false'
+            config, arguments, 'oss_index_enabled', 'vulnerability', default=False
     ):
         coordinates = _get_coordinates(config, arguments, dependencies, ns_mapping, root)
         if len(cache_data := load_cache(config, arguments, 'vulnerability')):
@@ -111,11 +110,9 @@ def _oss_index_config(config: dict, arguments: dict) -> tuple:  # pragma: no cov
         _config.get_config_value(config, arguments, 'oss_index_user', 'vulnerability'),
         _config.get_config_value(config, arguments, 'oss_index_token', 'vulnerability'),
         _config.get_config_value(
-            config, arguments, 'oss_index_batch_size', 'vulnerability', value_type=int,
-            default='128'),
+            config, arguments, 'oss_index_batch_size', 'vulnerability', default=128),
         _config.get_config_value(
-            config, arguments, 'oss_index_keep_safe', 'vulnerability', value_type=bool,
-            default='false')
+            config, arguments, 'oss_index_keep_safe', 'vulnerability', default=False)
     )
 
 

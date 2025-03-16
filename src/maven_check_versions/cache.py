@@ -18,9 +18,9 @@ FILE = 'maven_check_versions.cache.json'
 KEY1 = 'maven_check_versions_artifacts'
 KEY2 = 'maven_check_versions_vulnerabilities'
 HOST = 'localhost'
-REDIS_PORT = '6379'
-TARANTOOL_PORT = '3301'
-MEMCACHED_PORT = '11211'
+REDIS_PORT = 6379
+TARANTOOL_PORT = 3301
+MEMCACHED_PORT = 11211
 
 
 class DCJSONEncoder(json.JSONEncoder):  # pragma: no cover
@@ -50,11 +50,11 @@ def _redis_config(config: dict, arguments: dict, section: str) -> tuple:
     """
     return (
         _config.get_config_value(
-            config, arguments, 'redis_host', section=section, value_type=str, default=HOST),
+            config, arguments, 'redis_host', section=section, default=HOST),
         _config.get_config_value(
-            config, arguments, 'redis_port', section=section, value_type=int, default=REDIS_PORT),
+            config, arguments, 'redis_port', section=section, default=REDIS_PORT),
         _config.get_config_value(
-            config, arguments, 'redis_key', section=section, value_type=str,
+            config, arguments, 'redis_key', section=section,
             default=KEY2 if section == 'vulnerability' else KEY1),
         _config.get_config_value(config, arguments, 'redis_user', section=section),
         _config.get_config_value(config, arguments, 'redis_password', section=section)
@@ -74,11 +74,11 @@ def _tarantool_config(config: dict, arguments: dict, section: str) -> tuple:
     """
     return (
         _config.get_config_value(
-            config, arguments, 'tarantool_host', section=section, value_type=str, default=HOST),
+            config, arguments, 'tarantool_host', section=section, default=HOST),
         _config.get_config_value(
-            config, arguments, 'tarantool_port', section=section, value_type=int, default=TARANTOOL_PORT),
+            config, arguments, 'tarantool_port', section=section, default=TARANTOOL_PORT),
         _config.get_config_value(
-            config, arguments, 'tarantool_space', section=section, value_type=str,
+            config, arguments, 'tarantool_space', section=section,
             default=KEY2 if section == 'vulnerability' else KEY1),
         _config.get_config_value(config, arguments, 'tarantool_user', section=section),
         _config.get_config_value(config, arguments, 'tarantool_password', section=section)
@@ -98,11 +98,11 @@ def _memcached_config(config: dict, arguments: dict, section: str) -> tuple:
     """
     return (
         _config.get_config_value(
-            config, arguments, 'memcached_host', section=section, value_type=str, default=HOST),
+            config, arguments, 'memcached_host', section=section, default=HOST),
         _config.get_config_value(
-            config, arguments, 'memcached_port', section=section, value_type=int, default=MEMCACHED_PORT),
+            config, arguments, 'memcached_port', section=section, default=MEMCACHED_PORT),
         _config.get_config_value(
-            config, arguments, 'memcached_key', section=section, value_type=str,
+            config, arguments, 'memcached_key', section=section,
             default=KEY2 if section == 'vulnerability' else KEY1)
     )
 
@@ -120,8 +120,7 @@ def load_cache(config: dict, arguments: dict, section: str = 'base') -> dict:
         dict: Cache data dictionary or an empty dictionary.
     """
     match _config.get_config_value(
-        config, arguments, 'cache_backend', section=section, value_type=str,
-        default='json'
+        config, arguments, 'cache_backend', section=section, default='json'
     ):
         case 'json':
             success, value = _load_cache_json(config, arguments, section)
@@ -155,7 +154,7 @@ def _load_cache_json(config: dict, arguments: dict, section: str) -> tuple[bool,
             dict: Cache data dictionary or an empty dictionary.
         """
     cache_file = _config.get_config_value(
-        config, arguments, 'cache_file', section=section, value_type=str, default=FILE)
+        config, arguments, 'cache_file', section=section, default=FILE)
     if os.path.exists(cache_file):
         logging.info(f"Load Cache: {Path(cache_file).absolute()}")
         with open(cache_file) as cf:
@@ -244,8 +243,7 @@ def save_cache(config: dict, arguments: dict, cache_data: dict, section: str = '
     """
     if cache_data is not None:
         match _config.get_config_value(
-            config, arguments, 'cache_backend', section=section, value_type=str,
-            default='json'
+            config, arguments, 'cache_backend', section=section, default='json'
         ):
             case 'json':
                 _save_cache_json(config, arguments, cache_data, section)
@@ -268,7 +266,7 @@ def _save_cache_json(config: dict, arguments: dict, cache_data: dict, section: s
         section (str): Configuration section.
     """
     cache_file = _config.get_config_value(
-        config, arguments, 'cache_file', section=section, value_type=str, default=FILE)
+        config, arguments, 'cache_file', section=section, default=FILE)
     logging.info(f"Save Cache: {Path(cache_file).absolute()}")
     with open(cache_file, 'w') as cf:
         json.dump(cache_data, cf)
@@ -355,7 +353,7 @@ def process_cache_artifact(
     if cached_version == version:
         return True
 
-    ct_threshold = _config.get_config_value(config, arguments, 'cache_time', value_type=int)
+    ct_threshold = _config.get_config_value(config, arguments, 'cache_time')
 
     if ct_threshold == 0 or time.time() - cached_time < ct_threshold:
         message_format = '*{}: {}:{}, current:{} versions: {} updated: {}'

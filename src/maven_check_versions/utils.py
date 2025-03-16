@@ -168,7 +168,7 @@ def collect_dependencies(
         list: List of dependency elements.
     """
     dependencies = root.findall('.//xmlns:dependency', namespaces=ns_mapping)
-    if _config.get_config_value(config, arguments, 'search_plugins', value_type=bool):
+    if _config.get_config_value(config, arguments, 'search_plugins'):
         plugin_xpath = './/xmlns:plugins/xmlns:plugin'
         plugins = root.findall(plugin_xpath, namespaces=ns_mapping)
         dependencies.extend(plugins)
@@ -208,7 +208,7 @@ def fail_mode_if_required(
         arguments (dict): Command-line arguments.
         version (str): Current artifact version.
     """
-    if _config.get_config_value(config, arguments, 'fail_mode', value_type=bool):
+    if _config.get_config_value(config, arguments, 'fail_mode'):
         item_major_version = 0
         item_minor_version = 0
 
@@ -262,7 +262,7 @@ def get_version(
     version = dependency.find('xmlns:version', namespaces=ns_mapping)
 
     if version is None:
-        if not _config.get_config_value(config, arguments, 'empty_version', value_type=bool):
+        if not _config.get_config_value(config, arguments, 'empty_version'):
             return None, True
     else:
         version_text = resolve_version(version.text, root, ns_mapping)
@@ -272,7 +272,7 @@ def get_version(
             version_text = resolve_version(project_version_text, root, ns_mapping)
 
         if re.match('^\\${([^}]+)}$', version_text):
-            if not _config.get_config_value(config, arguments, 'empty_version', value_type=bool):
+            if not _config.get_config_value(config, arguments, 'empty_version'):
                 return version_text, True
 
     return version_text, False
@@ -309,14 +309,14 @@ def check_versions(
     major_threshold = minor_threshold = 0
     current_major = current_minor = 0
 
-    if _config.get_config_value(config, arguments, 'fail_mode', value_type=bool):
+    if _config.get_config_value(config, arguments, 'fail_mode'):
         major_threshold = int(_config.get_config_value(config, arguments, 'fail_major'))
         minor_threshold = int(_config.get_config_value(config, arguments, 'fail_minor'))
 
         if version_match := re.match('^(\\d+)\\.(\\d+).?', version):
             current_major, current_minor = int(version_match.group(1)), int(version_match.group(2))
 
-    skip_current = _config.get_config_value(config, arguments, 'skip_current', value_type=bool)
+    skip_current = _config.get_config_value(config, arguments, 'skip_current')
     invalid_flag = False
 
     for item in available_versions:
@@ -388,7 +388,7 @@ def get_pom_tree(
     """
     if pom_path.startswith('http'):
         auth_info = ()
-        if _config.get_config_value(config, arguments, 'auth', 'pom_http', value_type=bool):
+        if _config.get_config_value(config, arguments, 'auth', 'pom_http'):
             auth_info = (
                 _config.get_config_value(config, arguments, 'user'),
                 _config.get_config_value(config, arguments, 'password')

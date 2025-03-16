@@ -27,10 +27,10 @@ def process_main(arguments: dict) -> None:
     """
     config = _config.get_config(arguments)
 
-    if not _config.get_config_value(config, arguments, 'warnings', 'urllib3', value_type=bool):
+    if not _config.get_config_value(config, arguments, 'warnings', 'urllib3'):
         urllib3.disable_warnings()
 
-    cache_disabled = _config.get_config_value(config, arguments, 'cache_off', value_type=bool)
+    cache_disabled = _config.get_config_value(config, arguments, 'cache_off')
     cache_data = _cache.load_cache(config, arguments) if not cache_disabled else None
 
     if pom_file := arguments.get('pom_file'):
@@ -58,7 +58,7 @@ def process_pom(
         pom_path (str): Path or URL to the POM file.
         prefix (str, optional): Prefix for the artifact name.
     """
-    verify_ssl = _config.get_config_value(config, arguments, 'verify', 'requests', value_type=bool)
+    verify_ssl = _config.get_config_value(config, arguments, 'verify', 'requests')
 
     tree = _utils.get_pom_tree(pom_path, verify_ssl, config, arguments)
     root = tree.getroot()
@@ -73,8 +73,8 @@ def process_pom(
 
     cve_data = _cveutils.get_cve_data(config, arguments, dependencies, root, ns_mapping)
 
-    if _config.get_config_value(config, arguments, 'threading', value_type=bool):
-        max_threads = _config.get_config_value(config, arguments, 'max_threads', value_type=int)
+    if _config.get_config_value(config, arguments, 'threading'):
+        max_threads = _config.get_config_value(config, arguments, 'max_threads')
 
         with ThreadPoolExecutor(max_workers=max_threads) as executor:
             for future in as_completed([
@@ -179,14 +179,14 @@ def process_modules_if_required(
         ns_mapping (dict): XML namespace mapping.
         prefix (str, optional): Prefix for the artifact name.
     """
-    if _config.get_config_value(config, arguments, 'process_modules', value_type=bool):
+    if _config.get_config_value(config, arguments, 'process_modules'):
         directory_path = os.path.dirname(pom_path)
         modules = root.findall('.//xmlns:modules/xmlns:module', namespaces=ns_mapping)
         module_paths = [f"{directory_path}/{module.text}/pom.xml" for module in modules]
         valid_module_paths = [p for p in module_paths if p.startswith('http') or os.path.exists(p)]
 
-        if _config.get_config_value(config, arguments, 'threading', value_type=bool):
-            max_threads = _config.get_config_value(config, arguments, 'max_threads', value_type=int)
+        if _config.get_config_value(config, arguments, 'threading'):
+            max_threads = _config.get_config_value(config, arguments, 'max_threads')
             with ThreadPoolExecutor(max_workers=max_threads) as executor:
                 for future in as_completed([
                     executor.submit(process_pom, cache_data, config, arguments, module_path, prefix)
@@ -213,7 +213,7 @@ def process_artifact(
         arguments (dict): Command-line arguments.
         artifact_to_find (str): Artifact to search for in groupId:artifactId:version format.
     """
-    verify_ssl = _config.get_config_value(config, arguments, 'verify', 'requests', value_type=bool)
+    verify_ssl = _config.get_config_value(config, arguments, 'verify', 'requests')
     group_id, artifact_id, version = artifact_to_find.split(sep=":", maxsplit=3)
 
     _logutils.log_search_if_required(config, arguments, group_id, artifact_id, version)
@@ -250,7 +250,7 @@ def process_repository(
         bool: True if the dependency is found, False otherwise.
     """
     auth_info = ()
-    if _config.get_config_value(config, arguments, 'auth', repository_section, value_type=bool):
+    if _config.get_config_value(config, arguments, 'auth', repository_section):
         auth_info = (
             _config.get_config_value(config, arguments, 'user'),
             _config.get_config_value(config, arguments, 'password')
@@ -278,7 +278,7 @@ def process_repository(
                 path, auth_info, verify_ssl, available_versions, response):
             return True
 
-    if _config.get_config_value(config, arguments, 'service_rest', repository_section, value_type=bool):
+    if _config.get_config_value(config, arguments, 'service_rest', repository_section):
         return process_rest(
             cache_data, config, arguments, group_id, artifact_id, version, section_key,
             repository_section, base_url, auth_info, verify_ssl)
