@@ -45,6 +45,10 @@ def test_get_config_value(monkeypatch):
     assert get_config_value(config, {}, 'key') == 'value'
     assert get_config_value(config, {}, 'val', default='value') == 'value'
 
+    assert get_config_value(config, {}, 'val', value_type=list, default='[]') == []
+    assert get_config_value(config, {}, 'val', value_type=tuple, default='()') == ()
+    assert get_config_value(config, {}, 'val', value_type=dict, default="{'k':'v'}") == {'k': 'v'}
+
 
 def test_config_items():
     config = {'base': {'key': 'value'}}

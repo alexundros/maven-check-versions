@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """This file provides config functions"""
 
+import ast
 import logging
 import os
 from pathlib import Path
@@ -66,6 +67,8 @@ def get_config_value(
             value = int(value)
         if value_type == float:
             value = float(value)
+        if value_type in [list, tuple, dict]:
+            value = ast.literal_eval(value)
         return value
     except (AttributeError, KeyError, ValueError) as e:
         logging.error(f"Failed to get_config_value: {e}")
