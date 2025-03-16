@@ -28,26 +28,25 @@ def test_get_config(mocker):
 
 # noinspection PyShadowingNames
 def test_get_config_value(monkeypatch):
-    config = {'base': {'key': 'true'}}
-    assert get_config_value(config, {}, 'key', value_type=bool) is True
-    assert get_config_value(config, {}, 'val', value_type=bool, default='true') is True
-    assert get_config_value(config, {'key': False}, 'key', value_type=bool) is False
-    assert get_config_value(config, {}, 'key', value_type=int) is None
+    config = {'base': {'key': True}}
+    assert get_config_value(config, {}, 'key') is True
+    assert get_config_value(config, {}, 'val', default=True) is True
+    assert get_config_value(config, {'key': False}, 'key') is False
+    assert get_config_value(config, {}, 'val') is None
     monkeypatch.setenv('CV_KEY', 'true')
-    assert get_config_value(config, {'key': False}, 'key', value_type=bool) is True
-    config = {'base': {'key': '123'}}
-    assert get_config_value(config, {}, 'key', value_type=int) == 123
-    assert get_config_value(config, {}, 'val', value_type=int, default='123') == 123
-    config = {'base': {'key': '123.45'}}
-    assert get_config_value(config, {}, 'key', value_type=float) == 123.45  # NOSONAR
-    assert get_config_value(config, {}, 'val', value_type=float, default='123.45') == 123.45  # NOSONAR
+    assert get_config_value(config, {'key': False}, 'key') is True
+    config = {'base': {'key': 123}}
+    assert get_config_value(config, {}, 'key') == 123
+    assert get_config_value(config, {}, 'val', default=123) == 123
+    config = {'base': {'key': 123.45}}
+    assert get_config_value(config, {}, 'key') == 123.45  # NOSONAR
+    assert get_config_value(config, {}, 'val', default=123.45) == 123.45  # NOSONAR
     config = {'base': {'key': 'value'}}
     assert get_config_value(config, {}, 'key') == 'value'
     assert get_config_value(config, {}, 'val', default='value') == 'value'
-
-    assert get_config_value(config, {}, 'val', value_type=list, default='[]') == []
-    assert get_config_value(config, {}, 'val', value_type=tuple, default='()') == ()
-    assert get_config_value(config, {}, 'val', value_type=dict, default="{'k':'v'}") == {'k': 'v'}
+    assert get_config_value(config, {}, 'val', default=[]) == []
+    assert get_config_value(config, {}, 'val', default=()) == ()
+    assert get_config_value(config, {}, 'val', default={'k': 'v'}) == {'k': 'v'}
 
 
 def test_config_items():

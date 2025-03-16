@@ -97,8 +97,8 @@ def test_process_repository(mocker):
             'base': 'https://repo1.maven.org',
             'path': 'maven2',
             'repo': 'maven-central',
-            'service_rest': 'true',
-            'auth': 'true',
+            'service_rest': True,
+            'auth': True,
         }}
     args = {'user': 'user', 'password': 'pass'}  # NOSONAR
 
@@ -129,7 +129,7 @@ def test_process_repository(mocker):
     mock_process_rest.return_value = True
     assert _process_repository()
 
-    config['section']['service_rest'] = 'false'
+    config['section']['service_rest'] = False
     assert not _process_repository()
 
 
@@ -161,9 +161,9 @@ def test_process_repositories(mocker):
 def test_process_modules_if_required(mocker):
     config = {
         'base': {
-            'process_modules': 'true',
-            'threading': 'true',
-            'max_threads': '1'
+            'process_modules': True,
+            'threading': True,
+            'max_threads': 1
         }
     }
     root = ET.fromstring("""
@@ -180,7 +180,7 @@ def test_process_modules_if_required(mocker):
     process_modules_if_required({}, config, {}, root, 'pom.xml', ns_mappings)
     assert mock_process_pom.call_count == 2
 
-    config['base']['threading'] = 'false'
+    config['base']['threading'] = False
     mock_process_pom = mocker.patch('maven_check_versions.process.process_pom')
     process_modules_if_required({}, config, {}, root, 'pom.xml', ns_mappings)
     assert mock_process_pom.call_count == 2
@@ -288,8 +288,8 @@ def test_process_pom(mocker):
     mock_pm = mocker.patch('maven_check_versions.process.process_modules_if_required')
     config = {
         'base': {
-            'threading': 'true',
-            'max_threads': '4'
+            'threading': True,
+            'max_threads': 4
         }
     }
     process_pom({}, config, {}, 'pom.xml', 'prefix')
@@ -297,7 +297,7 @@ def test_process_pom(mocker):
     mock_pd.assert_called_once()
     mock_pm.assert_called_once()
 
-    config['base']['threading'] = 'false'
+    config['base']['threading'] = False
     mock_pd = mocker.patch('maven_check_versions.process.process_dependency')
     process_pom({}, config, {}, 'pom.xml', 'prefix')
     mock_pd.assert_called_once()

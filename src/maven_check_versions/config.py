@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 """This file provides config functions"""
 
-import ast
 import logging
 import os
 from pathlib import Path
@@ -35,7 +34,7 @@ def get_config(arguments: dict) -> dict:
 
 def get_config_value(
         config: dict, arguments: dict, key: str, section: str = 'base',
-        value_type=None, default: str = None
+        default: any = None
 ) -> any:
     """
     Get configuration value with optional type conversion.
@@ -45,8 +44,7 @@ def get_config_value(
         arguments (dict): Command-line arguments.
         key (str): Configuration key.
         section (str, optional): Configuration section (default is 'base').
-        value_type (type, optional): Type for value conversion.
-        default (str, optional): Default value.
+        default (any, optional): Default value.
 
     Returns:
         any: Configuration value or None if not found.
@@ -58,16 +56,14 @@ def get_config_value(
             env_key = 'CV_' + key.upper()
             if env_key in os.environ:
                 value = os.environ.get(env_key)
+                if value.lower() == 'true':
+                    return True
+                elif value.lower() == 'false':
+                    return False
         if value is None and section in config:
             value = config.get(section).get(key)
         if value is None:
             value = default
-        if value_type == bool:
-            value = str(value).lower() == 'true'
-        if value_type in [int, float]:
-            value = value_type(value)
-        if value_type in [list, tuple, dict]:
-            value = ast.literal_eval(value)
         return value
     except (AttributeError, KeyError, ValueError) as e:
         logging.error(f"Failed to get_config_value: {e}")
