@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """This file provides config functions"""
 
+import ast
 import logging
 import os
 from pathlib import Path
@@ -54,18 +55,19 @@ def get_config_value(
         value = None
         if section == 'base' and key in arguments:
             value = arguments.get(key)
-            if 'CV_' + key.upper() in os.environ:
-                value = os.environ.get('CV_' + key.upper())
+            env_key = 'CV_' + key.upper()
+            if env_key in os.environ:
+                value = os.environ.get(env_key)
         if value is None and section in config:
             value = config.get(section).get(key)
         if value is None:
             value = default
         if value_type == bool:
             value = str(value).lower() == 'true'
-        if value_type == int:
-            value = int(value)
-        if value_type == float:
-            value = float(value)
+        if value_type in [int, float]:
+            value = value_type(value)
+        if value_type in [list, tuple, dict]:
+            value = ast.literal_eval(value)
         return value
     except (AttributeError, KeyError, ValueError) as e:
         logging.error(f"Failed to get_config_value: {e}")
