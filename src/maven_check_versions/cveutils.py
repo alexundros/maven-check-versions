@@ -13,8 +13,6 @@ import requests
 from maven_check_versions.cache import save_cache, load_cache
 from requests.auth import HTTPBasicAuth
 
-MVN_PKG_REGEX = '^pkg:maven/(.+)/(.+)@(.+)$'  # NOSONAR
-
 
 @dataclass
 class Vulnerability:
@@ -52,21 +50,22 @@ def get_cve_data(  # pragma: no cover
         dict[str, list[Vulnerability]]: CVE Data.
     """
     result = {}
-    if _config.get_config_value(
-            config, arguments, 'oss_index_enabled', 'vulnerability', default=False
-    ):
+    if _config.get_config_value(config, arguments, 'oss_index_enabled', 'vulnerability', default=False):
         coordinates = _get_coordinates(config, arguments, dependencies, ns_mapping, root)
-        if len(cache_data := load_cache(config, arguments, 'vulnerability')):
+
+        if cache_data := load_cache(config, arguments, 'vulnerability'):
             for item in coordinates:
-                md = re.match(MVN_PKG_REGEX, item)
-                if cache_data.get(f"{md[1]}:{md[2]}:{md[3]}") is not None:
+                if cache_data.get(item) is not None:
                     coordinates.remove(item)
 
-        cve_data = _fetch_cve_data(config, arguments, coordinates)
-        if len(cve_data):
-            save_cache(config, arguments, cve_data, 'vulnerability')
+        for key, data in cache_data.items():
+            cache_data.update({key: [Vulnerability(**item) for item in data]})
 
-        result.update(cve_data)
+        if cve_data := _fetch_cve_data(config, arguments, coordinates):
+            cache_data.update({key: cves for key, cves in cve_data.items()})
+            save_cache(config, arguments, cache_data, 'vulnerability')
+
+        result.update(cache_data)
     return result
 
 
@@ -155,11 +154,10 @@ def _fetch_cve_data(  # pragma: no cover
 
             for item in response.json():
                 cves = []
-                md = re.match(MVN_PKG_REGEX, item['coordinates'])
-                if len(data := item.get('vulnerabilities')):
+                if data := item.get('vulnerabilities'):
                     cves = [Vulnerability(**cve) for cve in data]
                 if len(cves) or keep_safe:
-                    result.update({f"{md[1]}:{md[2]}:{md[3]}": cves})
+                    result.update({item['coordinates']: cves})
 
     except Exception as e:
         logging.error(f"Failed to fetch_cve_data: {e}")
