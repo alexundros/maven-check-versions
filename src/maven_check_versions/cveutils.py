@@ -72,24 +72,31 @@ def get_cve_data(  # pragma: no cover
 
 def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:  # pragma: no cover
     """
-        Get Coordinates.
+    Get Coordinates.
 
-        Args:
-            config (dict): Parsed YAML as dict.
-            arguments (dict): Command-line arguments.
-            dependencies (list[ET.Element]): Dependencies.
-            root (ET.Element): Root element of the POM file.
-            ns_mapping (dict): XML namespace mapping.
+    Args:
+        config (dict): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+        dependencies (list[ET.Element]): Dependencies.
+        root (ET.Element): Root element of the POM file.
+        ns_mapping (dict): XML namespace mapping.
 
-        Returns:
-            list: Coordinates.
-        """
-    coordinates = []
-    for dependency in dependencies:  # pragma: no cover
-        (artifact_id, group_id) = _utils.get_dependency_identifiers(dependency, ns_mapping)
-        (version, _) = _utils.get_version(config, arguments, ns_mapping, root, dependency)
-        list.append(coordinates, f"pkg:maven/{group_id}/{artifact_id}@{version}")
-    return coordinates
+    Returns:
+        list: Coordinates.
+    """
+    result = []
+    try:
+        combined = None
+        if skip := _config.get_config_value(config, arguments, 'skip-checks', 'vulnerability'):
+            combined = '(' + ')|('.join(skip) + ')'
+        for dependency in dependencies:
+            (artifact, group) = _utils.get_dependency_identifiers(dependency, ns_mapping)
+            (version, _) = _utils.get_version(config, arguments, ns_mapping, root, dependency)
+            if combined is None or not re.match(combined, f"{group}:{artifact}:{version}"):
+                list.append(result, f"pkg:maven/{group}/{artifact}@{version}")
+    except Exception as e:
+        logging.error(f"Failed to _get_coordinates: {e}")
+    return result
 
 
 def _oss_index_config(config: dict, arguments: dict) -> tuple:  # pragma: no cover
