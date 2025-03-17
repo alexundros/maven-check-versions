@@ -84,18 +84,22 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:
     Returns:
         list: Coordinates.
     """
+    skip_no_versions = _config.get_config_value(
+        config, arguments, 'skip-no-versions', 'vulnerability', default=False)
+    combined = None
+    if skip := _config.get_config_value(config, arguments, 'skip-checks', 'vulnerability'):
+        combined = '(' + ')|('.join(skip) + ')'
+
     result = []
-    try:
-        combined = None
-        if skip := _config.get_config_value(config, arguments, 'skip-checks', 'vulnerability'):
-            combined = '(' + ')|('.join(skip) + ')'
-        for dependency in dependencies:
-            (artifact, group) = _utils.get_dependency_identifiers(dependency, ns_mapping)
-            (version, _) = _utils.get_version(config, arguments, ns_mapping, root, dependency)
-            if combined is None or not re.match(combined, f"{group}:{artifact}:{version}"):
-                list.append(result, f"pkg:maven/{group}/{artifact}@{version}")
-    except Exception as e:
-        logging.error(f"Failed to _get_coordinates: {e}")
+    for dependency in dependencies:
+        (artifact, group) = _utils.get_dependency_identifiers(dependency, ns_mapping)
+        (version, _) = _utils.get_version(config, arguments, ns_mapping, root, dependency)
+
+        if skip_no_versions and re.match('^\\${[^}]+}$', version):
+            continue
+        if combined is None or not re.match(combined, f"{group}:{artifact}:{version}"):
+            list.append(result, f"pkg:maven/{group}/{artifact}@{version}")
+
     return result
 
 
