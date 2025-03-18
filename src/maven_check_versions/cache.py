@@ -14,7 +14,6 @@ import pymemcache
 import redis
 import tarantool
 
-FILE = 'maven_check_versions.cache.json'
 KEY1 = 'maven_check_versions_artifacts'
 KEY2 = 'maven_check_versions_vulnerabilities'
 HOST = 'localhost'
@@ -154,7 +153,8 @@ def _load_cache_json(config: dict, arguments: dict, section: str) -> tuple[bool,
             dict: Cache data dictionary or an empty dictionary.
         """
     cache_file = _config.get_config_value(
-        config, arguments, 'cache_file', section=section, default=FILE)
+        config, arguments, 'cache_file', section=section,
+        default=(KEY2 if section == 'vulnerability' else KEY1) + '.json')
     if os.path.exists(cache_file):
         logging.info(f"Load Cache: {Path(cache_file).absolute()}")
         with open(cache_file) as cf:
@@ -173,7 +173,7 @@ def _load_cache_redis(config: dict, arguments: dict, section: str) -> tuple[bool
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
     try:
-        host, port, ckey, user, password = _redis_config(arguments, config, section)
+        host, port, ckey, user, password = _redis_config(config, arguments, section)
         inst = redis.Redis(
             host=host, port=port, username=user, password=password,
             decode_responses=True)
@@ -198,7 +198,7 @@ def _load_cache_tarantool(config: dict, arguments: dict, section: str) -> tuple[
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
     try:
-        host, port, space, user, password = _tarantool_config(arguments, config, section)
+        host, port, space, user, password = _tarantool_config(config, arguments, section)
         conn = tarantool.connect(host, port, user=user, password=password)
         cache_data = {}
         for record in conn.space(space).select():
@@ -221,7 +221,7 @@ def _load_cache_memcached(config: dict, arguments: dict, section: str) -> tuple[
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
     try:
-        host, port, key = _memcached_config(arguments, config, section)
+        host, port, key = _memcached_config(config, arguments, section)
         client = pymemcache.client.base.Client((host, port))
         if (cache_data := client.get(key)) is not None:
             return True, json.loads(cache_data)
@@ -266,10 +266,11 @@ def _save_cache_json(config: dict, arguments: dict, cache_data: dict, section: s
         section (str): Configuration section.
     """
     cache_file = _config.get_config_value(
-        config, arguments, 'cache_file', section=section, default=FILE)
+        config, arguments, 'cache_file', section=section,
+        default=(KEY2 if section == 'vulnerability' else KEY1) + '.json')
     logging.info(f"Save Cache: {Path(cache_file).absolute()}")
     with open(cache_file, 'w') as cf:
-        json.dump(cache_data, cf)
+        json.dump(cache_data, cf, cls=DCJSONEncoder)
 
 
 def _save_cache_redis(config: dict, arguments: dict, cache_data: dict, section: str) -> None:
@@ -282,7 +283,7 @@ def _save_cache_redis(config: dict, arguments: dict, cache_data: dict, section: 
         section (str): Configuration section.
     """
     try:
-        host, port, ckey, user, password = _redis_config(arguments, config, section)
+        host, port, ckey, user, password = _redis_config(config, arguments, section)
         inst = redis.Redis(
             host=host, port=port, username=user, password=password,
             decode_responses=True)
@@ -303,7 +304,7 @@ def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict, secti
         section (str): Configuration section.
     """
     try:
-        host, port, space, user, password = _tarantool_config(arguments, config, section)
+        host, port, space, user, password = _tarantool_config(config, arguments, section)
         conn = tarantool.connect(host, port, user=user, password=password)
         space = conn.space(space)
         for key, value in cache_data.items():
@@ -323,7 +324,7 @@ def _save_cache_memcached(config: dict, arguments: dict, cache_data: dict, secti
         section (str): Configuration section.
     """
     try:
-        host, port, key = _memcached_config(arguments, config, section)
+        host, port, key = _memcached_config(config, arguments, section)
         client = pymemcache.client.base.Client((host, port))
         client.set(key, json.dumps(cache_data, cls=DCJSONEncoder))
     except Exception as e:
