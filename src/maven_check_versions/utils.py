@@ -147,9 +147,9 @@ def get_artifact_name(root: ET.Element, ns_mapping: dict) -> str:
     Returns:
         str: Full artifact name (groupId:artifactId).
     """
-    artifact_id = root.find('./xmlns:artifactId', namespaces=ns_mapping).text
-    group_id_element = root.find('./xmlns:groupId', namespaces=ns_mapping)
-    return (group_id_element.text + ':' if group_id_element is not None else '') + artifact_id
+    artifact = root.find('./xmlns:artifactId', namespaces=ns_mapping).text
+    group_element = root.find('./xmlns:groupId', namespaces=ns_mapping)
+    return (group_element.text + ':' if group_element is not None else '') + artifact
 
 
 def collect_dependencies(
@@ -186,9 +186,9 @@ def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tupl
     Returns:
         tuple[str, str | None]: Tuple of artifactId and groupId (or None if groupId is missing).
     """
-    artifact_id = dependency.find('xmlns:artifactId', namespaces=ns_mapping)
-    group_id = dependency.find('xmlns:groupId', namespaces=ns_mapping)
-    return None if artifact_id is None else artifact_id.text, None if group_id is None else group_id.text
+    artifact = dependency.find('xmlns:artifactId', namespaces=ns_mapping)
+    group = dependency.find('xmlns:groupId', namespaces=ns_mapping)
+    return None if artifact is None else artifact.text, None if group is None else group.text
 
 
 def fail_mode_if_required(
@@ -279,8 +279,8 @@ def get_version(
 
 
 def check_versions(
-        cache_data: dict | None, config: dict, arguments: dict, group_id: str,
-        artifact_id: str, version: str, section_key: str, path: str, auth_info: tuple, verify_ssl: bool,
+        cache_data: dict | None, config: dict, arguments: dict, group: str,
+        artifact: str, version: str, section_key: str, path: str, auth_info: tuple, verify_ssl: bool,
         available_versions: list[str], response: requests.Response
 ) -> bool:
     """
@@ -290,8 +290,8 @@ def check_versions(
         cache_data (dict | None): Cache data.
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
-        group_id (str): Group ID.
-        artifact_id (str): Artifact ID.
+        group (str): Group ID.
+        artifact (str): Artifact ID.
         version (str): Current version.
         section_key (str): Repository section key.
         path (str): Path to the dependency in the repository.
@@ -321,16 +321,16 @@ def check_versions(
 
     for item in available_versions:
         if item == version and skip_current:
-            _cache.update_cache_artifact(cache_data, available_versions, artifact_id, group_id, item, None, section_key)
+            _cache.update_cache_artifact(cache_data, available_versions, artifact, group, item, None, section_key)
             return True
 
-        is_valid, last_modified = get_pom_data(auth_info, verify_ssl, artifact_id, item, path)
+        is_valid, last_modified = get_pom_data(auth_info, verify_ssl, artifact, item, path)
         if is_valid:
             logging.info('{}: {}:{}, current:{} {} {}'.format(
-                section_key, group_id, artifact_id, version, available_versions[:3], last_modified).rstrip())
+                section_key, group, artifact, version, available_versions[:3], last_modified).rstrip())
 
             _cache.update_cache_artifact(
-                cache_data, available_versions, artifact_id, group_id, item, last_modified, section_key)
+                cache_data, available_versions, artifact, group, item, last_modified, section_key)
 
             fail_mode_if_required(
                 config, current_major, current_minor, item,
@@ -339,14 +339,14 @@ def check_versions(
 
         else:
             _logutils.log_invalid_if_required(
-                config, arguments, response, group_id, artifact_id, item, invalid_flag)
+                config, arguments, response, group, artifact, item, invalid_flag)
             invalid_flag = True
 
     return False
 
 
 def get_pom_data(
-        auth_info: tuple, verify_ssl: bool, artifact_id: str, version: str, path: str
+        auth_info: tuple, verify_ssl: bool, artifact: str, version: str, path: str
 ) -> tuple[bool, str | None]:
     """
     Retrieves POM file data from a repository.
@@ -354,14 +354,14 @@ def get_pom_data(
     Args:
         auth_info (tuple): Authentication credentials.
         verify_ssl (bool): SSL verification flag.
-        artifact_id (str): Artifact ID.
+        artifact (str): Artifact ID.
         version (str): Artifact version.
         path (str): Path to the dependency in the repository.
 
     Returns:
         tuple[bool, str | None]: Tuple of success flag and last modified date (or None).
     """
-    url = f"{path}/{version}/{artifact_id}-{version}.pom"
+    url = f"{path}/{version}/{artifact}-{version}.pom"
     response = requests.get(url, auth=auth_info, verify=verify_ssl)
 
     if response.status_code == 200:

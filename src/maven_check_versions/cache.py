@@ -332,8 +332,7 @@ def _save_cache_memcached(config: dict, arguments: dict, cache_data: dict, secti
 
 
 def process_cache_artifact(
-        config: dict, arguments: dict, cache_data: dict | None, artifact_id: str, group_id: str,
-        version: str
+        config: dict, arguments: dict, cache_data: dict | None, artifact: str, group: str, version: str
 ) -> bool:
     """
     Processes cached data for artifact.
@@ -342,14 +341,14 @@ def process_cache_artifact(
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         cache_data (dict | None): Cache data for dependencies.
-        artifact_id (str): Artifact ID of the dependency.
-        group_id (str): Group ID of the dependency.
+        artifact (str): Artifact ID of the dependency.
+        group (str): Group ID of the dependency.
         version (str): Version of the dependency.
 
     Returns:
         bool: True if the cache is valid and up-to-date, False otherwise.
     """
-    data = cache_data.get(f"{group_id}:{artifact_id}")
+    data = cache_data.get(f"{group}:{artifact}")
     cached_time, cached_version, cached_key, cached_date, cached_versions = data
     if cached_version == version:
         return True
@@ -360,14 +359,14 @@ def process_cache_artifact(
         message_format = '*{}: {}:{}, current:{} versions: {} updated: {}'
         formatted_date = cached_date if cached_date is not None else ''
         logging.info(message_format.format(
-            cached_key, group_id, artifact_id, version, ', '.join(cached_versions),
+            cached_key, group, artifact, version, ', '.join(cached_versions),
             formatted_date).rstrip())
         return True
     return False
 
 
 def update_cache_artifact(
-        cache_data: dict | None, versions: list, artifact_id: str, group_id, item: str,
+        cache_data: dict | None, versions: list, artifact: str, group, item: str,
         last_modified_date: str | None, section_key: str
 ) -> None:
     """
@@ -376,12 +375,12 @@ def update_cache_artifact(
     Args:
         cache_data (dict | None): Cache dictionary to update.
         versions (list): List of available versions for the artifact.
-        artifact_id (str): Artifact ID.
-        group_id (str): Group ID.
+        artifact (str): Artifact ID.
+        group (str): Group ID.
         item (str): Current artifact version.
         last_modified_date (str | None): Last modified date of the artifact.
         section_key (str): Repository section key.
     """
     if cache_data is not None:
         value = (math.trunc(time.time()), item, section_key, last_modified_date, versions[:3])
-        cache_data[f"{group_id}:{artifact_id}"] = value
+        cache_data[f"{group}:{artifact}"] = value
