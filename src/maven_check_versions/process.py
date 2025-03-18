@@ -122,9 +122,7 @@ def process_dependency(
 
     _logutils.log_search_if_required(config, arguments, group, artifact, version)
 
-    key = f"{group}:{artifact}"
-    if cve_data is not None and cve_data.get(key) is not None:  # pragma: no cover
-        pass
+    _cveutils.log_vulnerability(config, arguments, group, artifact, version, cve_data)
 
     if cache_data is not None and cache_data.get(f"{group}:{artifact}") is not None:
         if _cache.process_cache_artifact(config, arguments, cache_data, artifact, group, version):

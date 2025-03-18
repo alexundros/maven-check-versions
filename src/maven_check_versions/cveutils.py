@@ -69,6 +69,30 @@ def get_cve_data(  # pragma: no cover
     return result
 
 
+def log_vulnerability(config, arguments, group, artifact, version, cve_data) -> None:  # pragma: no cover
+    """
+    Log vulnerability.
+
+    Args:
+        config (Config): Parsed YAML as dict.
+        arguments (dict): Command-line arguments.
+        group (str): Group ID.
+        artifact (str): Artifact ID.
+        version (str): Dependency version.
+        cve_data (dict[str, list[Vulnerability]]): CVE Data.
+    """
+    fail_score = _config.get_config_value(config, arguments, 'fail-score', 'vulnerability', default=0)
+
+    if cve_data is not None and (cves := cve_data.get(f"pkg:maven/{group}/{artifact}@{version}")):
+        for cve in cves:
+            info = f"cvssScore={cve.cvssScore} cve={cve.cve} cwe={cve.cwe} {cve.reference} {cve.title}"
+            logging.warning(f"Vulnerability for {group}:{artifact}:{version}: {info}")
+
+            if fail_score and cve.cvssScore >= fail_score:
+                logging.error(f"cvssScore={cve.cvssScore} >= fail-score={fail_score}")
+                raise AssertionError
+
+
 def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:  # pragma: no cover
     """
     Get Coordinates.
