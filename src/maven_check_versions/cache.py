@@ -14,7 +14,6 @@ import pymemcache
 import redis
 import tarantool
 
-FILE = 'maven_check_versions.cache.json'
 KEY1 = 'maven_check_versions_artifacts'
 KEY2 = 'maven_check_versions_vulnerabilities'
 HOST = 'localhost'
@@ -154,7 +153,8 @@ def _load_cache_json(config: dict, arguments: dict, section: str) -> tuple[bool,
             dict: Cache data dictionary or an empty dictionary.
         """
     cache_file = _config.get_config_value(
-        config, arguments, 'cache_file', section=section, default=FILE)
+        config, arguments, 'cache_file', section=section,
+        default=(KEY2 if section == 'vulnerability' else KEY1) + '.json')
     if os.path.exists(cache_file):
         logging.info(f"Load Cache: {Path(cache_file).absolute()}")
         with open(cache_file) as cf:
@@ -173,7 +173,7 @@ def _load_cache_redis(config: dict, arguments: dict, section: str) -> tuple[bool
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
     try:
-        host, port, ckey, user, password = _redis_config(arguments, config, section)
+        host, port, ckey, user, password = _redis_config(config, arguments, section)
         inst = redis.Redis(
             host=host, port=port, username=user, password=password,
             decode_responses=True)
@@ -198,7 +198,7 @@ def _load_cache_tarantool(config: dict, arguments: dict, section: str) -> tuple[
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
     try:
-        host, port, space, user, password = _tarantool_config(arguments, config, section)
+        host, port, space, user, password = _tarantool_config(config, arguments, section)
         conn = tarantool.connect(host, port, user=user, password=password)
         cache_data = {}
         for record in conn.space(space).select():
@@ -221,7 +221,7 @@ def _load_cache_memcached(config: dict, arguments: dict, section: str) -> tuple[
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
     """
     try:
-        host, port, key = _memcached_config(arguments, config, section)
+        host, port, key = _memcached_config(config, arguments, section)
         client = pymemcache.client.base.Client((host, port))
         if (cache_data := client.get(key)) is not None:
             return True, json.loads(cache_data)
@@ -266,10 +266,11 @@ def _save_cache_json(config: dict, arguments: dict, cache_data: dict, section: s
         section (str): Configuration section.
     """
     cache_file = _config.get_config_value(
-        config, arguments, 'cache_file', section=section, default=FILE)
+        config, arguments, 'cache_file', section=section,
+        default=(KEY2 if section == 'vulnerability' else KEY1) + '.json')
     logging.info(f"Save Cache: {Path(cache_file).absolute()}")
     with open(cache_file, 'w') as cf:
-        json.dump(cache_data, cf)
+        json.dump(cache_data, cf, cls=DCJSONEncoder)
 
 
 def _save_cache_redis(config: dict, arguments: dict, cache_data: dict, section: str) -> None:
@@ -282,7 +283,7 @@ def _save_cache_redis(config: dict, arguments: dict, cache_data: dict, section: 
         section (str): Configuration section.
     """
     try:
-        host, port, ckey, user, password = _redis_config(arguments, config, section)
+        host, port, ckey, user, password = _redis_config(config, arguments, section)
         inst = redis.Redis(
             host=host, port=port, username=user, password=password,
             decode_responses=True)
@@ -303,7 +304,7 @@ def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict, secti
         section (str): Configuration section.
     """
     try:
-        host, port, space, user, password = _tarantool_config(arguments, config, section)
+        host, port, space, user, password = _tarantool_config(config, arguments, section)
         conn = tarantool.connect(host, port, user=user, password=password)
         space = conn.space(space)
         for key, value in cache_data.items():
@@ -323,7 +324,7 @@ def _save_cache_memcached(config: dict, arguments: dict, cache_data: dict, secti
         section (str): Configuration section.
     """
     try:
-        host, port, key = _memcached_config(arguments, config, section)
+        host, port, key = _memcached_config(config, arguments, section)
         client = pymemcache.client.base.Client((host, port))
         client.set(key, json.dumps(cache_data, cls=DCJSONEncoder))
     except Exception as e:
@@ -331,8 +332,7 @@ def _save_cache_memcached(config: dict, arguments: dict, cache_data: dict, secti
 
 
 def process_cache_artifact(
-        config: dict, arguments: dict, cache_data: dict | None, artifact_id: str, group_id: str,
-        version: str
+        config: dict, arguments: dict, cache_data: dict | None, artifact: str, group: str, version: str
 ) -> bool:
     """
     Processes cached data for artifact.
@@ -341,14 +341,14 @@ def process_cache_artifact(
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
         cache_data (dict | None): Cache data for dependencies.
-        artifact_id (str): Artifact ID of the dependency.
-        group_id (str): Group ID of the dependency.
+        artifact (str): Artifact ID of the dependency.
+        group (str): Group ID of the dependency.
         version (str): Version of the dependency.
 
     Returns:
         bool: True if the cache is valid and up-to-date, False otherwise.
     """
-    data = cache_data.get(f"{group_id}:{artifact_id}")
+    data = cache_data.get(f"{group}:{artifact}")
     cached_time, cached_version, cached_key, cached_date, cached_versions = data
     if cached_version == version:
         return True
@@ -359,14 +359,14 @@ def process_cache_artifact(
         message_format = '*{}: {}:{}, current:{} versions: {} updated: {}'
         formatted_date = cached_date if cached_date is not None else ''
         logging.info(message_format.format(
-            cached_key, group_id, artifact_id, version, ', '.join(cached_versions),
+            cached_key, group, artifact, version, ', '.join(cached_versions),
             formatted_date).rstrip())
         return True
     return False
 
 
 def update_cache_artifact(
-        cache_data: dict | None, versions: list, artifact_id: str, group_id, item: str,
+        cache_data: dict | None, versions: list, artifact: str, group, item: str,
         last_modified_date: str | None, section_key: str
 ) -> None:
     """
@@ -375,12 +375,12 @@ def update_cache_artifact(
     Args:
         cache_data (dict | None): Cache dictionary to update.
         versions (list): List of available versions for the artifact.
-        artifact_id (str): Artifact ID.
-        group_id (str): Group ID.
+        artifact (str): Artifact ID.
+        group (str): Group ID.
         item (str): Current artifact version.
         last_modified_date (str | None): Last modified date of the artifact.
         section_key (str): Repository section key.
     """
     if cache_data is not None:
         value = (math.trunc(time.time()), item, section_key, last_modified_date, versions[:3])
-        cache_data[f"{group_id}:{artifact_id}"] = value
+        cache_data[f"{group}:{artifact}"] = value

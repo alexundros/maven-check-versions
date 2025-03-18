@@ -110,43 +110,42 @@ def process_dependency(
         verify_ssl (bool): SSL verification flag.
         cve_data (dict[str, list[Vulnerability]]): CVE Data.
     """
-    artifact_id, group_id = _utils.get_dependency_identifiers(dependency, ns_mapping)
-    if artifact_id is None or group_id is None:
+    artifact, group = _utils.get_dependency_identifiers(dependency, ns_mapping)
+    if artifact is None or group is None:
         logging.error("Missing artifactId or groupId in a dependency.")
         return
 
     version, skip_flag = _utils.get_version(config, arguments, ns_mapping, root, dependency)
     if skip_flag is True:
-        _logutils.log_skip_if_required(config, arguments, group_id, artifact_id, version)
+        _logutils.log_skip_if_required(config, arguments, group, artifact, version)
         return
 
-    _logutils.log_search_if_required(config, arguments, group_id, artifact_id, version)
+    _logutils.log_search_if_required(config, arguments, group, artifact, version)
 
-    # WIP for CVE Checking
-    key = f"{group_id}:{artifact_id}"
+    key = f"{group}:{artifact}"
     if cve_data is not None and cve_data.get(key) is not None:  # pragma: no cover
         pass
 
-    if cache_data is not None and cache_data.get(f"{group_id}:{artifact_id}") is not None:
-        if _cache.process_cache_artifact(config, arguments, cache_data, artifact_id, group_id, version):
+    if cache_data is not None and cache_data.get(f"{group}:{artifact}") is not None:
+        if _cache.process_cache_artifact(config, arguments, cache_data, artifact, group, version):
             return
 
-    if not process_repositories(artifact_id, cache_data, config, group_id, arguments, verify_ssl, version):
-        logging.warning(f"Not Found: {group_id}:{artifact_id}, current:{version}")
+    if not process_repositories(artifact, cache_data, config, group, arguments, verify_ssl, version):
+        logging.warning(f"Not Found: {group}:{artifact}, current:{version}")
 
 
 def process_repositories(
-        artifact_id: str, cache_data: dict | None, config: dict, group_id: str,
+        artifact: str, cache_data: dict | None, config: dict, group: str,
         arguments: dict, verify_ssl: bool, version: str
 ):
     """
     Processes repositories to find a dependency.
 
     Args:
-        artifact_id (str): Artifact ID.
+        artifact (str): Artifact ID.
         cache_data (dict | None): Cache data.
         config (dict): Parsed YAML as dict.
-        group_id (str): Group ID.
+        group (str): Group ID.
         arguments (dict): Command-line arguments.
         verify_ssl (bool): SSL verification flag.
         version (str): Dependency version.
@@ -157,7 +156,7 @@ def process_repositories(
     if len(items := _config.config_items(config, 'repositories')):
         for section_key, repository_section in items:
             if (process_repository(
-                    cache_data, config, arguments, group_id, artifact_id, version,
+                    cache_data, config, arguments, group, artifact, version,
                     section_key, repository_section, verify_ssl)):
                 return True
     return False
@@ -214,23 +213,23 @@ def process_artifact(
         artifact_to_find (str): Artifact to search for in groupId:artifactId:version format.
     """
     verify_ssl = _config.get_config_value(config, arguments, 'verify', 'requests')
-    group_id, artifact_id, version = artifact_to_find.split(sep=":", maxsplit=3)
+    group, artifact, version = artifact_to_find.split(sep=":", maxsplit=3)
 
-    _logutils.log_search_if_required(config, arguments, group_id, artifact_id, version)
+    _logutils.log_search_if_required(config, arguments, group, artifact, version)
 
     dependency_found = False
     for section_key, repository_section in _config.config_items(config, 'repositories'):
         if (dependency_found := process_repository(
-                cache_data, config, arguments, group_id, artifact_id, version,
+                cache_data, config, arguments, group, artifact, version,
                 section_key, repository_section, verify_ssl)):
             break
     if not dependency_found:
-        logging.warning(f"Not Found: {group_id}:{artifact_id}, current:{version}")
+        logging.warning(f"Not Found: {group}:{artifact}, current:{version}")
 
 
 def process_repository(
-        cache_data: dict | None, config: dict, arguments: dict, group_id: str,
-        artifact_id: str, version: str, section_key: str, repository_section: str, verify_ssl: bool
+        cache_data: dict | None, config: dict, arguments: dict, group: str,
+        artifact: str, version: str, section_key: str, repository_section: str, verify_ssl: bool
 ) -> bool:
     """
     Processes a repository section.
@@ -239,8 +238,8 @@ def process_repository(
         cache_data (dict | None): Cache data.
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
-        group_id (str): Group ID.
-        artifact_id (str): Artifact ID.
+        group (str): Group ID.
+        artifact (str): Artifact ID.
         version (str): Artifact version.
         section_key (str): Repository section key.
         repository_section (str): Repository section name.
@@ -263,7 +262,7 @@ def process_repository(
     path = f"{base_url}/{path_suffix}"
     if repository_name is not None:
         path = f"{path}/{repository_name}"
-    path = f"{path}/{group_id.replace('.', '/')}/{artifact_id}"
+    path = f"{path}/{group.replace('.', '/')}/{artifact}"
 
     metadata_url = path + '/maven-metadata.xml'
     response = requests.get(metadata_url, auth=auth_info, verify=verify_ssl)
@@ -274,21 +273,21 @@ def process_repository(
         available_versions = list(map(lambda v: v.text, version_elements))
 
         if _utils.check_versions(
-                cache_data, config, arguments, group_id, artifact_id, version, section_key,
+                cache_data, config, arguments, group, artifact, version, section_key,
                 path, auth_info, verify_ssl, available_versions, response):
             return True
 
     if _config.get_config_value(config, arguments, 'service_rest', repository_section):
         return process_rest(
-            cache_data, config, arguments, group_id, artifact_id, version, section_key,
+            cache_data, config, arguments, group, artifact, version, section_key,
             repository_section, base_url, auth_info, verify_ssl)
 
     return False
 
 
 def process_rest(
-        cache_data: dict | None, config: dict, arguments: dict, group_id: str,
-        artifact_id: str, version: str, section_key: str, repository_section: str, base_url: str,
+        cache_data: dict | None, config: dict, arguments: dict, group: str,
+        artifact: str, version: str, section_key: str, repository_section: str, base_url: str,
         auth_info: tuple, verify_ssl: bool
 ) -> bool:
     """
@@ -298,8 +297,8 @@ def process_rest(
         cache_data (dict | None): Cache data.
         config (dict): Parsed YAML as dict.
         arguments (dict): Command-line arguments.
-        group_id (str): Group ID.
-        artifact_id (str): Artifact ID.
+        group (str): Group ID.
+        artifact (str): Artifact ID.
         version (str): Artifact version.
         section_key (str): Repository section key.
         repository_section (str): Repository section name.
@@ -312,7 +311,7 @@ def process_rest(
     """
     repository_name = _config.get_config_value(config, arguments, 'repo', repository_section)
     path = f"{base_url}/service/rest/repository/browse/{repository_name}"
-    path = f"{path}/{group_id.replace('.', '/')}/{artifact_id}"
+    path = f"{path}/{group.replace('.', '/')}/{artifact}"
 
     metadata_url = path + '/maven-metadata.xml'
     response = requests.get(metadata_url, auth=auth_info, verify=verify_ssl)
@@ -323,7 +322,7 @@ def process_rest(
         available_versions = list(map(lambda v: v.text, version_elements))
 
         if _utils.check_versions(
-                cache_data, config, arguments, group_id, artifact_id, version,
+                cache_data, config, arguments, group, artifact, version,
                 section_key, path, auth_info, verify_ssl, available_versions, response):
             return True
 
@@ -333,10 +332,10 @@ def process_rest(
         html_content = BeautifulSoup(response.text, 'html.parser')
         version_links = html_content.find('table').find_all('a')
         available_versions = list(map(lambda v: v.text, version_links))
-        path = f"{base_url}/repository/{repository_name}/{group_id.replace('.', '/')}/{artifact_id}"
+        path = f"{base_url}/repository/{repository_name}/{group.replace('.', '/')}/{artifact}"
 
         if _utils.check_versions(
-                cache_data, config, arguments, group_id, artifact_id, version,
+                cache_data, config, arguments, group, artifact, version,
                 section_key, path, auth_info, verify_ssl, available_versions, response):
             return True
 

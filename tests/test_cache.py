@@ -13,7 +13,8 @@ os.chdir(os.path.dirname(__file__))
 sys.path.append('../src')
 
 from maven_check_versions.cache import (
-    load_cache, save_cache, update_cache_artifact, process_cache_artifact
+    load_cache, save_cache, update_cache_artifact,
+    process_cache_artifact, DCJSONEncoder
 )
 
 
@@ -55,9 +56,9 @@ def test_save_cache(mocker):
     mock_open = mocker.patch('builtins.open')
     mock_json = mocker.patch('json.dump')
     save_cache({}, {}, {'k': 'v'})
-    mock_open.assert_called_once_with('maven_check_versions.cache.json', 'w')
+    mock_open.assert_called_once_with('maven_check_versions_artifacts.json', 'w')
     mock_open_rv = mock_open.return_value.__enter__.return_value
-    mock_json.assert_called_once_with({'k': 'v'}, mock_open_rv)
+    mock_json.assert_called_once_with({'k': 'v'}, mock_open_rv, cls=DCJSONEncoder)
 
     mock_redis = mocker.patch('redis.Redis')
     save_cache({'base': {'cache_backend': 'redis'}}, {}, {'k': 'v'})
