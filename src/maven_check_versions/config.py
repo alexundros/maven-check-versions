@@ -4,7 +4,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Any
 
 import yaml
 
@@ -44,8 +44,8 @@ def get_config(arguments: Arguments) -> Config:
 
 
 def get_config_value(
-        config: Config, arguments: Arguments, key: str, section: str = 'base', default: any = None
-) -> any:
+        config: Config, arguments: Arguments, key: str, section: str = 'base', default: Any = None
+) -> Any:
     """
     Get configuration value with optional type conversion.
 
@@ -54,10 +54,10 @@ def get_config_value(
         arguments (Arguments): Command-line arguments.
         key (str): Configuration key.
         section (str, optional): Configuration section (default is 'base').
-        default (any, optional): Default value.
+        default (Any, optional): Default value.
 
     Returns:
-        any: Configuration value or None if not found.
+        Any: Configuration value or None if not found.
     """
     value = None
     if section == 'base' and key in arguments:
