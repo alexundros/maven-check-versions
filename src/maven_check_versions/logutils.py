@@ -8,14 +8,15 @@ import sys
 
 import maven_check_versions.config as _config
 import requests
+from maven_check_versions.config import Config, Arguments
 
 
-def configure_logging(arguments: dict) -> None:
+def configure_logging(arguments: Arguments) -> None:
     """
     Configures logging.
 
     Args:
-        arguments (dict): Command-line arguments.
+        arguments (Arguments): Command-line arguments.
     """
     handlers = [logging.StreamHandler(sys.stdout)]
 
@@ -32,14 +33,14 @@ def configure_logging(arguments: dict) -> None:
 
 
 def log_skip_if_required(
-        config: dict, arguments: dict, group: str, artifact: str, version: str
+        config: Config, arguments: Arguments, group: str, artifact: str, version: str
 ) -> None:
     """
     Logs a skipped dependency if required.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
         version (str): Dependency version.
@@ -49,14 +50,14 @@ def log_skip_if_required(
 
 
 def log_search_if_required(
-        config: dict, arguments: dict, group: str, artifact: str, version: str
+        config: Config, arguments: Arguments, group: str, artifact: str, version: str
 ) -> None:
     """
     Logs a dependency search action if required.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
         version (str): Dependency version (Maybe None or a placeholder).
@@ -69,15 +70,15 @@ def log_search_if_required(
 
 
 def log_invalid_if_required(
-        config: dict, arguments: dict, response: requests.Response, group: str,
+        config: Config, arguments: Arguments, response: requests.Response, group: str,
         artifact: str, item: str, invalid_flag: bool
 ) -> None:
     """
     Logs invalid versions if required.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         response (requests.Response): Repository response.
         group (str): Group ID.
         artifact (str): Artifact ID.

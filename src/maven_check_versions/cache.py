@@ -9,10 +9,11 @@ import time
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 
-import maven_check_versions.config as _config
 import pymemcache
 import redis
 import tarantool
+import maven_check_versions.config as _config
+from maven_check_versions.config import Config, Arguments
 
 KEY1 = 'maven_check_versions_artifacts'
 KEY2 = 'maven_check_versions_vulnerabilities'
@@ -36,12 +37,12 @@ class DCJSONEncoder(json.JSONEncoder):  # pragma: no cover
         return super().default(obj)
 
 
-def _redis_config(config: dict, arguments: dict, section: str) -> tuple:
+def _redis_config(config: Config, arguments: Arguments, section: str) -> tuple:
     """Get Redis parameters.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         section (str): Configuration section.
 
     Returns:
@@ -60,12 +61,12 @@ def _redis_config(config: dict, arguments: dict, section: str) -> tuple:
     )
 
 
-def _tarantool_config(config: dict, arguments: dict, section: str) -> tuple:
+def _tarantool_config(config: Config, arguments: Arguments, section: str) -> tuple:
     """Get Tarantool parameters.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         section (str): Configuration section.
 
     Returns:
@@ -84,12 +85,12 @@ def _tarantool_config(config: dict, arguments: dict, section: str) -> tuple:
     )
 
 
-def _memcached_config(config: dict, arguments: dict, section: str) -> tuple:
+def _memcached_config(config: Config, arguments: Arguments, section: str) -> tuple:
     """Get Memcached parameters.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         section (str): Configuration section.
 
     Returns:
@@ -106,13 +107,13 @@ def _memcached_config(config: dict, arguments: dict, section: str) -> tuple:
     )
 
 
-def load_cache(config: dict, arguments: dict, section: str = 'base') -> dict:
+def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> dict:
     """
     Loads the cache.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         section (str, optional): Configuration section (default is 'base').
 
     Returns:
@@ -140,13 +141,13 @@ def load_cache(config: dict, arguments: dict, section: str = 'base') -> dict:
     return {}
 
 
-def _load_cache_json(config: dict, arguments: dict, section: str) -> tuple[bool, dict]:
+def _load_cache_json(config: Config, arguments: Arguments, section: str) -> tuple[bool, dict]:
     """
         Loads the cache from JSON file.
 
         Args:
-            config (dict): Parsed YAML as dict.
-            arguments (dict): Command-line arguments.
+            config (Config): Parsed YAML as dict.
+            arguments (Arguments): Command-line arguments.
             section (str): Configuration section.
 
         Returns:
@@ -162,12 +163,12 @@ def _load_cache_json(config: dict, arguments: dict, section: str) -> tuple[bool,
     return False, {}
 
 
-def _load_cache_redis(config: dict, arguments: dict, section: str) -> tuple[bool, dict]:
+def _load_cache_redis(config: Config, arguments: Arguments, section: str) -> tuple[bool, dict]:
     """Loads the cache from Redis.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
 
     Returns:
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
@@ -187,12 +188,12 @@ def _load_cache_redis(config: dict, arguments: dict, section: str) -> tuple[bool
         return False, {}
 
 
-def _load_cache_tarantool(config: dict, arguments: dict, section: str) -> tuple[bool, dict]:
+def _load_cache_tarantool(config: Config, arguments: Arguments, section: str) -> tuple[bool, dict]:
     """Loads the cache from Tarantool.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
 
     Returns:
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
@@ -210,12 +211,12 @@ def _load_cache_tarantool(config: dict, arguments: dict, section: str) -> tuple[
     return False, {}
 
 
-def _load_cache_memcached(config: dict, arguments: dict, section: str) -> tuple[bool, dict]:
+def _load_cache_memcached(config: Config, arguments: Arguments, section: str) -> tuple[bool, dict]:
     """Loads the cache from Memcached.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
 
     Returns:
         tuple[bool, dict]: Success flag and cache data dictionary or an empty dictionary.
@@ -231,13 +232,13 @@ def _load_cache_memcached(config: dict, arguments: dict, section: str) -> tuple[
     return False, {}
 
 
-def save_cache(config: dict, arguments: dict, cache_data: dict, section: str = 'base') -> None:
+def save_cache(config: Config, arguments: Arguments, cache_data: dict, section: str = 'base') -> None:
     """
     Saves the cache.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         cache_data (dict): Cache data to save.
         section (str, optional): Configuration section (default is 'base').
     """
@@ -255,13 +256,13 @@ def save_cache(config: dict, arguments: dict, cache_data: dict, section: str = '
                 _save_cache_memcached(config, arguments, cache_data, section)
 
 
-def _save_cache_json(config: dict, arguments: dict, cache_data: dict, section: str) -> None:
+def _save_cache_json(config: Config, arguments: Arguments, cache_data: dict, section: str) -> None:
     """
     Saves the cache to JSON file.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         cache_data (dict): Cache data to save.
         section (str): Configuration section.
     """
@@ -273,12 +274,12 @@ def _save_cache_json(config: dict, arguments: dict, cache_data: dict, section: s
         json.dump(cache_data, cf, cls=DCJSONEncoder)
 
 
-def _save_cache_redis(config: dict, arguments: dict, cache_data: dict, section: str) -> None:
+def _save_cache_redis(config: Config, arguments: Arguments, cache_data: dict, section: str) -> None:
     """Saves the cache to Redis.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         cache_data (dict): Cache data to save.
         section (str): Configuration section.
     """
@@ -294,12 +295,12 @@ def _save_cache_redis(config: dict, arguments: dict, cache_data: dict, section: 
         logging.error(f"Failed to save cache to Redis: {e}")
 
 
-def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict, section: str) -> None:
+def _save_cache_tarantool(config: Config, arguments: Arguments, cache_data: dict, section: str) -> None:
     """Saves the cache to Tarantool.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         cache_data (dict): Cache data to save.
         section (str): Configuration section.
     """
@@ -314,12 +315,12 @@ def _save_cache_tarantool(config: dict, arguments: dict, cache_data: dict, secti
         logging.error(f"Failed to save cache to Tarantool: {e}")
 
 
-def _save_cache_memcached(config: dict, arguments: dict, cache_data: dict, section: str) -> None:
+def _save_cache_memcached(config: Config, arguments: Arguments, cache_data: dict, section: str) -> None:
     """Saves the cache to Memcached.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         cache_data (dict): Cache data to save.
         section (str): Configuration section.
     """
@@ -332,14 +333,14 @@ def _save_cache_memcached(config: dict, arguments: dict, cache_data: dict, secti
 
 
 def process_cache_artifact(
-        config: dict, arguments: dict, cache_data: dict | None, artifact: str, group: str, version: str
+        config: Config, arguments: Arguments, cache_data: dict | None, artifact: str, group: str, version: str
 ) -> bool:
     """
     Processes cached data for artifact.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         cache_data (dict | None): Cache data for dependencies.
         artifact (str): Artifact ID of the dependency.
         group (str): Group ID of the dependency.

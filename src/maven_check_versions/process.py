@@ -15,15 +15,16 @@ import maven_check_versions.utils as _utils
 import requests
 import urllib3
 from bs4 import BeautifulSoup
+from maven_check_versions.config import Config, Arguments
 from maven_check_versions.cveutils import Vulnerability
 
 
-def process_main(arguments: dict) -> None:
+def process_main(arguments: Arguments) -> None:
     """
     Main processing function.
 
     Args:
-        arguments (dict): Command-line arguments.
+        arguments (Arguments): Command-line arguments.
     """
     config = _config.get_config(arguments)
 
@@ -46,15 +47,16 @@ def process_main(arguments: dict) -> None:
 
 
 def process_pom(
-        cache_data: dict | None, config: dict, arguments: dict, pom_path: str, prefix: str = None
+        cache_data: dict | None, config: Config, arguments: Arguments,
+        pom_path: str, prefix: str = None
 ) -> None:
     """
     Processes a POM file.
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         pom_path (str): Path or URL to the POM file.
         prefix (str, optional): Prefix for the artifact name.
     """
@@ -94,7 +96,7 @@ def process_pom(
 
 
 def process_dependency(
-        cache_data: dict | None, config: dict, arguments: dict, dependency: ET.Element, ns_mapping: dict,
+        cache_data: dict | None, config: Config, arguments: Arguments, dependency: ET.Element, ns_mapping: dict,
         root: ET.Element, verify_ssl: bool, cve_data: dict[str, list[Vulnerability]] | None = None
 ) -> None:
     """
@@ -102,8 +104,8 @@ def process_dependency(
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         dependency (ET.Element): Dependency.
         ns_mapping (dict): XML namespace mapping.
         root (ET.Element): Root element of the POM file.
@@ -133,8 +135,8 @@ def process_dependency(
 
 
 def process_repositories(
-        artifact: str, cache_data: dict | None, config: dict, group: str,
-        arguments: dict, verify_ssl: bool, version: str
+        artifact: str, cache_data: dict | None, config: Config, group: str,
+        arguments: Arguments, verify_ssl: bool, version: str
 ):
     """
     Processes repositories to find a dependency.
@@ -142,9 +144,9 @@ def process_repositories(
     Args:
         artifact (str): Artifact ID.
         cache_data (dict | None): Cache data.
-        config (dict): Parsed YAML as dict.
+        config (Config): Parsed YAML as dict.
         group (str): Group ID.
-        arguments (dict): Command-line arguments.
+        arguments (Arguments): Command-line arguments.
         verify_ssl (bool): SSL verification flag.
         version (str): Dependency version.
 
@@ -161,7 +163,7 @@ def process_repositories(
 
 
 def process_modules_if_required(
-        cache_data: dict | None, config: dict, arguments: dict, root: ET.Element,
+        cache_data: dict | None, config: Config, arguments: Arguments, root: ET.Element,
         pom_path: str, ns_mapping: dict, prefix: str = None
 ) -> None:
     """
@@ -169,8 +171,8 @@ def process_modules_if_required(
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         root (ET.Element): Root element of the POM file.
         pom_path (str): Path to the POM file.
         ns_mapping (dict): XML namespace mapping.
@@ -199,15 +201,16 @@ def process_modules_if_required(
 
 
 def process_artifact(
-        cache_data: dict | None, config: dict, arguments: dict, artifact_to_find: str
+        cache_data: dict | None, config: Config, arguments: Arguments,
+        artifact_to_find: str
 ) -> None:
     """
     Processes the search for a specified artifact.
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         artifact_to_find (str): Artifact to search for in groupId:artifactId:version format.
     """
     verify_ssl = _config.get_config_value(config, arguments, 'verify', 'requests')
@@ -226,16 +229,16 @@ def process_artifact(
 
 
 def process_repository(
-        cache_data: dict | None, config: dict, arguments: dict, group: str,
-        artifact: str, version: str, section_key: str, repository_section: str, verify_ssl: bool
+        cache_data: dict | None, config: Config, arguments: Arguments, group: str, artifact: str,
+        version: str, section_key: str, repository_section: str, verify_ssl: bool
 ) -> bool:
     """
     Processes a repository section.
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
         version (str): Artifact version.
@@ -284,8 +287,8 @@ def process_repository(
 
 
 def process_rest(
-        cache_data: dict | None, config: dict, arguments: dict, group: str,
-        artifact: str, version: str, section_key: str, repository_section: str, base_url: str,
+        cache_data: dict | None, config: Config, arguments: Arguments, group: str, artifact: str,
+        version: str, section_key: str, repository_section: str, base_url: str,
         auth_info: tuple, verify_ssl: bool
 ) -> bool:
     """
@@ -293,8 +296,8 @@ def process_rest(
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
         version (str): Artifact version.

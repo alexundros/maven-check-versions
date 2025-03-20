@@ -11,7 +11,7 @@ os.chdir(os.path.dirname(__file__))
 sys.path.append('../src')
 
 from maven_check_versions.config import (
-    get_config, get_config_value, config_items
+    get_config, get_config_value, config_items, Config, Arguments
 )
 
 
@@ -21,38 +21,38 @@ def test_get_config(mocker):
     mock_exists.side_effect = [False, True]
     mocker.patch('builtins.open', mocker.mock_open(read_data="base:"))
     mock_logging = mocker.patch('logging.info')
-    get_config({})
+    get_config(Arguments())
     mock_logging.assert_called_once()
     mocker.stopall()
 
 
 # noinspection PyShadowingNames
 def test_get_config_value(monkeypatch):
-    config = {'base': {'key': True}}
-    assert get_config_value(config, {}, 'key') is True
-    assert get_config_value(config, {}, 'val', default=True) is True
-    assert get_config_value(config, {'key': False}, 'key') is False
-    assert get_config_value(config, {}, 'val') is None
+    config = Config({'base': {'key': True}})
+    assert get_config_value(config, Arguments(), 'key') is True
+    assert get_config_value(config, Arguments(), 'val', default=True) is True
+    assert get_config_value(config, Arguments({'key': False}), 'key') is False
+    assert get_config_value(config, Arguments(), 'val') is None
     monkeypatch.setenv('CV_KEY', 'true')
-    assert get_config_value(config, {'key': False}, 'key') is True
+    assert get_config_value(config, Arguments({'key': False}), 'key') is True
     monkeypatch.setenv('CV_KEY', 'false')
-    assert get_config_value(config, {'key': True}, 'key') is False
-    config = {'base': {'key': 123}}
-    assert get_config_value(config, {}, 'key') == 123
-    assert get_config_value(config, {}, 'val', default=123) == 123
-    config = {'base': {'key': 123.45}}
-    assert get_config_value(config, {}, 'key') == 123.45  # NOSONAR
-    assert get_config_value(config, {}, 'val', default=123.45) == 123.45  # NOSONAR
-    config = {'base': {'key': 'value'}}
-    assert get_config_value(config, {}, 'key') == 'value'
-    assert get_config_value(config, {}, 'val', default='value') == 'value'
-    assert get_config_value(config, {}, 'val', default=[]) == []
-    assert get_config_value(config, {}, 'val', default=()) == ()
-    assert get_config_value(config, {}, 'val', default={'k': 'v'}) == {'k': 'v'}
+    assert get_config_value(config, Arguments({'key': True}), 'key') is False
+    config = Config({'base': {'key': 123}})
+    assert get_config_value(config, Arguments(), 'key') == 123
+    assert get_config_value(config, Arguments(), 'val', default=123) == 123
+    config = Config({'base': {'key': 123.45}})
+    assert get_config_value(config, Arguments(), 'key') == 123.45  # NOSONAR
+    assert get_config_value(config, Arguments(), 'val', default=123.45) == 123.45  # NOSONAR
+    config = Config({'base': {'key': 'value'}})
+    assert get_config_value(config, Arguments(), 'key') == 'value'
+    assert get_config_value(config, Arguments(), 'val', default='value') == 'value'
+    assert get_config_value(config, Arguments(), 'val', default=[]) == []
+    assert get_config_value(config, Arguments(), 'val', default=()) == ()
+    assert get_config_value(config, Arguments(), 'val', default={'k': 'v'}) == {'k': 'v'}
 
 
 def test_config_items():
-    config = {'base': {'key': 'value'}}
+    config = Config({'base': {'key': 'value'}})
     assert config_items(config, 'base') == [('key', 'value')]
     assert config_items(config, 'other') == []
     assert config_items(config, 'empty') == []

@@ -7,6 +7,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 import pytest
+from maven_check_versions.config import Arguments, Config
 # noinspection PyUnresolvedReferences
 from pytest_mock import mocker
 
@@ -110,8 +111,8 @@ def test_collect_dependencies(mocker):
         </build>
     </project>
     """.lstrip())
-    args = {'search_plugins': True}
-    result = collect_dependencies(root, ns_mappings, {}, args)
+    args = Arguments({'search_plugins': True})
+    result = collect_dependencies(root, ns_mappings, Config(), args)
     assert len(result) == 3
 
 
@@ -132,8 +133,8 @@ def test_get_dependency_identifiers():
 def test_fail_mode_if_required(mocker):
     mock_logging = mocker.patch('logging.warning')
     with pytest.raises(AssertionError):
-        config = dict()
-        args = {'fail_mode': True, 'fail_major': 2, 'fail_minor': 2}
+        config = Config()
+        args = Arguments({'fail_mode': True, 'fail_major': 2, 'fail_minor': 2})
         fail_mode_if_required(config, 1, 0, '4.0', 2, 2, args, '1.0')
     mock_logging.assert_called_once_with("Fail version: 4.0 > 1.0")
 
@@ -151,8 +152,7 @@ def test_resolve_version():
     assert version == '1.0'
 
 
-# noinspection PyShadowingNames
-def test_get_version(mocker):
+def test_get_version():
     root = ET.fromstring("""
     <?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
@@ -172,15 +172,15 @@ def test_get_version(mocker):
         </dependencies>
     </project>
     """.lstrip())
-    args = {'empty_version': False}
+    args = Arguments({'empty_version': False})
     deps = root.findall('.//xmlns:dependency', namespaces=ns_mappings)
-    version, skip_flag = get_version({}, args, ns_mappings, root, deps[0])
+    version, skip_flag = get_version(Config(), args, ns_mappings, root, deps[0])
     assert version is None and skip_flag
 
-    version, skip_flag = get_version({}, args, ns_mappings, root, deps[1])
+    version, skip_flag = get_version(Config(), args, ns_mappings, root, deps[1])
     assert version == '1.0' and not skip_flag
 
-    version, skip_flag = get_version({}, args, ns_mappings, root, deps[2])
+    version, skip_flag = get_version(Config(), args, ns_mappings, root, deps[2])
     assert version == '${dependency.version}' and skip_flag
 
 
@@ -188,7 +188,7 @@ def test_get_version(mocker):
 def test_check_versions(mocker):
     def _check_versions(pa, data, item, vers):
         return check_versions(
-            data, {}, pa, 'group', 'artifact', item,
+            data, Config(), pa, 'group', 'artifact', item,
             'repo_section', 'path', (), True, vers, mocker.Mock()
         )
 
@@ -236,22 +236,22 @@ def test_get_pom_tree(mocker):
         <version>1.0</version>
     </project>
     """
-    config = {'pom_http': {'auth': 'true'}}
+    config = Config({'pom_http': {'auth': 'true'}})
     mocker.patch('os.path.exists', return_value=True)
     mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data=xml))
-    tree = get_pom_tree('pom.xml', True, config, {})
+    tree = get_pom_tree('pom.xml', True, config, Arguments())
     mock_open.assert_called_once_with('pom.xml', 'rb')
     assert isinstance(tree, ET.ElementTree)
 
     mocker.patch('os.path.exists', return_value=False)
     with pytest.raises(FileNotFoundError):
-        get_pom_tree('pom.xml', True, config, {})
+        get_pom_tree('pom.xml', True, config, Arguments())
 
     pom_path = 'http://example.com/pom.pom'  # NOSONAR
     mock_response = mocker.Mock(status_code=200, text=xml)
     mock_requests = mocker.patch('requests.get', return_value=mock_response)
-    assert isinstance(get_pom_tree(pom_path, True, config, {}), ET.ElementTree)
+    assert isinstance(get_pom_tree(pom_path, True, config, Arguments()), ET.ElementTree)
 
     mock_requests.return_value.status_code = 404
     with pytest.raises(FileNotFoundError):
-        get_pom_tree(pom_path, True, config, {})
+        get_pom_tree(pom_path, True, config, Arguments())
