@@ -48,7 +48,7 @@ def process_main(arguments: Arguments) -> None:
 
 def process_pom(
         cache_data: dict | None, config: Config, arguments: Arguments,
-        pom_path: str, prefix: str = None
+        pom_path: str, prefix: str | None = None
 ) -> None:
     """
     Processes a POM file.
@@ -112,7 +112,7 @@ def process_dependency(
         verify_ssl (bool): SSL verification flag.
         cve_data (dict[str, list[Vulnerability]]): CVE Data.
     """
-    artifact, group = _utils.get_dependency_identifiers(dependency, ns_mapping)
+    group, artifact = _utils.get_dependency_identifiers(dependency, ns_mapping)
     if artifact is None or group is None:
         logging.error("Missing artifactId or groupId in a dependency.")
         return
@@ -164,7 +164,7 @@ def process_repositories(
 
 def process_modules_if_required(
         cache_data: dict | None, config: Config, arguments: Arguments, root: ET.Element,
-        pom_path: str, ns_mapping: dict, prefix: str = None
+        pom_path: str, ns_mapping: dict, prefix: str | None = None
 ) -> None:
     """
     Processes modules in a POM file if required.
@@ -249,7 +249,7 @@ def process_repository(
     Returns:
         bool: True if the dependency is found, False otherwise.
     """
-    auth_info = ()
+    auth_info: tuple[str, str] | None = None
     if _config.get_config_value(config, arguments, 'auth', repository_section):
         auth_info = (
             _config.get_config_value(config, arguments, 'user'),
@@ -289,7 +289,7 @@ def process_repository(
 def process_rest(
         cache_data: dict | None, config: Config, arguments: Arguments, group: str, artifact: str,
         version: str, section_key: str, repository_section: str, base_url: str,
-        auth_info: tuple, verify_ssl: bool
+        auth_info: tuple[str, str] | None, verify_ssl: bool
 ) -> bool:
     """
     Processes REST services for a repository.
@@ -304,7 +304,7 @@ def process_rest(
         section_key (str): Repository section key.
         repository_section (str): Repository section name.
         base_url (str): Base URL of the repository.
-        auth_info (tuple): Authentication credentials.
+        auth_info (tuple[str, str] | None): Authentication credentials.
         verify_ssl (bool): SSL verification flag.
 
     Returns:

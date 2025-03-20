@@ -179,8 +179,9 @@ def _load_cache_redis(config: Config, arguments: Arguments, section: str) -> tup
             host=host, port=port, username=user, password=password,
             decode_responses=True)
         cache_data = {}
-        for key, value in inst.hgetall(ckey).items():
-            cache_data[key] = json.loads(value)
+        if isinstance(data := inst.hgetall(ckey), dict):
+            for key, value in data.items():
+                cache_data[key] = json.loads(value)
 
         return True, cache_data
     except Exception as e:
@@ -349,7 +350,8 @@ def process_cache_artifact(
     Returns:
         bool: True if the cache is valid and up-to-date, False otherwise.
     """
-    data = cache_data.get(f"{group}:{artifact}")
+    if cache_data is None or (data := cache_data.get(f"{group}:{artifact}")) is None:
+        return False
     cached_time, cached_version, cached_key, cached_date, cached_versions = data
     if cached_version == version:
         return True

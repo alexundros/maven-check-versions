@@ -11,6 +11,18 @@ import requests
 from maven_check_versions.config import Config, Arguments
 
 
+class Formatter(logging.Formatter):
+    """
+    Formatter with microseconds.
+    """
+
+    def formatTime(self, record, datefmt=None):  # pragma: no cover # noqa: N802
+        """
+        Time formatter.
+        """
+        return datetime.datetime.fromtimestamp(record.created)
+
+
 def configure_logging(arguments: Arguments) -> None:
     """
     Configures logging.
@@ -18,18 +30,19 @@ def configure_logging(arguments: Arguments) -> None:
     Args:
         arguments (Arguments): Command-line arguments.
     """
-    handlers = [logging.StreamHandler(sys.stdout)]
+    frm = '%(asctime)s %(levelname)s: %(message)s'
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.formatter = Formatter(fmt=frm)
+    handlers: list = [stream_handler]
 
     if not arguments.get('logfile_off'):
         if (log_file_path := arguments.get('log_file')) is None:
             log_file_path = 'maven_check_versions.log'
-        handlers.append(logging.FileHandler(log_file_path, 'w'))
+        file_handler = logging.FileHandler(log_file_path, 'w')
+        file_handler.formatter = Formatter(fmt=frm)
+        handlers.append(file_handler)
 
-    logging.Formatter.formatTime = lambda self, record, fmt=None: \
-        datetime.datetime.fromtimestamp(record.created)
-
-    frm = '%(asctime)s %(levelname)s: %(message)s'
-    logging.basicConfig(level=logging.INFO, handlers=handlers, format=frm)  # NOSONAR
+    logging.basicConfig(level=logging.INFO, handlers=handlers)
 
 
 def log_skip_if_required(

@@ -148,9 +148,10 @@ def get_artifact_name(root: ET.Element, ns_mapping: dict) -> str:
     Returns:
         str: Full artifact name (groupId:artifactId).
     """
-    artifact = root.find('./xmlns:artifactId', namespaces=ns_mapping).text
-    group_element = root.find('./xmlns:groupId', namespaces=ns_mapping)
-    return (group_element.text + ':' if group_element is not None else '') + artifact
+    artifact = root.find('./xmlns:artifactId', namespaces=ns_mapping)
+    artifact_text = str(artifact.text) if artifact is not None else ''
+    group = root.find('./xmlns:groupId', namespaces=ns_mapping)
+    return (str(group.text) + ':' if group is not None else '') + artifact_text
 
 
 def collect_dependencies(
@@ -189,7 +190,10 @@ def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tupl
     """
     artifact = dependency.find('xmlns:artifactId', namespaces=ns_mapping)
     group = dependency.find('xmlns:groupId', namespaces=ns_mapping)
-    return None if artifact is None else artifact.text, None if group is None else group.text
+    return (
+        str(group.text) if group is not None else '',
+        str(artifact.text) if artifact is not None else ''
+    )
 
 
 def fail_mode_if_required(
@@ -239,7 +243,7 @@ def resolve_version(version: str, root: ET.Element, ns_mapping: dict) -> str:
         property_xpath = f"./xmlns:properties/xmlns:{match.group(1)}"
         property_element = root.find(property_xpath, namespaces=ns_mapping)
         if property_element is not None:
-            version = property_element.text
+            version = str(property_element.text)
     return version
 
 
@@ -267,10 +271,11 @@ def get_version(
         if not _config.get_config_value(config, arguments, 'empty_version'):
             return None, True
     else:
-        version_text = resolve_version(version.text, root, ns_mapping)
+        version_text = resolve_version(str(version.text), root, ns_mapping)
 
         if version_text == '${project.version}':
-            project_version_text = root.find('xmlns:version', namespaces=ns_mapping).text
+            project_version = root.find('xmlns:version', namespaces=ns_mapping)
+            project_version_text = str(project_version.text) if project_version is not None else ''
             version_text = resolve_version(project_version_text, root, ns_mapping)
 
         if re.match('^\\${([^}]+)}$', version_text):
@@ -282,7 +287,7 @@ def get_version(
 
 def check_versions(
         cache_data: dict | None, config: Config, arguments: Arguments, group: str, artifact: str,
-        version: str, section_key: str, path: str, auth_info: tuple, verify_ssl: bool,
+        version: str, section_key: str, path: str, auth_info: tuple[str, str] | None, verify_ssl: bool,
         available_versions: list[str], response: requests.Response
 ) -> bool:
     """
@@ -297,7 +302,7 @@ def check_versions(
         version (str): Current version.
         section_key (str): Repository section key.
         path (str): Path to the dependency in the repository.
-        auth_info (tuple): Authentication credentials.
+        auth_info (tuple[str, str] | None): Authentication credentials.
         verify_ssl (bool): SSL verification flag.
         available_versions (list[str]): List of available versions.
         response (requests.Response): Repository response.
@@ -348,13 +353,13 @@ def check_versions(
 
 
 def get_pom_data(
-        auth_info: tuple, verify_ssl: bool, artifact: str, version: str, path: str
+        auth_info: tuple[str, str] | None, verify_ssl: bool, artifact: str, version: str, path: str
 ) -> tuple[bool, str | None]:
     """
     Retrieves POM file data from a repository.
 
     Args:
-        auth_info (tuple): Authentication credentials.
+        auth_info (tuple[str, str] | None): Authentication credentials.
         verify_ssl (bool): SSL verification flag.
         artifact (str): Artifact ID.
         version (str): Artifact version.
@@ -389,7 +394,7 @@ def get_pom_tree(
         ET.ElementTree: Parsed XML tree of the POM file.
     """
     if pom_path.startswith('http'):
-        auth_info = ()
+        auth_info: tuple[str, str] | None = None
         if _config.get_config_value(config, arguments, 'auth', 'pom_http'):
             auth_info = (
                 _config.get_config_value(config, arguments, 'user'),

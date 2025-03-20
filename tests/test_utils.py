@@ -7,7 +7,6 @@ import sys
 import xml.etree.ElementTree as ET
 
 import pytest
-from maven_check_versions.config import Arguments, Config
 # noinspection PyUnresolvedReferences
 from pytest_mock import mocker
 
@@ -20,6 +19,7 @@ from maven_check_versions.utils import (  # noqa: E402
     get_dependency_identifiers, fail_mode_if_required, resolve_version,
     get_version, check_versions, get_pom_data, get_pom_tree
 )
+from maven_check_versions.config import Arguments, Config
 
 ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}  # NOSONAR
 
@@ -125,8 +125,8 @@ def test_get_dependency_identifiers():
         <version>1.0</version>
     </dependency>
     """.lstrip())
-    artifact, group = get_dependency_identifiers(dependency, ns_mappings)
-    assert artifact == 'artifactId' and group == 'groupId'
+    group, artifact = get_dependency_identifiers(dependency, ns_mappings)
+    assert group == 'groupId' and artifact == 'artifactId'
 
 
 # noinspection PyShadowingNames

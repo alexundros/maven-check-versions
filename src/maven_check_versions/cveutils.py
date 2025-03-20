@@ -21,16 +21,16 @@ class Vulnerability:
     Vulnerability.
     """
     id: str  # NOSONAR # noqa: A003,VNE003
-    displayName: str = None  # NOSONAR # noqa: N815
-    title: str = None  # NOSONAR
-    description: str = None  # NOSONAR
-    cvssScore: float = None  # NOSONAR # noqa: N815
-    cvssVector: str = None  # NOSONAR # noqa: N815
-    cve: str = None  # NOSONAR
-    cwe: str = None  # NOSONAR
-    reference: str = None  # NOSONAR
-    externalReferences: list[str] = ()  # NOSONAR # noqa: N815
-    versionRanges: list[str] = ()  # NOSONAR # noqa: N815
+    displayName: str | None = None  # NOSONAR # noqa: N815
+    title: str | None = None  # NOSONAR
+    description: str | None = None  # NOSONAR
+    cvssScore: float | None = None  # NOSONAR # noqa: N815
+    cvssVector: str | None = None  # NOSONAR # noqa: N815
+    cve: str | None = None  # NOSONAR
+    cwe: str | None = None  # NOSONAR
+    reference: str | None = None  # NOSONAR
+    externalReferences: list | None = None  # NOSONAR # noqa: N815
+    versionRanges: list | None = None  # NOSONAR # noqa: N815
 
 
 def get_cve_data(  # pragma: no cover
@@ -116,9 +116,9 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:
     if skip := _config.get_config_value(config, arguments, 'skip-checks', 'vulnerability'):
         combined = '(' + ')|('.join(skip) + ')'
 
-    result = []
+    result: list = []
     for dependency in dependencies:
-        (artifact, group) = _utils.get_dependency_identifiers(dependency, ns_mapping)
+        (group, artifact) = _utils.get_dependency_identifiers(dependency, ns_mapping)
         (version, _) = _utils.get_version(config, arguments, ns_mapping, root, dependency)
 
         if skip_no_versions and re.match('^\\${[^}]+}$', version):
