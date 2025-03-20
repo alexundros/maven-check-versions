@@ -6,6 +6,7 @@ import os
 import sys
 from pathlib import PurePath
 
+from maven_check_versions.config import Config, Arguments
 # noinspection PyUnresolvedReferences
 from pytest_mock import mocker
 
@@ -23,7 +24,7 @@ from maven_check_versions.logutils import (  # noqa: E402
 def test_configure_logging(mocker):
     mock_logging = mocker.patch('logging.basicConfig')
     mocker.patch('builtins.open', mocker.mock_open(read_data='{}'))
-    configure_logging({'logfile_off': False})
+    configure_logging(Arguments({'logfile_off': False}))
     mock_logging.assert_called_once_with(
         level=logging.INFO, handlers=[mocker.ANY, mocker.ANY],
         format='%(asctime)s %(levelname)s: %(message)s'
@@ -38,26 +39,26 @@ def test_configure_logging(mocker):
 # noinspection PyShadowingNames
 def test_log_skip_if_required(mocker):
     mock_logging = mocker.patch('logging.warning')
-    args = {'show_skip': True}
-    log_skip_if_required({}, args, 'group', 'artifact', '1.0')
+    args = Arguments({'show_skip': True})
+    log_skip_if_required(Config(), args, 'group', 'artifact', '1.0')
     mock_logging.assert_called_once_with("Skip: group:artifact:1.0")
 
 
 # noinspection PyShadowingNames
 def test_log_search_if_required(mocker):
-    args = {'show_search': True}
+    args = Arguments({'show_search': True})
     mock_logging = mocker.patch('logging.warning')
-    log_search_if_required({}, args, 'group', 'artifact', '${version}')
+    log_search_if_required(Config(), args, 'group', 'artifact', '${version}')
     mock_logging.assert_called_once_with("Search: group:artifact:${version}")
 
     mock_logging = mocker.patch('logging.info')
-    log_search_if_required({}, args, 'group', 'artifact', '1.0')
+    log_search_if_required(Config(), args, 'group', 'artifact', '1.0')
     mock_logging.assert_called_once_with("Search: group:artifact:1.0")
 
 
 # noinspection PyShadowingNames
 def test_log_invalid_if_required(mocker):
     mock_logging = mocker.patch('logging.warning')
-    args = {'show_invalid': True}
-    log_invalid_if_required({}, args, mocker.Mock(), 'group', 'artifact', '1.0', False)
+    args = Arguments({'show_invalid': True})
+    log_invalid_if_required(Config(), args, mocker.Mock(), 'group', 'artifact', '1.0', False)
     mock_logging.assert_called_once_with("Invalid: group:artifact:1.0")

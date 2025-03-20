@@ -27,7 +27,7 @@ from maven_check_versions.logutils import (  # noqa: E402
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions.config import (  # noqa: E402
-    get_config_value, config_items
+    get_config_value, config_items, Arguments, Config
 )
 
 # noinspection PyUnresolvedReferences
@@ -48,23 +48,23 @@ def test_process_main(mocker, monkeypatch):
     mocker.patch('maven_check_versions.cache.load_cache', return_value={})
     mocker.patch('maven_check_versions.process.process_pom')
     mocker.patch('maven_check_versions.cache.save_cache')
-    process_main({'pom_file': 'pom.xml'})
+    process_main(Arguments({'pom_file': 'pom.xml'}))
 
     mock_exists.side_effect = [False, False, True]
     mocker.patch('maven_check_versions.process.process_artifact')
-    process_main({'find_artifact': 'pom.xml'})
+    process_main(Arguments({'find_artifact': 'pom.xml'}))
 
     mock_exists.side_effect = [False, False, True]
     mock_config_items = mocker.patch('maven_check_versions.config.config_items')
     mock_config_items.return_value = [('key', 'pom.xml')]
-    process_main({})
+    process_main(Arguments())
 
 
 # noinspection PyShadowingNames
 def test_process_rest(mocker):
     def _service_rest():
         return process_rest(
-            {}, {}, {}, 'group', 'artifact', '1.0', 'section',
+            {}, Config(), Arguments(), 'group', 'artifact', '1.0', 'section',
             'repository', 'http://example.com/pom.pom', (), True  # NOSONAR
         )
 
@@ -92,15 +92,15 @@ def test_process_rest(mocker):
 
 # noinspection PyShadowingNames
 def test_process_repository(mocker):
-    config = {
+    config = Config({
         'section': {
             'base': 'https://repo1.maven.org',
             'path': 'maven2',
             'repo': 'maven-central',
             'service_rest': True,
             'auth': True,
-        }}
-    args = {'user': 'user', 'password': 'pass'}  # NOSONAR
+        }})
+    args = Arguments({'user': 'user', 'password': 'pass'})  # NOSONAR
 
     def _process_repository():
         return process_repository(
@@ -135,7 +135,7 @@ def test_process_repository(mocker):
 
 # noinspection PyShadowingNames
 def test_process_repositories(mocker):
-    config = {
+    config = Config({
         'repositories': {
             'repo1': 'maven-central',
             'repo2': 'custom-repo',
@@ -148,24 +148,24 @@ def test_process_repositories(mocker):
             'base': 'https://custom.repo',
             'path': 'maven2',
         }
-    }
+    })
     mock_process_repository = mocker.patch('maven_check_versions.process.process_repository')
     mock_process_repository.return_value = True
-    assert process_repositories('artifact', {}, config, 'group', {}, True, '1.0')
+    assert process_repositories('artifact', {}, config, 'group', Arguments(), True, '1.0')
 
-    config = {'repositories': {}, }
-    assert not process_repositories('artifact', {}, config, 'group', {}, True, '1.0')
+    config = Config({'repositories': {}})
+    assert not process_repositories('artifact', {}, config, 'group', Arguments(), True, '1.0')
 
 
 # noinspection PyShadowingNames
 def test_process_modules_if_required(mocker):
-    config = {
+    config = Config({
         'base': {
             'process_modules': True,
             'threading': True,
             'max_threads': 1
         }
-    }
+    })
     root = ET.fromstring("""
     <?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0">
@@ -177,18 +177,18 @@ def test_process_modules_if_required(mocker):
     """.lstrip())
     mocker.patch('os.path.exists', return_value=True)
     mock_process_pom = mocker.patch('maven_check_versions.process.process_pom')
-    process_modules_if_required({}, config, {}, root, 'pom.xml', ns_mappings)
+    process_modules_if_required({}, config, Arguments(), root, 'pom.xml', ns_mappings)
     assert mock_process_pom.call_count == 2
 
     config['base']['threading'] = False
     mock_process_pom = mocker.patch('maven_check_versions.process.process_pom')
-    process_modules_if_required({}, config, {}, root, 'pom.xml', ns_mappings)
+    process_modules_if_required({}, config, Arguments(), root, 'pom.xml', ns_mappings)
     assert mock_process_pom.call_count == 2
 
 
 # noinspection PyShadowingNames
 def test_process_artifact(mocker):
-    config = {
+    config = Config({
         'base': {
             'show_search': 'true',
         },
@@ -204,28 +204,28 @@ def test_process_artifact(mocker):
             'base': 'https://custom.repo',
             'path': 'maven2',
         }
-    }
+    })
     mock_logging = mocker.patch('logging.info')
     mock_process_repository = mocker.patch('maven_check_versions.process.process_repository')
     mock_process_repository.return_value = True
-    process_artifact(None, config, {}, 'group:artifact:1.0')
+    process_artifact(None, config, Arguments(), 'group:artifact:1.0')
     mock_logging.assert_called_once_with('Search: group:artifact:1.0')
     mock_process_repository.assert_called_once()
 
     mock_logging = mocker.patch('logging.warning')
     mock_process_repository.return_value = False
-    process_artifact(None, config, {}, 'group:artifact:1.0')
+    process_artifact(None, config, Arguments(), 'group:artifact:1.0')
     mock_logging.assert_called_once_with('Not Found: group:artifact, current:1.0')
 
 
 # noinspection PyShadowingNames
 def test_process_dependency(mocker):
-    config = {
+    config = Config({
         'base': {
             'empty_version': 'true',
             'show_skip': 'true',
         }
-    }
+    })
     root = ET.fromstring("""
         <?xml version="1.0" encoding="UTF-8"?>
         <project xmlns="http://maven.apache.org/POM/4.0.0">
@@ -238,11 +238,11 @@ def test_process_dependency(mocker):
             </dependencies>
         </project>
         """.lstrip())
-    dependencies = collect_dependencies(root, ns_mappings, config, {})
+    dependencies = collect_dependencies(root, ns_mappings, config, Arguments())
 
     def _process_dependencies(data: dict | None = None) -> None:
         for dep in dependencies:
-            process_dependency(data, config, {}, dep, ns_mappings, root, True)
+            process_dependency(data, config, Arguments(), dep, ns_mappings, root, True)
 
     mock_gdi = mocker.patch('maven_check_versions.utils.get_dependency_identifiers')
     mock_gdi.return_value = ('artifact', None)
@@ -286,18 +286,18 @@ def test_process_pom(mocker):
     """))
     mock_pd = mocker.patch('maven_check_versions.process.process_dependency')
     mock_pm = mocker.patch('maven_check_versions.process.process_modules_if_required')
-    config = {
+    config = Config({
         'base': {
             'threading': True,
             'max_threads': 4
         }
-    }
-    process_pom({}, config, {}, 'pom.xml', 'prefix')
+    })
+    process_pom({}, config, Arguments(), 'pom.xml', 'prefix')
     mock_get_pom_tree.assert_called_once()
     mock_pd.assert_called_once()
     mock_pm.assert_called_once()
 
     config['base']['threading'] = False
     mock_pd = mocker.patch('maven_check_versions.process.process_dependency')
-    process_pom({}, config, {}, 'pom.xml', 'prefix')
+    process_pom({}, config, Arguments(), 'pom.xml', 'prefix')
     mock_pd.assert_called_once()

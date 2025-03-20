@@ -13,14 +13,15 @@ import maven_check_versions.cache as _cache
 import maven_check_versions.config as _config
 import maven_check_versions.logutils as _logutils
 import requests
+from maven_check_versions.config import Config, Arguments
 
 
-def parse_command_line() -> dict:
+def parse_command_line() -> Arguments:
     """
     Parses command-line arguments.
 
     Returns:
-        dict: Dictionary with parsed command-line arguments.
+        Arguments: Dictionary with parsed command-line arguments.
     """
     argument_parser = ArgumentParser(prog='maven_check_versions')
     add_general_args(argument_parser)
@@ -30,7 +31,7 @@ def parse_command_line() -> dict:
     add_search_args(argument_parser)
     add_auth_args(argument_parser)
     add_threading_args(argument_parser)
-    return vars(argument_parser.parse_args())
+    return Arguments(vars(argument_parser.parse_args()))
 
 
 def add_general_args(argument_parser: ArgumentParser) -> None:
@@ -153,7 +154,7 @@ def get_artifact_name(root: ET.Element, ns_mapping: dict) -> str:
 
 
 def collect_dependencies(
-        root: ET.Element, ns_mapping: dict, config: dict, arguments: dict
+        root: ET.Element, ns_mapping: dict, config: Config, arguments: Arguments
 ) -> list:
     """
     Collects dependencies from a POM file.
@@ -161,8 +162,8 @@ def collect_dependencies(
     Args:
         root (ET.Element): Root element of the POM file.
         ns_mapping (dict): XML namespace mapping.
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
 
     Returns:
         list: List of dependency elements.
@@ -192,20 +193,21 @@ def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tupl
 
 
 def fail_mode_if_required(
-        config: dict, current_major_version: int, current_minor_version: int, item: str,
-        major_version_threshold: int, minor_version_threshold: int, arguments: dict, version: str
+        config: Config, current_major_version: int, current_minor_version: int, item: str,
+        major_version_threshold: int, minor_version_threshold: int, arguments: Arguments,
+        version: str
 ) -> None:
     """
     Checks fail mode and raises an exception if version exceeds thresholds.
 
     Args:
-        config (dict): Parsed YAML as dict.
+        config (Config): Parsed YAML as dict.
         current_major_version (int): Current major version.
         current_minor_version (int): Current minor version.
         item (str): Version to check.
         major_version_threshold (int): Major version threshold for failure.
         minor_version_threshold (int): Minor version threshold for failure.
-        arguments (dict): Command-line arguments.
+        arguments (Arguments): Command-line arguments.
         version (str): Current artifact version.
     """
     if _config.get_config_value(config, arguments, 'fail_mode'):
@@ -242,15 +244,15 @@ def resolve_version(version: str, root: ET.Element, ns_mapping: dict) -> str:
 
 
 def get_version(
-        config: dict, arguments: dict, ns_mapping: dict, root: ET.Element,
+        config: Config, arguments: Arguments, ns_mapping: dict, root: ET.Element,
         dependency: ET.Element
 ) -> tuple[str | None, bool]:
     """
     Extracts version information from a dependency.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         ns_mapping (dict): XML namespace mapping.
         root (ET.Element): Root element of the POM file.
         dependency (ET.Element): Dependency element.
@@ -279,8 +281,8 @@ def get_version(
 
 
 def check_versions(
-        cache_data: dict | None, config: dict, arguments: dict, group: str,
-        artifact: str, version: str, section_key: str, path: str, auth_info: tuple, verify_ssl: bool,
+        cache_data: dict | None, config: Config, arguments: Arguments, group: str, artifact: str,
+        version: str, section_key: str, path: str, auth_info: tuple, verify_ssl: bool,
         available_versions: list[str], response: requests.Response
 ) -> bool:
     """
@@ -288,8 +290,8 @@ def check_versions(
 
     Args:
         cache_data (dict | None): Cache data.
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
         version (str): Current version.
@@ -372,7 +374,7 @@ def get_pom_data(
 
 
 def get_pom_tree(
-        pom_path: str, verify_ssl: bool, config: dict, arguments: dict
+        pom_path: str, verify_ssl: bool, config: Config, arguments: Arguments
 ) -> ET.ElementTree:
     """
     Loads the XML tree of a POM file.
@@ -380,8 +382,8 @@ def get_pom_tree(
     Args:
         pom_path (str): Path or URL to the POM file.
         verify_ssl (bool): SSL verification flag.
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
 
     Returns:
         ET.ElementTree: Parsed XML tree of the POM file.

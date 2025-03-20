@@ -11,6 +11,7 @@ import maven_check_versions.config as _config
 import maven_check_versions.utils as _utils
 import requests
 from maven_check_versions.cache import save_cache, load_cache
+from maven_check_versions.config import Config, Arguments
 from requests.auth import HTTPBasicAuth
 
 
@@ -33,15 +34,15 @@ class Vulnerability:
 
 
 def get_cve_data(  # pragma: no cover
-        config: dict, arguments: dict, dependencies: list[ET.Element], root: ET.Element,
-        ns_mapping: dict
+        config: Config, arguments: Arguments, dependencies: list[ET.Element],
+        root: ET.Element, ns_mapping: dict
 ) -> dict[str, list[Vulnerability]]:
     """
     Get CVE data for dependencies.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         dependencies (list[ET.Element]): Dependencies.
         root (ET.Element): Root element of the POM file.
         ns_mapping (dict): XML namespace mapping.
@@ -69,13 +70,15 @@ def get_cve_data(  # pragma: no cover
     return result
 
 
-def log_vulnerability(config, arguments, group, artifact, version, cve_data) -> None:  # pragma: no cover
+def log_vulnerability(  # pragma: no cover
+        config: Config, arguments: Arguments, group, artifact, version, cve_data
+) -> None:
     """
     Log vulnerability.
 
     Args:
         config (Config): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
         version (str): Dependency version.
@@ -98,8 +101,8 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:
     Get Coordinates.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         dependencies (list[ET.Element]): Dependencies.
         root (ET.Element): Root element of the POM file.
         ns_mapping (dict): XML namespace mapping.
@@ -126,13 +129,13 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:
     return result
 
 
-def _oss_index_config(config: dict, arguments: dict) -> tuple:  # pragma: no cover
+def _oss_index_config(config: Config, arguments: Arguments) -> tuple:  # pragma: no cover
     """
     Get OSS Index parameters.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
 
     Returns:
         tuple: OSS Index parameters.
@@ -151,14 +154,14 @@ def _oss_index_config(config: dict, arguments: dict) -> tuple:  # pragma: no cov
 
 
 def _fetch_cve_data(  # pragma: no cover
-        config: dict, arguments: dict, coordinates: list[str]
+        config: Config, arguments: Arguments, coordinates: list[str]
 ) -> dict[str, list[Vulnerability]]:
     """
     Get CVE data for coordinates.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         coordinates (list[str]): Coordinates.
 
     Returns:

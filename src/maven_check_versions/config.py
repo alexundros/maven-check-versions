@@ -4,21 +4,32 @@
 import logging
 import os
 from pathlib import Path
+from typing import Dict
 
 import yaml
 
 
-def get_config(arguments: dict) -> dict:
+class Config(Dict):
+    """Wrapper for Config"""
+    pass
+
+
+class Arguments(Dict):
+    """Wrapper for Arguments"""
+    pass
+
+
+def get_config(arguments: Arguments) -> Config:
     """
     Get config parser for YAML configuration.
 
     Args:
-        arguments (dict): Command-line arguments.
+        arguments (Arguments): Command-line arguments.
 
     Returns:
         dict: Parsed YAML as dict.
     """
-    config = {}
+    config = Config()
     if (config_file := arguments.get('config_file')) is None:
         config_file = 'maven_check_versions.yml'
         if not os.path.exists(config_file):
@@ -33,14 +44,14 @@ def get_config(arguments: dict) -> dict:
 
 
 def get_config_value(
-        config: dict, arguments: dict, key: str, section: str = 'base', default: any = None
+        config: Config, arguments: Arguments, key: str, section: str = 'base', default: any = None
 ) -> any:
     """
     Get configuration value with optional type conversion.
 
     Args:
-        config (dict): Parsed YAML as dict.
-        arguments (dict): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        arguments (Arguments): Command-line arguments.
         key (str): Configuration key.
         section (str, optional): Configuration section (default is 'base').
         default (any, optional): Default value.
@@ -63,12 +74,12 @@ def get_config_value(
     return default if value is None else value
 
 
-def config_items(config: dict, section: str) -> list[tuple[str, str]]:
+def config_items(config: Config, section: str) -> list[tuple[str, str]]:
     """
     Retrieves all items from a configuration section.
 
     Args:
-        config (dict): Parsed YAML as dict.
+        config (Config): Parsed YAML as dict.
         section (str): Section name.
 
     Returns:
