@@ -63,15 +63,13 @@ def get_config_value(
     if section == 'base' and key in arguments:
         value = arguments.get(key)
         env_key = 'CV_' + key.upper()
-        if env_key in os.environ:
-            if value := os.environ.get(env_key):
-                if value.lower() == 'true':
-                    value = True
-                elif value.lower() == 'false':
-                    value = False
-    if value is None and section in config:
-        if get := config.get(section):
-            value = get.get(key)
+        if env_key in os.environ and (get := os.environ.get(env_key)):
+            if get.lower() == 'true':
+                value = True
+            elif get.lower() == 'false':
+                value = False
+    if value is None and section in config and (get := config.get(section)):
+        value = get.get(key)
     return default if value is None else value
 
 
