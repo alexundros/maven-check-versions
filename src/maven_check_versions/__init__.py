@@ -24,7 +24,7 @@ def main() -> None:
         start_time = time.time()
         arguments = _utils.parse_command_line()
         _logutils.configure_logging(arguments)
-        ci_mode_enabled = arguments.get('ci_mode')
+        ci_mode_enabled = arguments.get('ci_mode')  # type: ignore
 
         _process.process_main(arguments)
 

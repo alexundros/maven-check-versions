@@ -71,7 +71,8 @@ def get_cve_data(  # pragma: no cover
 
 
 def log_vulnerability(  # pragma: no cover
-        config: Config, arguments: Arguments, group, artifact, version, cve_data
+        config: Config, arguments: Arguments, group: str, artifact: str, version: str | None,
+        cve_data: dict[str, list[Vulnerability]] | None
 ) -> None:
     """
     Log vulnerability.
@@ -81,8 +82,8 @@ def log_vulnerability(  # pragma: no cover
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
-        version (str): Dependency version.
-        cve_data (dict[str, list[Vulnerability]]): CVE Data.
+        version (str | None): Dependency version.
+        cve_data (dict[str, list[Vulnerability]] | None): CVE Data.
     """
     fail_score = _config.get_config_value(config, arguments, 'fail-score', 'vulnerability', default=0)
 
@@ -121,7 +122,7 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:
         (group, artifact) = _utils.get_dependency_identifiers(dependency, ns_mapping)
         (version, _) = _utils.get_version(config, arguments, ns_mapping, root, dependency)
 
-        if skip_no_versions and re.match('^\\${[^}]+}$', version):
+        if skip_no_versions and version and re.match('^\\${[^}]+}$', version):
             continue
         if combined is None or not re.match(combined, f"{group}:{artifact}:{version}"):
             list.append(result, f"pkg:maven/{group}/{artifact}@{version}")

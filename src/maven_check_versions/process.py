@@ -136,7 +136,7 @@ def process_dependency(
 
 def process_repositories(
         artifact: str, cache_data: dict | None, config: Config, group: str,
-        arguments: Arguments, verify_ssl: bool, version: str
+        arguments: Arguments, verify_ssl: bool, version: str | None
 ):
     """
     Processes repositories to find a dependency.
@@ -148,7 +148,7 @@ def process_repositories(
         group (str): Group ID.
         arguments (Arguments): Command-line arguments.
         verify_ssl (bool): SSL verification flag.
-        version (str): Dependency version.
+        version (str | None): Dependency version.
 
     Returns:
         bool: True if the dependency is found, False otherwise.
@@ -230,7 +230,7 @@ def process_artifact(
 
 def process_repository(
         cache_data: dict | None, config: Config, arguments: Arguments, group: str, artifact: str,
-        version: str, section_key: str, repository_section: str, verify_ssl: bool
+        version: str | None, section_key: str, repository_section: str, verify_ssl: bool
 ) -> bool:
     """
     Processes a repository section.
@@ -241,7 +241,7 @@ def process_repository(
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
-        version (str): Artifact version.
+        version (str | None): Artifact version.
         section_key (str): Repository section key.
         repository_section (str): Repository section name.
         verify_ssl (bool): SSL verification flag.
@@ -288,7 +288,7 @@ def process_repository(
 
 def process_rest(
         cache_data: dict | None, config: Config, arguments: Arguments, group: str, artifact: str,
-        version: str, section_key: str, repository_section: str, base_url: str,
+        version: str | None, section_key: str, repository_section: str, base_url: str,
         auth_info: tuple[str, str] | None, verify_ssl: bool
 ) -> bool:
     """
@@ -300,7 +300,7 @@ def process_rest(
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
-        version (str): Artifact version.
+        version (str | None): Artifact version.
         section_key (str): Repository section key.
         repository_section (str): Repository section name.
         base_url (str): Base URL of the repository.
@@ -331,7 +331,7 @@ def process_rest(
 
     if response.status_code == 200:
         html_content = BeautifulSoup(response.text, 'html.parser')
-        version_links = html_content.find('table').find_all('a')
+        version_links = html_content.find('table').find_all('a')  # type: ignore
         available_versions = list(map(lambda v: v.text, version_links))
         path = f"{base_url}/repository/{repository_name}/{group.replace('.', '/')}/{artifact}"
 

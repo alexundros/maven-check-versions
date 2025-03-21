@@ -334,7 +334,8 @@ def _save_cache_memcached(config: Config, arguments: Arguments, cache_data: dict
 
 
 def process_cache_artifact(
-        config: Config, arguments: Arguments, cache_data: dict | None, artifact: str, group: str, version: str
+        config: Config, arguments: Arguments, cache_data: dict | None, artifact: str, group: str,
+        version: str | None
 ) -> bool:
     """
     Processes cached data for artifact.
@@ -345,7 +346,7 @@ def process_cache_artifact(
         cache_data (dict | None): Cache data for dependencies.
         artifact (str): Artifact ID of the dependency.
         group (str): Group ID of the dependency.
-        version (str): Version of the dependency.
+        version (str | None): Version of the dependency.
 
     Returns:
         bool: True if the cache is valid and up-to-date, False otherwise.

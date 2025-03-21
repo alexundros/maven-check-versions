@@ -199,7 +199,7 @@ def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tupl
 def fail_mode_if_required(
         config: Config, current_major_version: int, current_minor_version: int, item: str,
         major_version_threshold: int, minor_version_threshold: int, arguments: Arguments,
-        version: str
+        version: str | None
 ) -> None:
     """
     Checks fail mode and raises an exception if version exceeds thresholds.
@@ -212,7 +212,7 @@ def fail_mode_if_required(
         major_version_threshold (int): Major version threshold for failure.
         minor_version_threshold (int): Minor version threshold for failure.
         arguments (Arguments): Command-line arguments.
-        version (str): Current artifact version.
+        version (str | None): Current artifact version.
     """
     if _config.get_config_value(config, arguments, 'fail_mode'):
         item_major_version = 0
@@ -278,7 +278,7 @@ def get_version(
             project_version_text = str(project_version.text) if project_version is not None else ''
             version_text = resolve_version(project_version_text, root, ns_mapping)
 
-        if re.match('^\\${([^}]+)}$', version_text):
+        if version_text and re.match('^\\${([^}]+)}$', version_text):
             if not _config.get_config_value(config, arguments, 'empty_version'):
                 return version_text, True
 
@@ -287,7 +287,7 @@ def get_version(
 
 def check_versions(
         cache_data: dict | None, config: Config, arguments: Arguments, group: str, artifact: str,
-        version: str, section_key: str, path: str, auth_info: tuple[str, str] | None, verify_ssl: bool,
+        version: str | None, section_key: str, path: str, auth_info: tuple[str, str] | None, verify_ssl: bool,
         available_versions: list[str], response: requests.Response
 ) -> bool:
     """
@@ -299,7 +299,7 @@ def check_versions(
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
-        version (str): Current version.
+        version (str | None): Current version.
         section_key (str): Repository section key.
         path (str): Path to the dependency in the repository.
         auth_info (tuple[str, str] | None): Authentication credentials.
@@ -320,7 +320,7 @@ def check_versions(
         major_threshold = int(_config.get_config_value(config, arguments, 'fail_major'))
         minor_threshold = int(_config.get_config_value(config, arguments, 'fail_minor'))
 
-        if version_match := re.match('^(\\d+)\\.(\\d+).?', version):
+        if version and (version_match := re.match('^(\\d+)\\.(\\d+).?', version)):
             current_major, current_minor = int(version_match.group(1)), int(version_match.group(2))
 
     skip_current = _config.get_config_value(config, arguments, 'skip_current')
