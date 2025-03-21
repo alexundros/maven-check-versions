@@ -63,14 +63,13 @@ def get_config_value(
     if section == 'base' and key in arguments:
         value = arguments.get(key)
         env_key = 'CV_' + key.upper()
-        if env_key in os.environ:
-            value = os.environ.get(env_key)
-            if value.lower() == 'true':
+        if env_key in os.environ and (get := os.environ.get(env_key)):
+            if get.lower() == 'true':
                 value = True
-            elif value.lower() == 'false':
+            elif get.lower() == 'false':
                 value = False
-    if value is None and section in config:
-        value = config.get(section).get(key)
+    if value is None and section in config and (get := config.get(section)):
+        value = get.get(key)
     return default if value is None else value
 
 
@@ -85,7 +84,4 @@ def config_items(config: Config, section: str) -> list[tuple[str, str]]:
     Returns:
         list[tuple[str, str]]: List of key-value pair tuples.
     """
-    try:
-        return list(config.get(section).items())
-    except (AttributeError, KeyError):
-        return []
+    return list(get.items()) if (get := config.get(section)) else []

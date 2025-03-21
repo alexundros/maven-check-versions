@@ -11,6 +11,18 @@ import requests
 from maven_check_versions.config import Config, Arguments
 
 
+class Formatter(logging.Formatter):
+    """
+    Formatter with microseconds.
+    """
+
+    def formatTime(self, record, datefmt=None):  # pragma: no cover # noqa: N802
+        """
+        Time formatter.
+        """
+        return datetime.datetime.fromtimestamp(record.created)
+
+
 def configure_logging(arguments: Arguments) -> None:
     """
     Configures logging.
@@ -18,22 +30,23 @@ def configure_logging(arguments: Arguments) -> None:
     Args:
         arguments (Arguments): Command-line arguments.
     """
-    handlers = [logging.StreamHandler(sys.stdout)]
+    frm = '%(asctime)s %(levelname)s: %(message)s'
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.formatter = Formatter(fmt=frm)
+    handlers: list = [stream_handler]
 
     if not arguments.get('logfile_off'):
         if (log_file_path := arguments.get('log_file')) is None:
             log_file_path = 'maven_check_versions.log'
-        handlers.append(logging.FileHandler(log_file_path, 'w'))
+        file_handler = logging.FileHandler(log_file_path, 'w')
+        file_handler.formatter = Formatter(fmt=frm)
+        handlers.append(file_handler)
 
-    logging.Formatter.formatTime = lambda self, record, fmt=None: \
-        datetime.datetime.fromtimestamp(record.created)
-
-    frm = '%(asctime)s %(levelname)s: %(message)s'
-    logging.basicConfig(level=logging.INFO, handlers=handlers, format=frm)  # NOSONAR
+    logging.basicConfig(level=logging.INFO, handlers=handlers)
 
 
 def log_skip_if_required(
-        config: Config, arguments: Arguments, group: str, artifact: str, version: str
+        config: Config, arguments: Arguments, group: str, artifact: str, version: str | None
 ) -> None:
     """
     Logs a skipped dependency if required.
@@ -43,14 +56,14 @@ def log_skip_if_required(
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
-        version (str): Dependency version.
+        version (str | None): Dependency version.
     """
     if _config.get_config_value(config, arguments, 'show_skip'):
         logging.warning(f"Skip: {group}:{artifact}:{version}")
 
 
 def log_search_if_required(
-        config: Config, arguments: Arguments, group: str, artifact: str, version: str
+        config: Config, arguments: Arguments, group: str, artifact: str, version: str | None
 ) -> None:
     """
     Logs a dependency search action if required.
@@ -60,7 +73,7 @@ def log_search_if_required(
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
-        version (str): Dependency version (Maybe None or a placeholder).
+        version (str | None): Dependency version (Maybe None or a placeholder).
     """
     if _config.get_config_value(config, arguments, 'show_search'):
         if version is None or re.match('^\\${([^}]+)}$', version):

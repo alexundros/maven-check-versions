@@ -92,6 +92,8 @@ def test_process_cache_artifact(mocker):
     assert process_cache_artifact(config, Arguments({'cache_time': 0}), data, 'artifact', 'group', '1.1')
     mock.assert_called_once_with('*key: group:artifact, current:1.1 versions: 1.0, 1.1 updated: 23.01.2025')
 
+    assert not process_cache_artifact(config, Arguments(), {}, 'artifact', 'group', '1.1')
+
 
 def test_update_cache_artifact():
     cache_data = {}

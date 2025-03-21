@@ -250,7 +250,7 @@ def test_process_dependency(mocker):
     _process_dependencies()
     mock_logging.assert_called_once()
 
-    mock_gdi.return_value = ('artifact', 'group')
+    mock_gdi.return_value = ('group', 'artifact')
     mock_get_version = mocker.patch('maven_check_versions.utils.get_version')
     mock_get_version.return_value = ('1.0', True)
     mock_logging = mocker.patch('logging.warning')
