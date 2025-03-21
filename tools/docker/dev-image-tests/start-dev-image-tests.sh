@@ -4,6 +4,7 @@ cd "$(dirname "$0")" || exit 1
 test() {
   nm="tests-maven-check-versions_$(date +%Y-%m-%d_%H%M%S)"
   docker run "$1" --rm --name "$nm" maven-check-versions:dev "$2"
+  docker run "$1" --rm --name "${nm}_pypy" maven-check-versions:dev_pypy "$2"
 }
 
 cn="maven_check_versions.yml"

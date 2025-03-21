@@ -31,5 +31,15 @@ jobs:
           push: true
           tags: ${{ env.IMAGE_NAME }}
 
+      - name: Build and push to local registry (pypy)
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          file: ./pypy.Dockerfile
+          tags: ${{ env.IMAGE_NAME }}:pypy
+
       - name: Inspect
         run: docker buildx imagetools inspect ${{ env.IMAGE_NAME }}
+
+      - name: Inspect (pypy)
+        run: docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:pypy

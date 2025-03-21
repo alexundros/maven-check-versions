@@ -40,16 +40,25 @@ jobs:
         run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
-        id: push
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
-          context: .
           push: true
           tags: |
             ghcr.io/alexundros/maven-check-versions:latest
             ghcr.io/alexundros/maven-check-versions:${{ steps.version.outputs.version }}
             alexundros/maven-check-versions:latest
             alexundros/maven-check-versions:${{ steps.version.outputs.version }}
+
+      - name: Build and push Docker image (pypy)
+        uses: docker/build-push-action@v6
+        with:
+          file: ./pypy.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/alexundros/maven-check-versions:pypy
+            ghcr.io/alexundros/maven-check-versions:${{ steps.version.outputs.version }}-pypy
+            alexundros/maven-check-versions:pypy
+            alexundros/maven-check-versions:${{ steps.version.outputs.version }}-pypy
 
       # Only if 2FA is disabled and the token has full access
       - name: Docker Hub Description

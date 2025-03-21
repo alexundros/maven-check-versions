@@ -32,6 +32,12 @@ Pull image:
 docker pull alexundros/maven-check-versions
 ```
 
+Pull image based on pypy:
+
+```bash
+docker pull alexundros/maven-check-versions:pypy
+```
+
 ## Usage
 
 - Analyze a specific pom file:

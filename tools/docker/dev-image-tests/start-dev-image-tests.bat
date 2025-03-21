@@ -8,6 +8,7 @@ goto :start
   set nm="tests-maven-check-versions %date% %time:~0,8%"
   (set nm=!nm: =_!) & (set nm=!nm:.=!) & (set nm=!nm::=!)
   docker run %~1 --rm --name %nm% maven-check-versions:dev %~2
+  docker run %~1 --rm --name "%nm%_pypy" maven-check-versions:dev_pypy %~2
 exit /b
 
 :start
