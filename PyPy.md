@@ -165,17 +165,17 @@ Depending on the selected cache backend, additional command-line arguments may b
 
 ### Performance Options
 
-| Parameter      | Short | Description                                                                 | Example           |
-|----------------|-------|-----------------------------------------------------------------------------|-------------------|
-| `--threading`  | `-th` | Enables multi-threading to process dependencies and modules concurrently.   | `--threading`     |
-| `--max_threads`| `-mt` | Specifies the maximum number of threads to use when threading is enabled.   | `--max_threads 8` |
+| Parameter      | Short | Description                                                               | Example           |
+|----------------|-------|---------------------------------------------------------------------------|-------------------|
+| `--threading`  | `-th` | Enables multi-threading to process dependencies and modules concurrently. | `--threading`     |
+| `--max_threads`| `-mt` | Specifies the maximum number of threads to use when threading is enabled. | `--max_threads 8` |
 
 ### Authentication
 
-| Parameter    | Short | Description                                                                 | Example                  |
-|--------------|-------|-----------------------------------------------------------------------------|--------------------------|
-| `--user`     | `-un` | Specifies a username for basic authentication when accessing repositories.  | `--user my_username`     |
-| `--password` | `-up` | Specifies a password for basic authentication when accessing repositories.  | `--password my_password` |
+| Parameter    | Short | Description                                                                | Example                  |
+|--------------|-------|----------------------------------------------------------------------------|--------------------------|
+| `--user`     | `-un` | Specifies a username for basic authentication when accessing repositories. | `--user my_username`     |
+| `--password` | `-up` | Specifies a password for basic authentication when accessing repositories. | `--password my_password` |
 
 ---
 
@@ -216,13 +216,13 @@ Vulnerability scanning will:
 vulnerability:
   oss_index_enabled: true
   oss_index_url: "https://ossindex.sonatype.org/api/v3/component-report"
-  oss_index_user: "OSS_INDEX_USER" 
+  oss_index_user: "OSS_INDEX_USER"
   oss_index_token: "OSS_INDEX_TOKEN"
   oss_index_batch_size: 128
   oss_index_keep_safe: false
-  fail-score: 7 
+  fail-score: 7
   skip-no-versions: false
-  skip-checks: ["junit:junit:4.*", "org.testng:*:*"]
+  skip-checks: ["junit:junit:*"]
   cache_backend: "json"
 ```
 
@@ -347,23 +347,23 @@ The tool supports environment variables to override configuration settings or pr
 ### Configuration Overrides
 These variables override settings from the `maven_check_versions.yml` file or command-line arguments. The format is `CV_<KEY>` where `<KEY>` corresponds to a configuration key in the `base` section (case-insensitive).
 
-| Variable            | Description                                                                 | Example Value |
-|---------------------|-----------------------------------------------------------------------------|---------------|
-| `CV_CACHE_OFF`      | Disables caching if set to `true`.                                          | `true`        |
-| `CV_CACHE_TIME`     | Sets cache expiration time in seconds.                                      | `3600`        |
-| `CV_FAIL_MODE`      | Enables fail mode if set to `true`.                                         | `true`        |
-| `CV_FAIL_MAJOR`     | Sets the major version threshold for failure.                               | `1`           |
-| `CV_FAIL_MINOR`     | Sets the minor version threshold for failure.                               | `2`           |
-| `CV_SEARCH_PLUGINS` | Enables searching plugins if set to `true`.                                 | `true`        |
-| `CV_PROCESS_MODULES`| Enables processing of modules if set to `true`.                             | `true`        |
-| `CV_SHOW_SKIP`      | Logs skipped dependencies if set to `true`.                                 | `true`        |
-| `CV_SHOW_SEARCH`    | Logs search actions if set to `true`.                                       | `true`        |
-| `CV_EMPTY_VERSION`  | Allows empty versions if set to `true`.                                     | `true`        |
-| `CV_SHOW_INVALID`   | Logs invalid dependencies if set to `true`.                                 | `true`        |
-| `CV_THREADING`      | Enables multi-threading if set to `true`.                                   | `true`        |
-| `CV_MAX_THREADS`    | Sets the maximum number of threads to use when threading is enabled.        | `8`           |
-| `CV_USER`           | Specifies the username for repository authentication.                       | `my_username` |
-| `CV_PASSWORD`       | Specifies the password for repository authentication.                       | `my_password` |
+| Variable            | Description                                                          | Example Value |
+|---------------------|----------------------------------------------------------------------|---------------|
+| `CV_CACHE_OFF`      | Disables caching if set to `true`.                                   | `true`        |
+| `CV_CACHE_TIME`     | Sets cache expiration time in seconds.                               | `3600`        |
+| `CV_FAIL_MODE`      | Enables fail mode if set to `true`.                                  | `true`        |
+| `CV_FAIL_MAJOR`     | Sets the major version threshold for failure.                        | `1`           |
+| `CV_FAIL_MINOR`     | Sets the minor version threshold for failure.                        | `2`           |
+| `CV_SEARCH_PLUGINS` | Enables searching plugins if set to `true`.                          | `true`        |
+| `CV_PROCESS_MODULES`| Enables processing of modules if set to `true`.                      | `true`        |
+| `CV_SHOW_SKIP`      | Logs skipped dependencies if set to `true`.                          | `true`        |
+| `CV_SHOW_SEARCH`    | Logs search actions if set to `true`.                                | `true`        |
+| `CV_EMPTY_VERSION`  | Allows empty versions if set to `true`.                              | `true`        |
+| `CV_SHOW_INVALID`   | Logs invalid dependencies if set to `true`.                          | `true`        |
+| `CV_THREADING`      | Enables multi-threading if set to `true`.                            | `true`        |
+| `CV_MAX_THREADS`    | Sets the maximum number of threads to use when threading is enabled. | `8`           |
+| `CV_USER`           | Specifies the username for repository authentication.                | `my_username` |
+| `CV_PASSWORD`       | Specifies the password for repository authentication.                | `my_password` |
 
 ### Usage Example
 
