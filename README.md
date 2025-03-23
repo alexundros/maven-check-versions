@@ -208,14 +208,14 @@ The tool supports multiple cache backends:
 - **Tarantool**: Uses a Tarantool server for caching.
 - **Memcached**: Uses a Memcached server for caching.
 
-## Vulnerability Checking Configuration
+### Vulnerability Checking Configuration
 
 To enable vulnerability checking, set `oss_index_enabled` to `true` in the `vulnerability` section of the configuration file. 
 This feature uses the OSS Index service to identify known vulnerabilities in your dependencies. 
 You will need to provide your OSS Index username and API token, which you can obtain by signing up for a free account at
 [https://ossindex.sonatype.org/](https://ossindex.sonatype.org/).
 
-### Example configuration:
+Example configuration:
 
 Vulnerability scanning will:
 1. Check all dependencies against OSS Index
@@ -236,7 +236,7 @@ vulnerability:
   cache_backend: "json"
 ```
 
-### Example configuration file
+### Configuration file
 
 maven_check_versions.yml:
 ```
