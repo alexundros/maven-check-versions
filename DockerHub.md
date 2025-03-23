@@ -66,6 +66,7 @@ docker run --rm alexundros/maven_check_versions -ci
 | `--ci_mode`       | `-ci` | Enables CI (Continuous Integration) mode. Suppresses prompts and waits for user input.          | `--ci_mode`                           |
 | `--pom_file`      | `-pf` | Specifies the path to the Maven POM file to process.                                            | `--pom_file path/to/pom.xml`          |
 | `--find_artifact` | `-fa` | Searches for a specific artifact. Provide the artifact in `groupId:artifactId:version` format.  | `--find_artifact com.example:lib:1.0` |
+| `--config_file`   | `-cfg`| Specifies a custom configuration file for the script.                                           | `--config_file config.yml`            |
 
 ### Cache Control
 
@@ -112,12 +113,6 @@ Depending on the selected cache backend, additional command-line arguments may b
 |-----------------|-------|-----------------------------------------------------------------------|-------------------------|
 | `--logfile_off` | `-lfo`| Disables logging to a file. Logs will only be shown in the terminal.  | `--logfile_off`         |
 | `--log_file`    | `-lf` | Specifies the path to a custom log file.                              | `--log_file my_log.log` |
-
-### Configuration Options
-
-| Parameter       | Short | Description                                             | Example                     |
-|-----------------|-------|---------------------------------------------------------|-----------------------------|
-| `--config_file` | `-cfg`| Specifies a custom configuration file for the script.   | `--config_file config.yml`  |
 
 ### Error Handling and Validation
 
@@ -190,48 +185,111 @@ The tool supports multiple cache backends:
 maven_check_versions.yml:
 ```
 base:
-  cache_off: false
-  cache_time: 600
-  cache_backend: redis
-  redis_host: redis
-  redis_port: 6379
-  redis_key: mycache
-  redis_user: user
-  redis_password: pass
-  fail_mode: false
-  fail_major: 0
-  fail_minor: 0
-  search_plugins: false
-  process_modules: false
-  show_skip: false
-  show_search: false
-  empty_version: false
-  show_invalid: false
-  skip_version: true
-  threading: false
-  max_threads: 8
-  user: "USER"
-  password: "PASSWORD"
+  cache_off: false        # Disables caching of version check results
+  cache_time: 600         # Cache expiration time in seconds (0 to disable expiration)
+  cache_backend: "json"   # Cache backend to use: json, redis, tarantool, memcached
 
+  # Redis cache backend settings
+  redis_host: "localhost"                           # Redis host
+  redis_port: 6379                                  # Redis port
+  redis_key: "maven_check_versions_artifacts"       # Key for storing data in Redis
+  redis_user: null                                  # Redis username (optional)
+  redis_password: null                              # Redis password (optional)
+
+  # Tarantool cache backend settings
+  tarantool_host: "localhost"                       # Tarantool host
+  tarantool_port: 3301                              # Tarantool port
+  tarantool_space: "maven_check_versions_artifacts" # Tarantool space
+  tarantool_user: null                              # Tarantool username (optional)
+  tarantool_password: null                          # Tarantool password (optional)
+
+  # Memcached cache backend settings
+  memcached_host: "localhost"                       # Memcached host
+  memcached_port: 11211                             # Memcached port
+  memcached_key: "maven_check_versions_artifacts"   # Key for storing data in Memcached
+
+  fail_mode: false        # Enables fail mode, terminating the script if version thresholds are exceeded
+  fail_major: 0           # Major version difference threshold for failure
+  fail_minor: 0           # Minor version difference threshold for failure
+
+  search_plugins: false   # Includes Maven plugins in the dependency search process
+  process_modules: false  # Processes modules listed in the POM file
+
+  show_skip: false        # Logs dependencies that are skipped during processing
+  show_search: false      # Logs information about search actions for dependencies
+
+  empty_version: false    # Allows processing of dependencies without a specified version
+  show_invalid: false     # Logs information about invalid dependencies
+  skip_version: true      # Skips version checks for dependencies matching the current version
+
+  threading: false        # Enables multi-threading for concurrent processing
+  max_threads: 8          # Maximum number of threads to use when threading is enabled
+
+  user: "USER"            # Username for basic authentication in repositories
+  password: "PASSWORD"    # Password for basic authentication in repositories
+
+# Configuration for vulnerability checks
+vulnerability:
+  oss_index_enabled: true                           # Enables OSS Index vulnerability checks
+  oss_index_url: "https://ossindex.sonatype.org/api/v3/component-report"  # OSS Index API URL
+  oss_index_user: "OSS_INDEX_USER"                  # OSS Index username
+  oss_index_token: "OSS_INDEX_TOKEN"                # OSS Index API token
+  oss_index_batch_size: 128                         # Batch size for OSS Index requests
+  oss_index_keep_safe: false                        # Keeps safe dependencies in the cache
+
+  fail-score: 0                                     # Fail if CVSS score exceeds this value
+  skip-no-versions: false                           # Skips dependencies without versions in vulnerability checks
+  skip-checks: []                                   # List of dependencies to skip in vulnerability checks
+                                                    # (e.g., ["group:artifact:version"])
+
+  cache_backend: "json"                             # Cache backend to use: json, redis, tarantool, memcached
+
+  # Redis cache backend settings for the vulnerability
+  redis_host: "localhost"                                 # Redis host
+  redis_port: 6379                                        # Redis port
+  redis_key: "maven_check_versions_vulnerabilities"       # Key for storing data in Redis
+  redis_user: null                                        # Redis username (optional)
+  redis_password: null                                    # Redis password (optional)
+
+  # Tarantool cache backend settings for the vulnerability
+  tarantool_host: "localhost"                             # Tarantool host
+  tarantool_port: 3301                                    # Tarantool port
+  tarantool_space: "maven_check_versions_vulnerabilities" # Tarantool space
+  tarantool_user: null                                    # Tarantool username (optional)
+  tarantool_password: null                                # Tarantool password (optional)
+
+  # Memcached cache backend settings for the vulnerability
+  memcached_host: "localhost"                             # Memcached host
+  memcached_port: 11211                                   # Memcached port
+  memcached_key: "maven_check_versions_vulnerabilities"   # Key for storing data in Memcached
+
+# Configuration for HTTP-based POM file access
 pom_http:
-  auth: true
+  auth: true                                  # Enables authentication for HTTP-based POM file access
 
+# Configuration for urllib3 library
 urllib3:
-  warnings: true
+  warnings: true                              # Enables or disables urllib3 warnings
 
+# Configuration for requests library
 requests:
-  verify: true
+  verify: true                                # Enables or disables SSL verification for requests
 
+# List of POM files to process
 pom_files:
-  pom-name: "path/to/pom.xml"
+  pom-name: "path/to/pom.xml"                 # Path to a POM file to process
 
+# Repository configurations
 repositories:
-  "Central (repo1.maven.org)": "repo1.maven"
+  "Central (repo1.maven.org)": "repo1.maven"  # Example repository mapping
 
+# Configuration for repo1.maven repository
 repo1.maven:
-  base: "https://repo1.maven.org"
-  path: "maven2"
-  auth: false
+  base: "https://repo1.maven.org"             # Base URL of the repository
+  path: "maven2"                              # Path suffix for the repository
+  auth: false                                 # Enables authentication for this repository
+  repo: "maven2"                              # Repository name
+  service_rest: false                         # Enables REST service for this repository
 ```
 
 ---
