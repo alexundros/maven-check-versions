@@ -21,6 +21,7 @@ See https://pypi.org/project/maven-check-versions for more details.
 - **Caching:** Caches results for faster rechecks.
 - **Logging:** Provides configurable logging for detailed analysis.
 - **Command-Line Interface:** Easily integrates into CI/CD pipelines.
+- **Vulnerability Checking:** Checks dependencies for known vulnerabilities using OSS Index.
 
 ---
 
@@ -150,6 +151,7 @@ The following settings can be adjusted:
 - **Cache Preferences:** Control cache duration and behavior.
 - **Repository Settings:** Define base URLs, authentication, and paths for repositories.
 - **Logging Preferences:** Specify log levels and file paths.
+- **Vulnerability Checking:** Configure checks for known vulnerabilities in dependencies.
 
 Use a default configuration file name:
 
@@ -172,7 +174,35 @@ The tool supports multiple cache backends:
 - **Tarantool**: Uses a Tarantool server for caching.
 - **Memcached**: Uses a Memcached server for caching.
 
-### Example configuration
+## Vulnerability Checking Configuration
+
+To enable vulnerability checking, set `oss_index_enabled` to `true` in the `vulnerability` section of the configuration file. 
+This feature uses the OSS Index service to identify known vulnerabilities in your dependencies. 
+You will need to provide your OSS Index username and API token, which you can obtain by signing up for a free account at
+[https://ossindex.sonatype.org/](https://ossindex.sonatype.org/).
+
+### Example configuration:
+
+Vulnerability scanning will:
+1. Check all dependencies against OSS Index
+2. Fail build if any vulnerability with CVSS ≥7.0 found
+3. Skip checks for test components
+
+```yaml
+vulnerability:
+  oss_index_enabled: true
+  oss_index_url: "https://ossindex.sonatype.org/api/v3/component-report"
+  oss_index_user: "OSS_INDEX_USER" 
+  oss_index_token: "OSS_INDEX_TOKEN"
+  oss_index_batch_size: 128
+  oss_index_keep_safe: false
+  fail-score: 7 
+  skip-no-versions: false
+  skip-checks: ["junit:junit:4.*", "org.testng:*:*"]
+  cache_backend: "json"
+```
+
+### Example configuration file
 
 maven_check_versions.yml:
 ```
