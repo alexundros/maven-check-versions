@@ -26,17 +26,9 @@ See https://pypi.org/project/maven-check-versions for more details.
 
 ## Installation
 
-Pull image:
+Pull image: `docker pull alexundros/maven-check-versions`
 
-```bash
-docker pull alexundros/maven-check-versions
-```
-
-Pull image based on pypy:
-
-```bash
-docker pull alexundros/maven-check-versions:pypy
-```
+Pull image based on pypy: `docker pull alexundros/maven-check-versions:pypy`
 
 ## Usage
 

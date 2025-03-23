@@ -39,11 +39,9 @@ See https://pypi.org/project/maven-check-versions for more details.
 
 ## Installation
 
-You can install the tool via `pip`:
+System requirements: Python 3.10 or higher
 
-```bash
-pip install maven_check_versions
-```
+You can install the tool via pip: `pip install maven_check_versions`
 
 ---
 
@@ -64,18 +62,21 @@ maven_check_versions --find_artifact com.example:my-lib:1.0
 maven_check_versions --ci_mode
 ```
 
-### Docker image
+### Docker images
 
-Pull image from GitHub:
+#### Pull images from GitHub: 
 
-```bash
-docker pull ghcr.io/alexundros/maven-check-versions
-```
-Or pull image from DockerHub:
+Base image: `docker pull ghcr.io/alexundros/maven-check-versions`
 
-```bash
-docker pull alexundros/maven-check-versions
-```
+Image based on pypy: `docker pull ghcr.io/alexundros/maven-check-versions:pypy`
+
+#### Pull images from DockerHub:
+
+Base image: `docker pull alexundros/maven-check-versions`
+
+Image based on pypy: `docker pull alexundros/maven-check-versions:pypy`
+
+#### Usage
 
 - Analyze a specific pom file:
 ```bash
