@@ -33,7 +33,7 @@ class Vulnerability:
     versionRanges: list | None = None  # NOSONAR # noqa: N815
 
 
-def get_cve_data(  # pragma: no cover
+def get_cve_data(
         config: Config, arguments: Arguments, dependencies: list[ET.Element],
         root: ET.Element, ns_mapping: dict
 ) -> dict[str, list[Vulnerability]]:
@@ -97,7 +97,7 @@ def log_vulnerability(
                 raise AssertionError
 
 
-def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:  # pragma: no cover
+def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:
     """
     Get Coordinates.
 
@@ -130,7 +130,7 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:
     return result
 
 
-def _oss_index_config(config: Config, arguments: Arguments) -> tuple:  # pragma: no cover
+def _oss_index_config(config: Config, arguments: Arguments) -> tuple:
     """
     Get OSS Index parameters.
 
@@ -154,7 +154,7 @@ def _oss_index_config(config: Config, arguments: Arguments) -> tuple:  # pragma:
     )
 
 
-def _fetch_cve_data(  # pragma: no cover
+def _fetch_cve_data(
         config: Config, arguments: Arguments, coordinates: list[str]
 ) -> dict[str, list[Vulnerability]]:
     """
