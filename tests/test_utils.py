@@ -189,15 +189,15 @@ def test_check_versions(mocker):
     def _check_versions(pa, data, item, vers):
         return check_versions(
             data, Config(), pa, 'group', 'artifact', item,
-            'repo_section', 'path', (), True, vers, mocker.Mock()
+            'repo_section', 'path', None, True, vers, mocker.Mock()
         )
 
     mock_get_pom_data = mocker.patch('maven_check_versions.utils.get_pom_data')
     mock_get_pom_data.return_value = (True, '2025-01-25')
-    args = {
+    args = Arguments({
         'skip_current': True, 'fail_mode': True,
         'fail_major': 0, 'fail_minor': 1
-    }
+    })
     cache_data = {}
     assert _check_versions(args, cache_data, '1.1', ['1.1'])
     assert cache_data['group:artifact'][1] == '1.1'

@@ -171,8 +171,7 @@ def collect_dependencies(
     """
     dependencies = root.findall('.//xmlns:dependency', namespaces=ns_mapping)
     if _config.get_config_value(config, arguments, 'search_plugins'):
-        plugin_xpath = './/xmlns:plugins/xmlns:plugin'
-        plugins = root.findall(plugin_xpath, namespaces=ns_mapping)
+        plugins = root.findall('.//xmlns:plugins/xmlns:plugin', namespaces=ns_mapping)
         dependencies.extend(plugins)
     return dependencies
 
