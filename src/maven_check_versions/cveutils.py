@@ -7,10 +7,10 @@ import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
+import maven_check_versions.cache as _cache
 import maven_check_versions.config as _config
 import maven_check_versions.utils as _utils
 import requests
-from maven_check_versions.cache import save_cache, load_cache
 from maven_check_versions.config import Config, Arguments
 from requests.auth import HTTPBasicAuth
 
@@ -54,7 +54,7 @@ def get_cve_data(  # pragma: no cover
     if _config.get_config_value(config, arguments, 'oss_index_enabled', 'vulnerability', default=False):
         coordinates = _get_coordinates(config, arguments, dependencies, ns_mapping, root)
 
-        if cache_data := load_cache(config, arguments, 'vulnerability'):
+        if cache_data := _cache.load_cache(config, arguments, 'vulnerability'):
             for item in coordinates:
                 if cache_data.get(item) is not None:
                     coordinates.remove(item)
@@ -64,13 +64,13 @@ def get_cve_data(  # pragma: no cover
 
         if cve_data := _fetch_cve_data(config, arguments, coordinates):
             cache_data.update({key: cves for key, cves in cve_data.items()})
-            save_cache(config, arguments, cache_data, 'vulnerability')
+            _cache.save_cache(config, arguments, cache_data, 'vulnerability')
 
         result.update(cache_data)
     return result
 
 
-def log_vulnerability(  # pragma: no cover
+def log_vulnerability(
         config: Config, arguments: Arguments, group: str, artifact: str, version: str | None,
         cve_data: dict[str, list[Vulnerability]] | None
 ) -> None:
@@ -188,5 +188,5 @@ def _fetch_cve_data(  # pragma: no cover
                     result.update({item['coordinates']: cves})
 
     except Exception as e:
-        logging.error(f"Failed to fetch_cve_data: {e}")
+        logging.error(f"Failed to _fetch_cve_data: {e}")
     return result
