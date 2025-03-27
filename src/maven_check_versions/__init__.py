@@ -17,6 +17,9 @@ import maven_check_versions.utils as _utils
 
 # noinspection PyMissingOrEmptyDocstring
 def main() -> None:
+    """
+    Entry point for the maven_check_versions tool.
+    """
     exception_occurred = False
     ci_mode_enabled = False
 

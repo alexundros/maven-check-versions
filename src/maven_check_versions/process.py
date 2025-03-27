@@ -21,10 +21,11 @@ from maven_check_versions.cveutils import Vulnerability
 
 def process_main(arguments: Arguments) -> None:
     """
-    Main processing function.
+    Orchestrates the main processing logic for checking Maven dependencies.
 
     Args:
         arguments (Arguments): Command-line arguments.
+                May specify 'pom_file', 'find_artifact', or rely on config for POM files.
     """
     config = _config.get_config(arguments)
 
@@ -51,14 +52,15 @@ def process_pom(
         pom_path: str, prefix: str | None = None
 ) -> None:
     """
-    Processes a POM file.
+    Processes a single POM file by extracting dependencies, checking versions,
+    and optionally processing modules and vulnerabilities.
 
     Args:
         cache_data (dict | None): Cache data.
         config (Config): Parsed YAML as dict.
         arguments (Arguments): Command-line arguments.
-        pom_path (str): Path or URL to the POM file.
-        prefix (str, optional): Prefix for the artifact name.
+        pom_path (str): Local path or URL to the POM file to process.
+        prefix (str, optional): Prefix to prepend to the artifact name in logs (default is None).
     """
     verify_ssl = _config.get_config_value(config, arguments, 'verify', 'requests')
 
@@ -103,8 +105,8 @@ def process_dependency(
     Processes dependency in a POM file.
 
     Args:
-        cache_data (dict | None): Cache data.
-        config (Config): Parsed YAML as dict.
+        cache_data (dict | None): Cache dictionary for storing dependency data, or None if disabled.
+        config (Config): Configuration dictionary parsed from YAML.
         arguments (Arguments): Command-line arguments.
         dependency (ET.Element): Dependency.
         ns_mapping (dict): XML namespace mapping.
