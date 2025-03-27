@@ -18,17 +18,26 @@ class Formatter(logging.Formatter):
 
     def formatTime(self, record, datefmt=None):  # pragma: no cover # noqa: N802
         """
-        Time formatter.
+        Formats the timestamp of a log record with microsecond precision.
+
+        Args:
+            record: The log record to format.
+            datefmt (str, optional): Date format string (unused, defaults to None).
+
+        Returns:
+            str: The formatted timestamp as a string.
         """
         return datetime.datetime.fromtimestamp(record.created)
 
 
 def configure_logging(arguments: Arguments) -> None:
     """
-    Configures logging.
+    Configures the logging system to output to stdout and optionally to a file.
+    Sets the log level to INFO and applies a custom formatter with timestamps.
 
     Args:
-        arguments (Arguments): Command-line arguments.
+        arguments (Arguments): Command-line arguments, which may include 'logfile_off'
+                            to disable file logging and 'log_file' to specify the log file path.
     """
     frm = '%(asctime)s %(levelname)s: %(message)s'
     stream_handler = logging.StreamHandler(sys.stdout)

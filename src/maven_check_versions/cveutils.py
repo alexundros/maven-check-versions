@@ -38,7 +38,8 @@ def get_cve_data(
         root: ET.Element, ns_mapping: dict
 ) -> dict[str, list[Vulnerability]]:
     """
-    Get CVE data for dependencies.
+    Retrieves CVE (Common Vulnerabilities and Exposures) data for the given dependencies
+    using the OSS Index API, with caching support if enabled.
 
     Args:
         config (Config): Parsed YAML as dict.
@@ -78,7 +79,7 @@ def log_vulnerability(
     Log vulnerability.
 
     Args:
-        config (Config): Parsed YAML as dict.
+        config (Config): Configuration dictionary parsed from YAML.
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
@@ -104,9 +105,9 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:
     Args:
         config (Config): Parsed YAML as dict.
         arguments (Arguments): Command-line arguments.
-        dependencies (list[ET.Element]): Dependencies.
-        root (ET.Element): Root element of the POM file.
-        ns_mapping (dict): XML namespace mapping.
+        dependencies (list[ET.Element]): List of dependency elements from the POM file.
+        root (ET.Element): The root element of the POM file's XML tree.
+        ns_mapping (dict): A dictionary mapping XML namespaces for parsing.
 
     Returns:
         list: Coordinates.

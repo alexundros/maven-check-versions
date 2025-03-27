@@ -21,13 +21,14 @@ class Arguments(Dict):
 
 def get_config(arguments: Arguments) -> Config:
     """
-    Get config parser for YAML configuration.
+    Loads the configuration from a YAML file specified in the arguments or a default location.
 
     Args:
         arguments (Arguments): Command-line arguments.
 
     Returns:
-        dict: Parsed YAML as dict.
+        Config: A Config object (dictionary) containing the parsed YAML configuration.
+                If no config file is found, returns an empty Config object.
     """
     config = Config()
     if (config_file := arguments.get('config_file')) is None:
@@ -47,17 +48,19 @@ def get_config_value(
         config: Config, arguments: Arguments, key: str, section: str = 'base', default: Any = None
 ) -> Any:
     """
-    Get configuration value with optional type conversion.
+    Retrieves a configuration value from command-line arguments or the config dictionary,
+    with a fallback to a default value.
 
     Args:
-        config (Config): Parsed YAML as dict.
+        config (Config): Configuration dictionary parsed from YAML.
         arguments (Arguments): Command-line arguments.
         key (str): Configuration key.
-        section (str, optional): Configuration section (default is 'base').
-        default (Any, optional): Default value.
+        section (str, optional): Configuration section to use (default is 'base').
+        default (Any, optional): Default value if the key is not found (default is None).
 
     Returns:
-        Any: Configuration value or None if not found.
+        Any: The value associated with the key, sourced from arguments, environment variables,
+            or the config dictionary, or the default value if not found.
     """
     value = None
     if section == 'base' and key in arguments:
@@ -75,13 +78,14 @@ def get_config_value(
 
 def config_items(config: Config, section: str) -> list[tuple[str, str]]:
     """
-    Retrieves all items from a configuration section.
+    Retrieves all key-value pairs from a specified configuration section.
 
     Args:
-        config (Config): Parsed YAML as dict.
-        section (str): Section name.
+        config (Config): Configuration dictionary parsed from YAML.
+        section (str): The name of the configuration section (e.g., 'repositories').
 
     Returns:
-        list[tuple[str, str]]: List of key-value pair tuples.
+        list[tuple[str, str]]: A list of tuples, each containing a key and its value from the section.
+                            Returns an empty list if the section does not exist.
     """
     return list(get.items()) if (get := config.get(section)) else []

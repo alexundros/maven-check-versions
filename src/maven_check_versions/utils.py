@@ -18,10 +18,11 @@ from maven_check_versions.config import Config, Arguments
 
 def parse_command_line() -> Arguments:
     """
-    Parses command-line arguments.
+    Parses the command-line arguments and returns them as an Arguments object.
 
     Returns:
-        Arguments: Dictionary with parsed command-line arguments.
+        Arguments: An object containing the parsed command-line arguments,
+                    wrapping a dictionary of argument key-value pairs.
     """
     argument_parser = ArgumentParser(prog='maven_check_versions')
     add_general_args(argument_parser)
@@ -36,10 +37,11 @@ def parse_command_line() -> Arguments:
 
 def add_general_args(argument_parser: ArgumentParser) -> None:
     """
-    Adds general arguments to the parser.
+    Adds general command-line arguments to the argument parser.
+    These include options for CI mode, POM file path, artifact to find, and configuration file path.
 
     Args:
-        argument_parser (ArgumentParser): The argument parser to which arguments are added.
+        argument_parser (ArgumentParser): The ArgumentParser instance to which general arguments are added.
     """
     argument_parser.add_argument('-ci', '--ci_mode', help='Enable CI Mode', action='store_true', default=False)
     argument_parser.add_argument('-pf', '--pom_file', help='Path to POM File')
@@ -139,14 +141,15 @@ def add_threading_args(argument_parser: ArgumentParser) -> None:
 
 def get_artifact_name(root: ET.Element, ns_mapping: dict) -> str:
     """
-    Extracts the full artifact name from a POM file.
+    Extracts the groupId and artifactId from the POM file's root element.
 
     Args:
-        root (ET.Element): Root element of the POM file.
-        ns_mapping (dict): XML namespace mapping.
+        root (ET.Element): The root element of the POM file's XML tree.
+        ns_mapping (dict): A dictionary mapping XML namespaces for parsing.
 
     Returns:
-        str: Full artifact name (groupId:artifactId).
+        str: The full artifact name in the format 'groupId:artifactId'.
+            If groupId is not present, returns only the artifactId.
     """
     artifact = root.find('./xmlns:artifactId', namespaces=ns_mapping)
     artifact_text = str(artifact.text) if artifact is not None else ''
@@ -158,16 +161,17 @@ def collect_dependencies(
         root: ET.Element, ns_mapping: dict, config: Config, arguments: Arguments
 ) -> list:
     """
-    Collects dependencies from a POM file.
+    Collects all dependency elements from the POM file.
+    Optionally includes plugin elements if 'search_plugins' is enabled in the configuration.
 
     Args:
-        root (ET.Element): Root element of the POM file.
-        ns_mapping (dict): XML namespace mapping.
-        config (Config): Parsed YAML as dict.
+        root (ET.Element): The root element of the POM file's XML tree.
+        ns_mapping (dict): A dictionary mapping XML namespaces for parsing.
+        config (Config): Configuration dictionary parsed from YAML.
         arguments (Arguments): Command-line arguments.
 
     Returns:
-        list: List of dependency elements.
+        list[ET.Element]: A list of dependency elements (and plugin elements if specified).
     """
     dependencies = root.findall('.//xmlns:dependency', namespaces=ns_mapping)
     if _config.get_config_value(config, arguments, 'search_plugins'):
@@ -178,14 +182,16 @@ def collect_dependencies(
 
 def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tuple[str, str | None]:
     """
-    Extracts artifactId and groupId from a dependency.
+    Extracts the groupId and artifactId from a dependency element.
 
     Args:
-        dependency (ET.Element): Dependency element.
-        ns_mapping (dict): XML namespace mapping.
+        dependency (ET.Element): The dependency XML element from the POM file.
+        ns_mapping (dict): A dictionary mapping XML namespaces for parsing.
 
     Returns:
-        tuple[str, str | None]: Tuple of artifactId and groupId (or None if groupId is missing).
+        tuple[str, str]: A tuple containing:
+            - group (str): The groupId, or an empty string if not present.
+            - artifact (str): The artifactId, or an empty string if not present.
     """
     artifact = dependency.find('xmlns:artifactId', namespaces=ns_mapping)
     group = dependency.find('xmlns:groupId', namespaces=ns_mapping)
@@ -201,17 +207,18 @@ def fail_mode_if_required(
         version: str | None
 ) -> None:
     """
-    Checks fail mode and raises an exception if version exceeds thresholds.
+    Checks if fail mode is enabled and if the version exceeds specified thresholds.
+    Logs a warning and raises an AssertionError if thresholds are exceeded.
 
     Args:
-        config (Config): Parsed YAML as dict.
-        current_major_version (int): Current major version.
-        current_minor_version (int): Current minor version.
-        item (str): Version to check.
-        major_version_threshold (int): Major version threshold for failure.
-        minor_version_threshold (int): Minor version threshold for failure.
+        config (Config): Configuration dictionary parsed from YAML.
+        current_major_version (int): The major version of the current artifact version.
+        current_minor_version (int): The minor version of the current artifact version.
+        item (str): The version string to check against thresholds (e.g., '1.2.3').
+        major_version_threshold (int): The maximum allowed difference in major versions.
+        minor_version_threshold (int): The maximum allowed difference in minor versions.
         arguments (Arguments): Command-line arguments.
-        version (str | None): Current artifact version.
+        version (str | None): The current version of the artifact (e.g., '1.0.0').
     """
     if _config.get_config_value(config, arguments, 'fail_mode'):
         item_major_version = 0
@@ -228,15 +235,17 @@ def fail_mode_if_required(
 
 def resolve_version(version: str, root: ET.Element, ns_mapping: dict) -> str:
     """
-    Resolves version text by checking POM properties.
+    Resolves the version string by replacing placeholders with values from POM properties.
+    Handles placeholders like '${property}' or '${project.version}'.
 
     Args:
-        version (str): Version text, possibly with placeholders.
-        root (ET.Element): Root element of the POM file.
-        ns_mapping (dict): XML namespace mapping.
+        version (str): The version string, which may contain placeholders (e.g., '${version}').
+        root (ET.Element): The root element of the POM file's XML tree.
+        ns_mapping (dict): A dictionary mapping XML namespaces for parsing.
 
     Returns:
-        str: Resolved version or original text if unresolved.
+        str: The resolved version string if a placeholder is matched and found in properties,
+            otherwise the original version string.
     """
     if match := re.match(r'^\${([^}]+)}$', version):
         property_xpath = f"./xmlns:properties/xmlns:{match.group(1)}"
