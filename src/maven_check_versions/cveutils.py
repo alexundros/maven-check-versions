@@ -6,6 +6,7 @@ import re
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
+from itertools import islice
 
 import maven_check_versions.cache as _cache
 import maven_check_versions.config as _config
@@ -86,15 +87,18 @@ def log_vulnerability(
         version (str | None): Dependency version.
         cve_data (dict[str, list[Vulnerability]] | None): CVE Data.
     """
-    fail_score = _config.get_config_value(config, arguments, 'fail-score', 'vulnerability', default=0)
+    fail_score = _config.get_config_value(config, arguments, 'fail_score', 'vulnerability', default=0)
+    cve_ref = _config.get_config_value(config, arguments, 'cve_reference', 'vulnerability', default=False)
 
     if cve_data is not None and (cves := cve_data.get(f"pkg:maven/{group}/{artifact}@{version}")):
         for cve in cves:
-            info = f"cvssScore={cve.cvssScore} cve={cve.cve} cwe={cve.cwe} {cve.reference} {cve.title}"
+            info = f"cvssScore={cve.cvssScore} cve={cve.cve} cwe={cve.cwe} {cve.title}"
+            if cve_ref:
+                info = f"{info} {cve.reference}"
             logging.warning(f"Vulnerability for {group}:{artifact}:{version}: {info}")
 
             if fail_score and cve.cvssScore >= fail_score:
-                logging.error(f"cvssScore={cve.cvssScore} >= fail-score={fail_score}")
+                logging.error(f"cvssScore={cve.cvssScore} >= fail_score={fail_score}")
                 raise AssertionError
 
 
@@ -113,9 +117,9 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:
         list: Coordinates.
     """
     skip_no_versions = _config.get_config_value(
-        config, arguments, 'skip-no-versions', 'vulnerability', default=False)
+        config, arguments, 'skip_no_versions', 'vulnerability', default=False)
     combined = None
-    if skip := _config.get_config_value(config, arguments, 'skip-checks', 'vulnerability'):
+    if skip := _config.get_config_value(config, arguments, 'skip_checks', 'vulnerability'):
         combined = '(' + ')|('.join(skip) + ')'
 
     result: list = []
@@ -174,8 +178,8 @@ def _fetch_cve_data(
         url, user, token, batch_size, keep_safe = _oss_index_config(config, arguments)
         auth = HTTPBasicAuth(user, token)
 
-        for i in range(0, len(coordinates), batch_size):
-            batch = coordinates[i:i + batch_size]
+        it = iter(coordinates)
+        while batch := list(islice(it, batch_size)):
             response = requests.post(url, json={"coordinates": batch}, auth=auth)
             if response.status_code != 200:
                 logging.error(f"OSS Index API error: {response.status_code}")

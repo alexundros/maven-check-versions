@@ -31,7 +31,7 @@ See https://pypi.org/project/maven-check-versions for more details.
 - **Artifact Search:** Finds specific artifacts using `groupId:artifactId:version` format.
 - **Repository Support:** Integrates with HTTP-based Maven repositories, including REST services.
 - **Module Processing:** Processes nested modules in Maven projects.
-- **Caching:** Caches results for faster rechecks.
+- **Caching:** Caches results for faster rechecks with multiple cache backends.
 - **Logging:** Provides configurable logging for detailed analysis.
 - **Command-Line Interface:** Easily integrates into CI/CD pipelines.
 - **Vulnerability Checking:** Checks dependencies for known vulnerabilities using OSS Index.
@@ -230,9 +230,9 @@ vulnerability:
   oss_index_token: "OSS_INDEX_TOKEN"
   oss_index_batch_size: 128
   oss_index_keep_safe: false
-  fail-score: 7
-  skip-no-versions: false
-  skip-checks: ["junit:junit:*"]
+  fail_score: 7
+  skip_no_versions: false
+  skip_checks: ["junit:junit:*"]
   cache_backend: "json"
 ```
 
@@ -293,9 +293,10 @@ vulnerability:
   oss_index_batch_size: 128                         # Batch size for OSS Index requests
   oss_index_keep_safe: false                        # Keeps safe dependencies in the cache
 
-  fail-score: 0                                     # Fail if CVSS score exceeds this value
-  skip-no-versions: false                           # Skips dependencies without versions in vulnerability checks
-  skip-checks: []                                   # List of dependencies to skip in vulnerability checks
+  fail_score: 0                                     # Fail if CVSS score exceeds this value
+  cve_reference: false                              # Logs link for detailed information
+  skip_no_versions: false                           # Skips dependencies without versions in vulnerability checks
+  skip_checks: []                                   # List of dependencies to skip in vulnerability checks
                                                     # (e.g., ["group:artifact:version"])
 
   cache_backend: "json"                             # Cache backend to use: json, redis, tarantool, memcached
