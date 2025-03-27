@@ -8,7 +8,7 @@
 ---
 # Maven Check Versions
 
-Is a Python package designed for analyzing Maven POM files and managing dependencies.
+This is a Python package designed for analyzing Maven POM files and managing dependencies.
 It checks the versions of dependencies in a project and identifies the latest available versions in Maven repositories.
 Developed for developers, this package simplifies dependency management in Maven-based projects.
 It is especially useful in CI/CD environments, where maintaining consistency and up-to-date dependencies is critical.
