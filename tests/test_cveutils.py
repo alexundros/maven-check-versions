@@ -21,14 +21,14 @@ from maven_check_versions.utils import collect_dependencies
 def test_log_vulnerability(mocker):
     cves = {'pkg:maven/group/artifact@1.0': [Vulnerability(id='1', cvssScore=1)]}
     mock_logging = mocker.patch('logging.warning')
-    config = Config({'vulnerability': {'fail-score': 2.0}})
+    config = Config({'vulnerability': {'fail_score': 2.0, 'cve_reference': True}})
     log_vulnerability(config, Arguments(), 'group', 'artifact', '1.0', cves)
     msg = 'Vulnerability for group:artifact:1.0: cvssScore=1 cve=None cwe=None None None'
     mock_logging.assert_called_once_with(msg)
 
     with pytest.raises(AssertionError):
         mock_logging = mocker.patch('logging.error')
-        config = Config({'vulnerability': {'fail-score': 1.0}})
+        config = Config({'vulnerability': {'fail_score': 1.0}})
         log_vulnerability(config, Arguments(), 'group', 'artifact', '1.0', cves)
         mock_logging.assert_called_once_with('cvssScore=1 >= fail-score=1')
 
@@ -64,8 +64,8 @@ def test_get_cve_data(mocker):
     """.lstrip())
     ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}  # NOSONAR
     config = Config({'vulnerability': {
-        'oss_index_enabled': True, 'skip-no-versions': True,
-        'skip-checks': ['group2.*']
+        'oss_index_enabled': True, 'skip_no_versions': True,
+        'skip_checks': ['group2.*']
     }})
     deps = collect_dependencies(root, ns_mappings, config, Arguments())
     mock_load_cache = mocker.patch('maven_check_versions.cache.load_cache')

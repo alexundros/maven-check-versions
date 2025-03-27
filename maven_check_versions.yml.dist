@@ -51,9 +51,10 @@ vulnerability:
   oss_index_batch_size: 128                         # Batch size for OSS Index requests
   oss_index_keep_safe: false                        # Keeps safe dependencies in the cache
 
-  fail-score: 0                                     # Fail if CVSS score exceeds this value
-  skip-no-versions: false                           # Skips dependencies without versions in vulnerability checks
-  skip-checks: []                                   # List of dependencies to skip in vulnerability checks
+  fail_score: 0                                     # Fail if CVSS score exceeds this value
+  cve_reference: false                              # Logs link for detailed information
+  skip_no_versions: false                           # Skips dependencies without versions in vulnerability checks
+  skip_checks: []                                   # List of dependencies to skip in vulnerability checks
                                                     # (e.g., ["group:artifact:version"])
 
   cache_backend: "json"                             # Cache backend to use: json, redis, tarantool, memcached
