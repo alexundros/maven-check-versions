@@ -52,7 +52,7 @@ def get_cve_data(
     Returns:
         dict[str, list[Vulnerability]]: CVE Data.
     """
-    result = {}
+    result: dict[str, list[Vulnerability]] = {}
     if _config.get_config_value(config, arguments, 'oss_index_enabled', 'vulnerability', default=False):
         coordinates = _get_coordinates(config, arguments, dependencies, ns_mapping, root)
 
@@ -60,9 +60,10 @@ def get_cve_data(
             for item in coordinates:
                 if cache_data.get(item) is not None:
                     coordinates.remove(item)
-
-        for key, data in cache_data.items():
-            cache_data.update({key: [Vulnerability(**item) for item in data]})
+            for key, data in cache_data.items():
+                cache_data.update({key: [Vulnerability(**item) for item in data]})
+        else:
+            cache_data = {}
 
         if cve_data := _fetch_cve_data(config, arguments, coordinates):
             cache_data.update({key: cves for key, cves in cve_data.items()})
