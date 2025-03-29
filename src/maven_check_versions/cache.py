@@ -120,7 +120,16 @@ def _memcached_config(config: Config, arguments: Arguments, section: str) -> tup
 @contextmanager
 def _redis_connection(host: str, port: int, user: Optional[str], password: Optional[str]):
     """
-    Manage Redis connection with proper cleanup
+    Context manager for Redis connection, ensuring proper cleanup.
+
+    Args:
+        host (str): Redis server host.
+        port (int): Redis server port.
+        user (Optional[str]): Redis username, if required.
+        password (Optional[str]): Redis password, if required.
+
+    Yields:
+        redis.Redis: An instance of the Redis client.
     """
     inst = redis.Redis(host=host, port=port, username=user, password=password, decode_responses=True)
     try:
@@ -129,7 +138,46 @@ def _redis_connection(host: str, port: int, user: Optional[str], password: Optio
         inst.close()
 
 
-# FIXME: ADD OTHERS CONNECTIONS
+@contextmanager
+def _tarantool_connection(host: str, port: int, user: Optional[str], password: Optional[str]):
+    """
+    Context manager for Tarantool connection, ensuring proper cleanup.
+
+    Args:
+        host (str): Tarantool server host.
+        port (int): Tarantool server port.
+        user (Optional[str]): Tarantool username, if required.
+        password (Optional[str]): Tarantool password, if required.
+
+    Yields:
+        tarantool.Connection: An instance of the Tarantool connection.
+    """
+    conn = tarantool.Connection(host, port, user=user, password=password)
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
+@contextmanager
+def _memcached_connection(host: str, port: int):
+    """
+    Context manager for Memcached connection, ensuring proper cleanup.
+
+    Args:
+        host (str): Memcached server host.
+        port (int): Memcached server port.
+
+    Yields:
+        pymemcache.client.base.Client: An instance of the Memcached client.
+    """
+    from pymemcache.client import base
+    client = base.Client((host, port))
+    try:
+        yield client
+    finally:
+        client.close()
+
 
 def _load_cache_json(
         config: Config, arguments: Arguments, section: str
@@ -156,7 +204,7 @@ def _load_cache_json(
         try:
             with open(cache_file) as cf:
                 return True, json.load(cf)
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError as e:  # pragma: no cover
             logging.error(f"Failed to decode JSON cache data: {e}")
     return False, None
 
@@ -186,13 +234,13 @@ def _load_cache_redis(
                 for key, value in data.items():
                     try:
                         cache_data[key] = json.loads(value)
-                    except json.JSONDecodeError as e:
-                        logging.error(f"Failed to decode Redis cache data for key {key}: {e}")
+                    except json.JSONDecodeError as e:  # pragma: no cover
+                        logging.error(f"Failed to decode Redis data for key {key}: {e}")
             return True, cache_data
 
-    except redis.ConnectionError as e:
+    except redis.ConnectionError as e:  # pragma: no cover
         logging.error(f"Redis connection failed: {e}")
-    except redis.RedisError as e:
+    except redis.RedisError as e:  # pragma: no cover
         logging.error(f"Redis error: {e}")
     except Exception as e:
         logging.error(f"Failed to load cache from Redis: {e}")
@@ -218,12 +266,18 @@ def _load_cache_tarantool(
     try:
         host, port, space, user, password = _tarantool_config(config, arguments, section)
 
-        conn = tarantool.connect(host, port, user=user, password=password)
-        cache_data: Dict[str, Any] = {}
-        for record in conn.space(space).select():
-            cache_data[record[0]] = json.loads(record[1])
+        with _tarantool_connection(host, port, user, password) as conn:
+            cache_data: Dict[str, Any] = {}
+            if data := conn.select(space):
+                for item in data:
+                    try:
+                        cache_data[item[0]] = json.loads(item[1])
+                    except json.JSONDecodeError as e:  # pragma: no cover
+                        logging.error(f"Failed to decode Tarantool data for key {item[0]}: {e}")
+            return True, cache_data
 
-        return True, cache_data
+    except tarantool.DatabaseError as e:  # pragma: no cover
+        logging.error(f"Tarantool error: {e}")
     except Exception as e:
         logging.error(f"Failed to load cache from Tarantool: {e}")
     return False, {}
@@ -248,10 +302,15 @@ def _load_cache_memcached(
     try:
         host, port, key = _memcached_config(config, arguments, section)
 
-        client = pymemcache.client.base.Client((host, port))
-        if (cache_data := client.get(key)) is not None:
-            return True, json.loads(cache_data)
+        with _memcached_connection(host, port) as client:
+            if data := client.get(key):
+                try:
+                    return True, json.loads(data)
+                except json.JSONDecodeError as e:  # pragma: no cover
+                    logging.error(f"Failed to decode Memcached data: {e}")
 
+    except pymemcache.exceptions.MemcacheError as e:  # pragma: no cover
+        logging.error(f"Memcached error: {e}")
     except Exception as e:
         logging.error(f"Failed to load cache from Memcached: {e}")
     return False, {}
@@ -277,7 +336,7 @@ def _save_cache_json(
     try:
         with open(cache_file, 'w') as cf:
             json.dump(cache_data, cf, cls=DCJSONEncoder)
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         logging.error(f"Failed to save cache to JSON file {cache_file}: {e}")
 
 
@@ -300,12 +359,12 @@ def _save_cache_redis(
             for key, value in cache_data.items():
                 try:
                     inst.hset(ckey, key, json.dumps(value, cls=DCJSONEncoder))
-                except redis.RedisError as e:
+                except redis.RedisError as e:  # pragma: no cover
                     logging.error(f"Failed to save cache to Redis for key {key}: {e}")
 
-    except redis.ConnectionError as e:
+    except redis.ConnectionError as e:  # pragma: no cover
         logging.error(f"Redis connection failed: {e}")
-    except redis.RedisError as e:
+    except redis.RedisError as e:  # pragma: no cover
         logging.error(f"Redis error: {e}")
     except Exception as e:
         logging.error(f"Failed to save cache to Redis: {e}")
@@ -326,11 +385,13 @@ def _save_cache_tarantool(
     try:
         host, port, space, user, password = _tarantool_config(config, arguments, section)
 
-        conn = tarantool.connect(host, port, user=user, password=password)
-        space = conn.space(space)
-        for key, value in cache_data.items():
-            space.replace((key, json.dumps(value, cls=DCJSONEncoder)))
+        with _tarantool_connection(host, port, user, password) as conn:
+            space = conn.space(space)
+            for key, value in cache_data.items():
+                space.replace((key, json.dumps(value, cls=DCJSONEncoder)))
 
+    except tarantool.DatabaseError as e:  # pragma: no cover
+        logging.error(f"Tarantool error: {e}")
     except Exception as e:
         logging.error(f"Failed to save cache to Tarantool: {e}")
 
@@ -350,9 +411,11 @@ def _save_cache_memcached(
     try:
         host, port, key = _memcached_config(config, arguments, section)
 
-        client = pymemcache.client.base.Client((host, port))
-        client.set(key, json.dumps(cache_data, cls=DCJSONEncoder))
+        with _memcached_connection(host, port) as client:
+            client.set(key, json.dumps(cache_data, cls=DCJSONEncoder))
 
+    except pymemcache.exceptions.MemcacheError as e:  # pragma: no cover
+        logging.error(f"Memcached error: {e}")
     except Exception as e:
         logging.error(f"Failed to save cache to Memcached: {e}")
 
@@ -435,8 +498,8 @@ def process_cache_artifact(
         version (Optional[str]): The current version of the artifact, or None if not specified.
 
     Returns:
-        bool: True if the cache exists, matches the version, and is within the time threshold,
-            False otherwise.
+        bool: True if the cache exists and either the cached version matches the provided version
+            or the cache timestamp is within the configured time threshold, False otherwise.
     """
     if cache_data is None or (data := cache_data.get(f"{group}:{artifact}")) is None:
         return False

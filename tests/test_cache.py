@@ -35,9 +35,8 @@ def test_load_cache(mocker):
     mock_redis.side_effect = Exception
     assert load_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments()) == {}
 
-    mock_tarantool = mocker.patch('tarantool.connect')
-    space = mock_tarantool.return_value.space
-    space.return_value.select.return_value = [('key', '{"k":"v"}')]
+    mock_tarantool = mocker.patch('tarantool.Connection')
+    mock_tarantool.return_value.select.return_value = [('key', '{"k":"v"}')]
     assert load_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments()) == {'key': {'k': 'v'}}
 
     mock_tarantool.side_effect = Exception
@@ -67,7 +66,7 @@ def test_save_cache(mocker):
     mock_redis.side_effect = Exception
     save_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments(), {'k': 'v'})
 
-    mock_tarantool = mocker.patch('tarantool.connect')
+    mock_tarantool = mocker.patch('tarantool.Connection')
     save_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments(), {'k': 'v'})
 
     mock_tarantool.side_effect = Exception
