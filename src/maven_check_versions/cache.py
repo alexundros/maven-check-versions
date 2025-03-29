@@ -211,7 +211,7 @@ def _load_cache_json(
 
 def _load_cache_redis(
         config: Config, arguments: Arguments, section: str
-) -> tuple[bool, Dict[str, Any]]:
+) -> tuple[bool, Optional[Dict[str, Any]]]:
     """
     Attempts to load the cache data from Redis using the configuration parameters.
 
@@ -223,7 +223,7 @@ def _load_cache_redis(
     Returns:
         tuple[bool, dict]: A tuple containing:
             - bool: True if the cache was successfully loaded, False otherwise.
-            - Dict[str, Any]: The cache data dictionary if successful, otherwise an empty dictionary.
+            - Optional[Dict[str, Any]]: The cache data dictionary if successful, otherwise None.
     """
     try:
         host, port, ckey, user, password = _redis_config(config, arguments, section)
@@ -244,12 +244,12 @@ def _load_cache_redis(
         logging.error(f"Redis error: {e}")
     except Exception as e:
         logging.error(f"Failed to load cache from Redis: {e}")
-    return False, {}
+    return False, None
 
 
 def _load_cache_tarantool(
         config: Config, arguments: Arguments, section: str
-) -> tuple[bool, Dict[str, Any]]:
+) -> tuple[bool, Optional[Dict[str, Any]]]:
     """
     Attempts to load the cache data from Tarantool using the configuration parameters.
 
@@ -261,7 +261,7 @@ def _load_cache_tarantool(
     Returns:
         tuple[bool, dict]: A tuple containing:
             - bool: True if the cache was successfully loaded, False otherwise.
-            - Dict[str, Any]: The cache data dictionary if successful, otherwise an empty dictionary.
+            - Optional[Dict[str, Any]]: The cache data dictionary if successful, otherwise None.
     """
     try:
         host, port, space, user, password = _tarantool_config(config, arguments, section)
@@ -280,12 +280,12 @@ def _load_cache_tarantool(
         logging.error(f"Tarantool error: {e}")
     except Exception as e:
         logging.error(f"Failed to load cache from Tarantool: {e}")
-    return False, {}
+    return False, None
 
 
 def _load_cache_memcached(
         config: Config, arguments: Arguments, section: str
-) -> tuple[bool, Dict[str, Any]]:
+) -> tuple[bool, Optional[Dict[str, Any]]]:
     """
     Attempts to load the cache data from Memcached using the configuration parameters.
 
@@ -297,7 +297,7 @@ def _load_cache_memcached(
     Returns:
         tuple[bool, dict]: A tuple containing:
             - bool: True if the cache was successfully loaded, False otherwise.
-            - Dict[str, Any]: The cache data dictionary if successful, otherwise an empty dictionary.
+            - Optional[Dict[str, Any]]: The cache data dictionary if successful, otherwise None.
     """
     try:
         host, port, key = _memcached_config(config, arguments, section)
@@ -313,7 +313,7 @@ def _load_cache_memcached(
         logging.error(f"Memcached error: {e}")
     except Exception as e:
         logging.error(f"Failed to load cache from Memcached: {e}")
-    return False, {}
+    return False, None
 
 
 def _save_cache_json(
@@ -420,7 +420,7 @@ def _save_cache_memcached(
         logging.error(f"Failed to save cache to Memcached: {e}")
 
 
-def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> dict:
+def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> Optional[Dict[str, Any]]:
     """
     Loads the cache data from the specified backend based on the configuration.
     Supports JSON, Redis, Tarantool, and Memcached backends.
@@ -431,7 +431,7 @@ def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> d
         section (str, optional): Configuration section to use (default is 'base').
 
     Returns:
-        dict: Cache data as a dictionary if successfully loaded, otherwise an empty dictionary.
+        Optional[Dict[str, Any]]: Cache data as a dictionary if successfully loaded, otherwise None.
     """
     match _config.get_config_value(
         config, arguments, 'cache_backend', section=section, default='json'
@@ -452,11 +452,11 @@ def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> d
             success, value = _load_cache_memcached(config, arguments, section)
             if success:
                 return value
-    return {}
+    return None
 
 
 def save_cache(
-        config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str = 'base'
+        config: Config, arguments: Arguments, cache_data: Optional[Dict[str, Any]], section: str = 'base'
 ) -> None:
     """
     Saves the cache data to the specified backend based on the configuration.
@@ -465,7 +465,7 @@ def save_cache(
     Args:
         config (Config): Configuration dictionary parsed from YAML.
         arguments (Arguments): Command-line arguments.
-        cache_data (Dict[str, Any]): Cache data to save.
+        cache_data (Optional[Dict[str, Any]]): Cache data to save.
         section (str, optional): Configuration section to use (default is 'base').
     """
     if cache_data is not None:
