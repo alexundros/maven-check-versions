@@ -26,29 +26,28 @@ def test_load_cache(mocker):
     assert load_cache(Config(), Arguments()) == {'k': 'v'}
 
     mocker.patch('os.path.exists', return_value=False)
-    assert load_cache(Config(), Arguments()) == {}
+    assert load_cache(Config(), Arguments()) is None
 
     mock_redis = mocker.patch('redis.Redis')
     mock_redis.return_value.hgetall.return_value = {'key': '{"k":"v"}'}
     assert load_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments()) == {'key': {'k': 'v'}}
 
     mock_redis.side_effect = Exception
-    assert load_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments()) == {}
+    assert load_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments()) is None
 
-    mock_tarantool = mocker.patch('tarantool.connect')
-    space = mock_tarantool.return_value.space
-    space.return_value.select.return_value = [('key', '{"k":"v"}')]
+    mock_tarantool = mocker.patch('tarantool.Connection')
+    mock_tarantool.return_value.select.return_value = [('key', '{"k":"v"}')]
     assert load_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments()) == {'key': {'k': 'v'}}
 
     mock_tarantool.side_effect = Exception
-    assert load_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments()) == {}
+    assert load_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments()) is None
 
     mock_memcache = mocker.patch('pymemcache.client.base.Client')
     mock_memcache.return_value.get.return_value = '{"k":"v"}'
     assert load_cache(Config({'base': {'cache_backend': 'memcached'}}), Arguments()) == {'k': 'v'}
 
     mock_memcache.side_effect = Exception
-    assert load_cache(Config({'base': {'cache_backend': 'memcached'}}), Arguments()) == {}
+    assert load_cache(Config({'base': {'cache_backend': 'memcached'}}), Arguments()) is None
     mocker.stopall()
 
 
@@ -67,7 +66,7 @@ def test_save_cache(mocker):
     mock_redis.side_effect = Exception
     save_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments(), {'k': 'v'})
 
-    mock_tarantool = mocker.patch('tarantool.connect')
+    mock_tarantool = mocker.patch('tarantool.Connection')
     save_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments(), {'k': 'v'})
 
     mock_tarantool.side_effect = Exception
