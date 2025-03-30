@@ -16,8 +16,8 @@ import redis
 import tarantool
 from maven_check_versions.config import Config, Arguments
 
-KEY1 = 'maven_check_versions_artifacts'
-KEY2 = 'maven_check_versions_vulnerabilities'
+ARTIFACTS_KEY = 'maven_check_versions_artifacts'
+VULNERABILITIES_KEY = 'maven_check_versions_vulnerabilities'
 HOST = 'localhost'
 REDIS_PORT = 6379
 TARANTOOL_PORT = 3301
@@ -63,7 +63,7 @@ def _redis_config(
             config, arguments, 'redis_port', section=section, default=REDIS_PORT),
         _config.get_config_value(
             config, arguments, 'redis_key', section=section,
-            default=KEY2 if section == 'vulnerability' else KEY1),
+            default=VULNERABILITIES_KEY if section == 'vulnerability' else ARTIFACTS_KEY),
         _config.get_config_value(config, arguments, 'redis_user', section=section),
         _config.get_config_value(config, arguments, 'redis_password', section=section)
     )
@@ -88,7 +88,7 @@ def _tarantool_config(config: Config, arguments: Arguments, section: str) -> tup
             config, arguments, 'tarantool_port', section=section, default=TARANTOOL_PORT),
         _config.get_config_value(
             config, arguments, 'tarantool_space', section=section,
-            default=KEY2 if section == 'vulnerability' else KEY1),
+            default=VULNERABILITIES_KEY if section == 'vulnerability' else ARTIFACTS_KEY),
         _config.get_config_value(config, arguments, 'tarantool_user', section=section),
         _config.get_config_value(config, arguments, 'tarantool_password', section=section)
     )
@@ -113,7 +113,7 @@ def _memcached_config(config: Config, arguments: Arguments, section: str) -> tup
             config, arguments, 'memcached_port', section=section, default=MEMCACHED_PORT),
         _config.get_config_value(
             config, arguments, 'memcached_key', section=section,
-            default=KEY2 if section == 'vulnerability' else KEY1)
+            default=VULNERABILITIES_KEY if section == 'vulnerability' else ARTIFACTS_KEY)
     )
 
 
@@ -196,7 +196,7 @@ def _load_cache_json(
     """
     cache_file = _config.get_config_value(
         config, arguments, 'cache_file', section=section,
-        default=(KEY2 if section == 'vulnerability' else KEY1) + '.json')
+        default=(VULNERABILITIES_KEY if section == 'vulnerability' else ARTIFACTS_KEY) + '.json')
 
     if os.path.exists(cache_file):
         logging.info(f"Load Cache: {Path(cache_file).absolute()}")
@@ -329,7 +329,7 @@ def _save_cache_json(
     """
     cache_file = _config.get_config_value(
         config, arguments, 'cache_file', section=section,
-        default=(KEY2 if section == 'vulnerability' else KEY1) + '.json')
+        default=(VULNERABILITIES_KEY if section == 'vulnerability' else ARTIFACTS_KEY) + '.json')
     logging.info(f"Save Cache: {Path(cache_file).absolute()}")
 
     try:
@@ -432,9 +432,9 @@ def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> O
     Returns:
         Optional[Dict[str, Any]]: Cache data as a dictionary if successfully loaded, otherwise None.
     """
-    match _config.get_config_value(
-        config, arguments, 'cache_backend', section=section, default='json'
-    ):
+    backend = _config.get_config_value(
+        config, arguments, 'cache_backend', section=section, default='json')
+    match backend:
         case 'json':
             success, value = _load_cache_json(config, arguments, section)
             if success:
@@ -451,6 +451,8 @@ def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> O
             success, value = _load_cache_memcached(config, arguments, section)
             if success:
                 return value
+        case _:  # pragma: no cover
+            raise ValueError(f"Unsupported cache backend: {backend}")
     return None
 
 
@@ -468,9 +470,9 @@ def save_cache(
         section (str, optional): Configuration section to use (default is 'base').
     """
     if cache_data is not None:
-        match _config.get_config_value(
-            config, arguments, 'cache_backend', section=section, default='json'
-        ):
+        backend = _config.get_config_value(
+            config, arguments, 'cache_backend', section=section, default='json')
+        match backend:
             case 'json':
                 _save_cache_json(config, arguments, cache_data, section)
             case 'redis':
@@ -479,6 +481,8 @@ def save_cache(
                 _save_cache_tarantool(config, arguments, cache_data, section)
             case 'memcached':
                 _save_cache_memcached(config, arguments, cache_data, section)
+            case _:  # pragma: no cover
+                raise ValueError(f"Unsupported cache backend: {backend}")
 
 
 def process_cache_artifact(

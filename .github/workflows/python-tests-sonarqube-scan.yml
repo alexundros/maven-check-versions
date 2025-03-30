@@ -35,10 +35,22 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Lint with flake8 and mypy
+        # flake8 ignore errors:
+        # https://www.flake8rules.com:
+        # E402 - Module level import not at top of file
+        # F401 - Module imported but unused
+        # F811 - Redefinition of unused name from line n
+        # https://github.com/PyCQA/pep8-naming:
+        # N817 - Camelcase imported as acronym (distinct from N814 for selective enforcement)
+        # https://github.com/Melevir/flake8-functions-names:
+        # FNE003 - Name of the function uses save, but not uses to
+        # FNE004 - Name of the function uses load, but not uses from
+        # FNE005 - Return type of the function is bool-like1, but the name doesn't show it
+        # FNE008 - Name of functions ends with its first argument name
         run: |
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           flake8 . --count --max-complexity=10 --max-line-length=120 --statistics \
-            --ignore=FNE005,N817,F401,E402,F811,FNE008,FNE003,FNE004
+            --ignore=F401,E402,F811,N817,FNE003,FNE004,FNE005,FNE008
           mypy .
 
       - name: Test with pytest and coverage

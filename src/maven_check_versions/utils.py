@@ -7,6 +7,7 @@ import re
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser
+from typing import Optional
 
 import dateutil.parser as parser
 import maven_check_versions.cache as _cache
@@ -181,7 +182,7 @@ def collect_dependencies(
     return dependencies
 
 
-def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tuple[str, str | None]:
+def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tuple[str, Optional[str]]:
     """
     Extracts the groupId and artifactId from a dependency element.
 
@@ -205,7 +206,7 @@ def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tupl
 def fail_mode_if_required(
         config: Config, current_major_version: int, current_minor_version: int, item: str,
         major_version_threshold: int, minor_version_threshold: int, arguments: Arguments,
-        version: str | None
+        version: Optional[str]
 ) -> None:
     """
     Checks if fail mode is enabled and if the version exceeds specified thresholds.
@@ -219,7 +220,7 @@ def fail_mode_if_required(
         major_version_threshold (int): The maximum allowed difference in major versions.
         minor_version_threshold (int): The maximum allowed difference in minor versions.
         arguments (Arguments): Command-line arguments.
-        version (str | None): The current version of the artifact (e.g., '1.0.0').
+        version (Optional[str]): The current version of the artifact (e.g., '1.0.0').
     """
     if _config.get_config_value(config, arguments, 'fail_mode'):
         item_major_version = 0
@@ -259,7 +260,7 @@ def resolve_version(version: str, root: ET.Element, ns_mapping: dict) -> str:
 def get_version(
         config: Config, arguments: Arguments, ns_mapping: dict, root: ET.Element,
         dependency: ET.Element
-) -> tuple[str | None, bool]:
+) -> tuple[Optional[str], bool]:
     """
     Extracts version information from a dependency.
 
@@ -271,7 +272,7 @@ def get_version(
         dependency (ET.Element): Dependency element.
 
     Returns:
-        tuple[str | None, bool]: Tuple of version (or None) and skip flag.
+        tuple[Optional[str], bool]: Tuple of version (or None) and skip flag.
     """
     version_text = ''
     version = dependency.find('xmlns:version', namespaces=ns_mapping)
@@ -295,23 +296,23 @@ def get_version(
 
 
 def check_versions(
-        cache_data: dict | None, config: Config, arguments: Arguments, group: str, artifact: str,
-        version: str | None, section_key: str, path: str, auth_info: tuple[str, str] | None, verify_ssl: bool,
-        available_versions: list[str], response: requests.Response
+        cache_data: Optional[dict], config: Config, arguments: Arguments, group: str, artifact: str,
+        version: Optional[str], section_key: str, path: str, auth_info: Optional[tuple[str, str]],
+        verify_ssl: bool, available_versions: list[str], response: requests.Response
 ) -> bool:
     """
     Checks dependency versions in a repository.
 
     Args:
-        cache_data (dict | None): Cache data.
+        cache_data (Optional[dict]): Cache data.
         config (Config): Parsed YAML as dict.
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
-        version (str | None): Current version.
+        version (Optional[str]): Current version.
         section_key (str): Repository section key.
         path (str): Path to the dependency in the repository.
-        auth_info (tuple[str, str] | None): Authentication credentials.
+        auth_info (Optional[tuple[str, str]]): Authentication credentials.
         verify_ssl (bool): SSL verification flag.
         available_versions (list[str]): List of available versions.
         response (requests.Response): Repository response.
@@ -362,20 +363,20 @@ def check_versions(
 
 
 def get_pom_data(
-        auth_info: tuple[str, str] | None, verify_ssl: bool, artifact: str, version: str, path: str
-) -> tuple[bool, str | None]:
+        auth_info: Optional[tuple[str, str]], verify_ssl: bool, artifact: str, version: str, path: str
+) -> tuple[bool, Optional[str]]:
     """
     Retrieves POM file data from a repository.
 
     Args:
-        auth_info (tuple[str, str] | None): Authentication credentials.
+        auth_info (Optional[tuple[str, str]]): Authentication credentials.
         verify_ssl (bool): SSL verification flag.
         artifact (str): Artifact ID.
         version (str): Artifact version.
         path (str): Path to the dependency in the repository.
 
     Returns:
-        tuple[bool, str | None]: Tuple of success flag and last modified date (or None).
+        tuple[bool, Optional[str]]: Tuple of success flag and last modified date (or None).
     """
     url = f"{path}/{version}/{artifact}-{version}.pom"
     response = requests.get(url, auth=auth_info, verify=verify_ssl)
@@ -403,7 +404,7 @@ def get_pom_tree(
         ET.ElementTree: Parsed XML tree of the POM file.
     """
     if pom_path.startswith('http'):
-        auth_info: tuple[str, str] | None = None
+        auth_info: Optional[tuple[str, str]] = None
         if _config.get_config_value(config, arguments, 'auth', 'pom_http'):
             auth_info = (
                 _config.get_config_value(config, arguments, 'user'),
@@ -414,6 +415,6 @@ def get_pom_tree(
             raise FileNotFoundError(f'{pom_path} not found')
         return ET.ElementTree(ET.fromstring(response.text))
     else:
-        if not os.path.exists(pom_path):
+        if not os.path.exists(pom_path) or not os.path.isfile(pom_path):
             raise FileNotFoundError(f'{pom_path} not found')
         return ET.parse(pom_path)

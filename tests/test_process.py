@@ -5,6 +5,7 @@ import os
 import sys
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
+from typing import Optional
 
 # noinspection PyUnresolvedReferences
 from pytest_mock import mocker
@@ -65,7 +66,7 @@ def test_process_rest(mocker):
     def _service_rest():
         return process_rest(
             {}, Config(), Arguments(), 'group', 'artifact', '1.0', 'section',
-            'repository', 'http://example.com/pom.pom', (), True  # NOSONAR
+            'repository', 'http://example.com/pom.pom', None, True  # NOSONAR
         )
 
     mock_check_versions = mocker.patch('maven_check_versions.utils.check_versions')
@@ -240,7 +241,7 @@ def test_process_dependency(mocker):
         """.lstrip())
     dependencies = collect_dependencies(root, ns_mappings, config, Arguments())
 
-    def _process_dependencies(data: dict | None = None) -> None:
+    def _process_dependencies(data: Optional[dict] = None) -> None:
         for dep in dependencies:
             process_dependency(data, config, Arguments(), dep, ns_mappings, root, True)
 
