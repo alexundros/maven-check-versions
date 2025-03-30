@@ -47,6 +47,7 @@ def add_general_args(argument_parser: ArgumentParser) -> None:
     argument_parser.add_argument('-pf', '--pom_file', help='Path to POM File')
     argument_parser.add_argument('-fa', '--find_artifact', help='Artifact to find')
     argument_parser.add_argument('-cfg', '--config_file', help='Path to Config File')
+    argument_parser.add_argument('-ll', '--log_level', help='Logging level', default=None)
 
 
 def add_cache_args(argument_parser: ArgumentParser) -> None:

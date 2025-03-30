@@ -91,12 +91,13 @@ docker run --rm alexundros/maven_check_versions -ci
 
 ### General Options
 
-| Parameter         | Short | Description                                                                                    | Example                               |
-|-------------------|-------|------------------------------------------------------------------------------------------------|---------------------------------------|
-| `--ci_mode`       | `-ci` | Enables CI (Continuous Integration) mode. Suppresses prompts and waits for user input.         | `--ci_mode`                           |
-| `--pom_file`      | `-pf` | Specifies the path to the Maven POM file to process.                                           | `--pom_file path/to/pom.xml`          |
-| `--find_artifact` | `-fa` | Searches for a specific artifact. Provide the artifact in `groupId:artifactId:version` format. | `--find_artifact com.example:lib:1.0` |
-| `--config_file`   | `-cfg`| Specifies a custom configuration file for the script.                                          | `--config_file config.yml`            |
+| Parameter         | Short  | Description                                                                                    | Example                               |
+|-------------------|--------|------------------------------------------------------------------------------------------------|---------------------------------------|
+| `--ci_mode`       | `-ci`  | Enables CI (Continuous Integration) mode. Suppresses prompts and waits for user input.         | `--ci_mode`                           |
+| `--pom_file`      | `-pf`  | Specifies the path to the Maven POM file to process.                                           | `--pom_file path/to/pom.xml`          |
+| `--find_artifact` | `-fa`  | Searches for a specific artifact. Provide the artifact in `groupId:artifactId:version` format. | `--find_artifact com.example:lib:1.0` |
+| `--config_file`   | `-cfg` | Specifies a custom configuration file for the script.                                          | `--config_file config.yml`            |
+| `--log_level`     | `-ll`  | Specifies log level.                                                                           | `--log_level debug`                   |
 
 ### Cache Control
 
