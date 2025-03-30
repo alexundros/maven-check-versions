@@ -51,7 +51,7 @@ def configure_logging(arguments: Arguments) -> None:
         file_handler.formatter = Formatter(fmt=frm)
         handlers.append(file_handler)
 
-    logging.basicConfig(level=logging.INFO, handlers=handlers)
+    logging.basicConfig(level=logging.INFO, handlers=handlers)  # NOSONAR
 
 
 def log_skip_if_required(
