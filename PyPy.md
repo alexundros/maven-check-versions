@@ -1,5 +1,5 @@
 <p>
-  <img alt="Coverage Status" src="https://img.shields.io/coverallsCoverage/github/alexundros/maven-check-versions">
+  <img alt="Sonar Coverage" src="https://img.shields.io/sonar/coverage/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io"> 
   <img alt="Sonar Quality Gate" src="https://img.shields.io/sonar/quality_gate/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
   <img alt="Sonar Tech Debt" src="https://img.shields.io/sonar/tech_debt/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
   <img alt="Sonar Violations" src="https://img.shields.io/sonar/violations/alexundros_maven-check-versions?server=https%3A%2F%2Fsonarcloud.io">
