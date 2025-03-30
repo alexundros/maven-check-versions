@@ -52,25 +52,22 @@ def get_cve_data(
     Returns:
         dict[str, list[Vulnerability]]: CVE Data.
     """
-    result: dict[str, list[Vulnerability]] = {}
-    if _config.get_config_value(config, arguments, 'oss_index_enabled', 'vulnerability', default=False):
-        coordinates = _get_coordinates(config, arguments, dependencies, ns_mapping, root)
+    if not _config.get_config_value(config, arguments, 'oss_index_enabled', 'vulnerability', default=False):
+        return {}
 
-        if cache_data := _cache.load_cache(config, arguments, 'vulnerability'):
-            for item in coordinates:
-                if cache_data.get(item) is not None:
-                    coordinates.remove(item)
-            for key, data in cache_data.items():
-                cache_data.update({key: [Vulnerability(**item) for item in data]})
-        else:
-            cache_data = {}
+    coordinates = _get_coordinates(config, arguments, dependencies, ns_mapping, root)
+    cve_data = _cache.load_cache(config, arguments, 'vulnerability') or {}
 
-        if cve_data := _fetch_cve_data(config, arguments, coordinates):
-            cache_data.update({key: cves for key, cves in cve_data.items()})
-            _cache.save_cache(config, arguments, cache_data, 'vulnerability')
+    for key, data in cve_data.items():
+        cve_data[key] = [Vulnerability(**item) for item in data]
 
-        result.update(cache_data)
-    return result
+    coordinates = [coord for coord in coordinates if coord not in cve_data]
+
+    if new_cve_data := _fetch_cve_data(config, arguments, coordinates):
+        cve_data.update(new_cve_data)
+        _cache.save_cache(config, arguments, cve_data, 'vulnerability')
+
+    return cve_data
 
 
 def log_vulnerability(

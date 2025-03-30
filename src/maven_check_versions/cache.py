@@ -171,8 +171,7 @@ def _memcached_connection(host: str, port: int):
     Yields:
         pymemcache.client.base.Client: An instance of the Memcached client.
     """
-    from pymemcache.client import base
-    client = base.Client((host, port))
+    client = pymemcache.client.base.Client((host, port))
     try:
         yield client
     finally:
