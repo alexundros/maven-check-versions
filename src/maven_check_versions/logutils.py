@@ -5,6 +5,7 @@ import datetime
 import logging
 import re
 import sys
+from typing import Optional
 
 import maven_check_versions.config as _config
 import requests
@@ -57,7 +58,7 @@ def configure_logging(arguments: Arguments) -> None:
 
 
 def log_skip_if_required(
-        config: Config, arguments: Arguments, group: str, artifact: str, version: str | None
+        config: Config, arguments: Arguments, group: str, artifact: str, version: Optional[str]
 ) -> None:
     """
     Logs a skipped dependency if required.
@@ -67,14 +68,14 @@ def log_skip_if_required(
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
-        version (str | None): Dependency version.
+        version (Optional[str]): Dependency version.
     """
     if _config.get_config_value(config, arguments, 'show_skip'):
         logging.warning(f"Skip: {group}:{artifact}:{version}")
 
 
 def log_search_if_required(
-        config: Config, arguments: Arguments, group: str, artifact: str, version: str | None
+        config: Config, arguments: Arguments, group: str, artifact: str, version: Optional[str]
 ) -> None:
     """
     Logs a dependency search action if required.
@@ -84,7 +85,7 @@ def log_search_if_required(
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
-        version (str | None): Dependency version (Maybe None or a placeholder).
+        version (Optional[str]): Dependency version (Maybe None or a placeholder).
     """
     if _config.get_config_value(config, arguments, 'show_search'):
         if version is None or re.match('^\\${([^}]+)}$', version):

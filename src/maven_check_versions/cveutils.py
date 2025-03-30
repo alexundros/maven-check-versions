@@ -7,6 +7,7 @@ import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from itertools import islice
+from typing import Optional
 
 import maven_check_versions.cache as _cache
 import maven_check_versions.config as _config
@@ -22,16 +23,16 @@ class Vulnerability:
     Vulnerability.
     """
     id: str  # NOSONAR # noqa: A003,VNE003
-    displayName: str | None = None  # NOSONAR # noqa: N815
-    title: str | None = None  # NOSONAR
-    description: str | None = None  # NOSONAR
-    cvssScore: float | None = None  # NOSONAR # noqa: N815
-    cvssVector: str | None = None  # NOSONAR # noqa: N815
-    cve: str | None = None  # NOSONAR
-    cwe: str | None = None  # NOSONAR
-    reference: str | None = None  # NOSONAR
-    externalReferences: list | None = None  # NOSONAR # noqa: N815
-    versionRanges: list | None = None  # NOSONAR # noqa: N815
+    displayName: Optional[str] = None  # NOSONAR # noqa: N815
+    title: Optional[str] = None  # NOSONAR
+    description: Optional[str] = None  # NOSONAR
+    cvssScore: Optional[float] = None  # NOSONAR # noqa: N815
+    cvssVector: Optional[str] = None  # NOSONAR # noqa: N815
+    cve: Optional[str] = None  # NOSONAR
+    cwe: Optional[str] = None  # NOSONAR
+    reference: Optional[str] = None  # NOSONAR
+    externalReferences: Optional[list] = None  # NOSONAR # noqa: N815
+    versionRanges: Optional[list] = None  # NOSONAR # noqa: N815
 
 
 def get_cve_data(
@@ -71,8 +72,8 @@ def get_cve_data(
 
 
 def log_vulnerability(
-        config: Config, arguments: Arguments, group: str, artifact: str, version: str | None,
-        cve_data: dict[str, list[Vulnerability]] | None
+        config: Config, arguments: Arguments, group: str, artifact: str, version: Optional[str],
+        cve_data: Optional[dict[str, list[Vulnerability]]]
 ) -> None:
     """
     Log vulnerability.
@@ -82,8 +83,8 @@ def log_vulnerability(
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
-        version (str | None): Dependency version.
-        cve_data (dict[str, list[Vulnerability]] | None): CVE Data.
+        version (Optional[str]): Dependency version.
+        cve_data (dict[str, Optional[list[Vulnerability]]]): CVE Data.
     """
     fail_score = _config.get_config_value(config, arguments, 'fail_score', 'vulnerability', default=0)
     cve_ref = _config.get_config_value(config, arguments, 'cve_reference', 'vulnerability', default=False)

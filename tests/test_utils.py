@@ -219,11 +219,11 @@ def test_get_pom_data(mocker):
     headers = {'Last-Modified': 'Wed, 18 Jan 2025 12:00:00 GMT'}
     mock_response = mocker.Mock(status_code=200, headers=headers)
     mock_requests = mocker.patch('requests.get', return_value=mock_response)
-    is_valid, last_modified = get_pom_data((), True, 'artifact', '1.0', pom_path)
+    is_valid, last_modified = get_pom_data(None, True, 'artifact', '1.0', pom_path)
     assert is_valid is True and last_modified == '2025-01-18'
 
     mock_requests.return_value = mocker.Mock(status_code=404)
-    is_valid, last_modified = get_pom_data((), True, 'artifact', '1.0', pom_path)
+    is_valid, last_modified = get_pom_data(None, True, 'artifact', '1.0', pom_path)
     assert is_valid is False and last_modified is None
 
 
@@ -238,6 +238,7 @@ def test_get_pom_tree(mocker):
     """
     config = Config({'pom_http': {'auth': 'true'}})
     mocker.patch('os.path.exists', return_value=True)
+    mocker.patch('os.path.isfile', return_value=True)
     mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data=xml))
     tree = get_pom_tree('pom.xml', True, config, Arguments())
     mock_open.assert_called_once_with('pom.xml', 'rb')

@@ -6,6 +6,7 @@ import os
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Optional
 
 import maven_check_versions.cache as _cache
 import maven_check_versions.config as _config
@@ -48,15 +49,15 @@ def process_main(arguments: Arguments) -> None:
 
 
 def process_pom(
-        cache_data: dict | None, config: Config, arguments: Arguments,
-        pom_path: str, prefix: str | None = None
+        cache_data: Optional[dict], config: Config, arguments: Arguments,
+        pom_path: str, prefix: Optional[str] = None
 ) -> None:
     """
     Processes a single POM file by extracting dependencies, checking versions,
     and optionally processing modules and vulnerabilities.
 
     Args:
-        cache_data (dict | None): Cache data.
+        cache_data (Optional[dict]): Cache data.
         config (Config): Parsed YAML as dict.
         arguments (Arguments): Command-line arguments.
         pom_path (str): Local path or URL to the POM file to process.
@@ -98,14 +99,14 @@ def process_pom(
 
 
 def process_dependency(
-        cache_data: dict | None, config: Config, arguments: Arguments, dependency: ET.Element, ns_mapping: dict,
-        root: ET.Element, verify_ssl: bool, cve_data: dict[str, list[Vulnerability]] | None = None
+        cache_data: Optional[dict], config: Config, arguments: Arguments, dependency: ET.Element, ns_mapping: dict,
+        root: ET.Element, verify_ssl: bool, cve_data: Optional[dict[str, list[Vulnerability]]] = None
 ) -> None:
     """
     Processes dependency in a POM file.
 
     Args:
-        cache_data (dict | None): Cache dictionary for storing dependency data, or None if disabled.
+        cache_data (Optional[dict]): Cache dictionary for storing dependency data, or None if disabled.
         config (Config): Configuration dictionary parsed from YAML.
         arguments (Arguments): Command-line arguments.
         dependency (ET.Element): Dependency.
@@ -137,20 +138,20 @@ def process_dependency(
 
 
 def process_repositories(
-        artifact: str, cache_data: dict | None, config: Config, group: str,
-        arguments: Arguments, verify_ssl: bool, version: str | None
+        artifact: str, cache_data: Optional[dict], config: Config, group: str,
+        arguments: Arguments, verify_ssl: bool, version: Optional[str]
 ):
     """
     Processes repositories to find a dependency.
 
     Args:
         artifact (str): Artifact ID.
-        cache_data (dict | None): Cache data.
+        cache_data (Optional[dict]): Cache data.
         config (Config): Parsed YAML as dict.
         group (str): Group ID.
         arguments (Arguments): Command-line arguments.
         verify_ssl (bool): SSL verification flag.
-        version (str | None): Dependency version.
+        version (Optional[str]): Dependency version.
 
     Returns:
         bool: True if the dependency is found, False otherwise.
@@ -165,14 +166,14 @@ def process_repositories(
 
 
 def process_modules_if_required(
-        cache_data: dict | None, config: Config, arguments: Arguments, root: ET.Element,
-        pom_path: str, ns_mapping: dict, prefix: str | None = None
+        cache_data: Optional[dict], config: Config, arguments: Arguments, root: ET.Element,
+        pom_path: str, ns_mapping: dict, prefix: Optional[str] = None
 ) -> None:
     """
     Processes modules in a POM file if required.
 
     Args:
-        cache_data (dict | None): Cache data.
+        cache_data (Optional[dict]): Cache data.
         config (Config): Parsed YAML as dict.
         arguments (Arguments): Command-line arguments.
         root (ET.Element): Root element of the POM file.
@@ -203,14 +204,14 @@ def process_modules_if_required(
 
 
 def process_artifact(
-        cache_data: dict | None, config: Config, arguments: Arguments,
+        cache_data: Optional[dict], config: Config, arguments: Arguments,
         artifact_to_find: str
 ) -> None:
     """
     Processes the search for a specified artifact.
 
     Args:
-        cache_data (dict | None): Cache data.
+        cache_data (Optional[dict]): Cache data.
         config (Config): Parsed YAML as dict.
         arguments (Arguments): Command-line arguments.
         artifact_to_find (str): Artifact to search for in groupId:artifactId:version format.
@@ -231,19 +232,19 @@ def process_artifact(
 
 
 def process_repository(
-        cache_data: dict | None, config: Config, arguments: Arguments, group: str, artifact: str,
-        version: str | None, section_key: str, repository_section: str, verify_ssl: bool
+        cache_data: Optional[dict], config: Config, arguments: Arguments, group: str, artifact: str,
+        version: Optional[str], section_key: str, repository_section: str, verify_ssl: bool
 ) -> bool:
     """
     Processes a repository section.
 
     Args:
-        cache_data (dict | None): Cache data.
+        cache_data (Optional[dict]): Cache data.
         config (Config): Parsed YAML as dict.
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
-        version (str | None): Artifact version.
+        version (Optional[str]): Artifact version.
         section_key (str): Repository section key.
         repository_section (str): Repository section name.
         verify_ssl (bool): SSL verification flag.
@@ -251,7 +252,7 @@ def process_repository(
     Returns:
         bool: True if the dependency is found, False otherwise.
     """
-    auth_info: tuple[str, str] | None = None
+    auth_info: Optional[tuple[str, str]] = None
     if _config.get_config_value(config, arguments, 'auth', repository_section):
         auth_info = (
             _config.get_config_value(config, arguments, 'user'),
@@ -289,24 +290,24 @@ def process_repository(
 
 
 def process_rest(
-        cache_data: dict | None, config: Config, arguments: Arguments, group: str, artifact: str,
-        version: str | None, section_key: str, repository_section: str, base_url: str,
-        auth_info: tuple[str, str] | None, verify_ssl: bool
+        cache_data: Optional[dict], config: Config, arguments: Arguments, group: str, artifact: str,
+        version: Optional[str], section_key: str, repository_section: str, base_url: str,
+        auth_info: Optional[tuple[str, str]], verify_ssl: bool
 ) -> bool:
     """
     Processes REST services for a repository.
 
     Args:
-        cache_data (dict | None): Cache data.
+        cache_data (Optional[dict]): Cache data.
         config (Config): Parsed YAML as dict.
         arguments (Arguments): Command-line arguments.
         group (str): Group ID.
         artifact (str): Artifact ID.
-        version (str | None): Artifact version.
+        version (Optional[str]): Artifact version.
         section_key (str): Repository section key.
         repository_section (str): Repository section name.
         base_url (str): Base URL of the repository.
-        auth_info (tuple[str, str] | None): Authentication credentials.
+        auth_info (Optional[tuple[str, str]]): Authentication credentials.
         verify_ssl (bool): SSL verification flag.
 
     Returns:
