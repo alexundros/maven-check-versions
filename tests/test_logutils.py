@@ -25,9 +25,7 @@ def test_configure_logging(mocker):
     mock_logging = mocker.patch('logging.basicConfig')
     mocker.patch('builtins.open', mocker.mock_open(read_data='{}'))
     configure_logging(Arguments({'logfile_off': False}))
-    mock_logging.assert_called_once_with(
-        level=logging.INFO, handlers=[mocker.ANY, mocker.ANY]
-    )
+    mock_logging.assert_called_once_with(level='INFO', handlers=[mocker.ANY, mocker.ANY])
     handlers = mock_logging.call_args[1]['handlers']
     assert isinstance(handlers[0], logging.StreamHandler)
     assert isinstance(handlers[1], logging.FileHandler)
