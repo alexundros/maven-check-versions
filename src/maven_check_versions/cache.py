@@ -235,6 +235,7 @@ def _load_cache_redis(
                         cache_data[key] = json.loads(value)
                     except json.JSONDecodeError as e:
                         logging.error(f"Failed to decode Redis data for key {key}: {e}")
+                        return False, None
             return True, cache_data
 
     except redis.ConnectionError as e:  # pragma: no cover
@@ -273,6 +274,7 @@ def _load_cache_tarantool(
                         cache_data[item[0]] = json.loads(item[1])
                     except json.JSONDecodeError as e:
                         logging.error(f"Failed to decode Tarantool data for key {item[0]}: {e}")
+                        return False, None
             return True, cache_data
 
     except tarantool.DatabaseError as e:  # pragma: no cover
@@ -307,6 +309,7 @@ def _load_cache_memcached(
                     return True, json.loads(data)
                 except json.JSONDecodeError as e:
                     logging.error(f"Failed to decode Memcached data: {e}")
+                    return False, None
 
     except pymemcache.exceptions.MemcacheError as e:  # pragma: no cover
         logging.error(f"Memcached error: {e}")
