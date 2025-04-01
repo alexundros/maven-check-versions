@@ -64,9 +64,11 @@ def get_config_value(
     """
     value = None
     if section == 'base' and key in arguments:
-        value = arguments.get(key)  # NOSONAR
-        env_key = 'CV_' + key.upper()
-        if env_key in os.environ and (value := os.environ.get(env_key)):
+        value = arguments.get(key)
+    if value is None:
+        inner = '' if section == 'base' else section.upper() + '_'
+        env = 'CV_' + inner + key.upper()
+        if env in os.environ and (value := os.environ.get(env)) is not None:
             if value.lower() == 'true':
                 value = True
             elif value.lower() == 'false':
