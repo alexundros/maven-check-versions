@@ -36,7 +36,9 @@ def test_get_config_value(monkeypatch):
     monkeypatch.setenv('CV_KEY', 'false')
     assert get_config_value(config, Arguments({'key': None}), 'key') is False
     monkeypatch.setenv('CV_KEY', 'true')
-    assert get_config_value(config, Arguments({'key': False}), 'key') is True
+    assert get_config_value(config, Arguments({'key': None}), 'key') is True
+    assert get_config_value(config, Arguments({'key': False}), 'key') is False
+    monkeypatch.undo()
     config = Config({'base': {'key': 123}})
     assert get_config_value(config, Arguments(), 'key') == 123
     assert get_config_value(config, Arguments(), 'val', default=123) == 123
