@@ -199,11 +199,11 @@ def _load_cache_json(
         default=(VULNERABILITIES_KEY if section == 'vulnerability' else ARTIFACTS_KEY) + '.json')
 
     if os.path.exists(cache_file):
-        logging.info(f"Load Cache: {Path(cache_file).absolute()}")
         try:
+            logging.info(f"Load Cache file: {Path(cache_file).absolute()}")
             with open(cache_file) as cf:
                 return True, json.load(cf)
-        except json.JSONDecodeError as e:  # pragma: no cover
+        except json.JSONDecodeError as e:
             logging.error(f"Failed to decode JSON cache data: {e}")
     return False, None
 
@@ -233,8 +233,9 @@ def _load_cache_redis(
                 for key, value in data.items():
                     try:
                         cache_data[key] = json.loads(value)
-                    except json.JSONDecodeError as e:  # pragma: no cover
+                    except json.JSONDecodeError as e:
                         logging.error(f"Failed to decode Redis data for key {key}: {e}")
+                        return False, None
             return True, cache_data
 
     except redis.ConnectionError as e:  # pragma: no cover
@@ -271,8 +272,9 @@ def _load_cache_tarantool(
                 for item in data:
                     try:
                         cache_data[item[0]] = json.loads(item[1])
-                    except json.JSONDecodeError as e:  # pragma: no cover
+                    except json.JSONDecodeError as e:
                         logging.error(f"Failed to decode Tarantool data for key {item[0]}: {e}")
+                        return False, None
             return True, cache_data
 
     except tarantool.DatabaseError as e:  # pragma: no cover
@@ -305,8 +307,9 @@ def _load_cache_memcached(
             if data := client.get(key):
                 try:
                     return True, json.loads(data)
-                except json.JSONDecodeError as e:  # pragma: no cover
+                except json.JSONDecodeError as e:
                     logging.error(f"Failed to decode Memcached data: {e}")
+                    return False, None
 
     except pymemcache.exceptions.MemcacheError as e:  # pragma: no cover
         logging.error(f"Memcached error: {e}")
@@ -330,12 +333,12 @@ def _save_cache_json(
     cache_file = _config.get_config_value(
         config, arguments, 'cache_file', section=section,
         default=(VULNERABILITIES_KEY if section == 'vulnerability' else ARTIFACTS_KEY) + '.json')
-    logging.info(f"Save Cache: {Path(cache_file).absolute()}")
 
     try:
+        logging.info(f"Save Cache file: {Path(cache_file).absolute()}")
         with open(cache_file, 'w') as cf:
             json.dump(cache_data, cf, cls=DCJSONEncoder)
-    except Exception as e:  # pragma: no cover
+    except Exception as e:
         logging.error(f"Failed to save cache to JSON file {cache_file}: {e}")
 
 

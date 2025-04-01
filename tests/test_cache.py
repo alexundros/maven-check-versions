@@ -4,6 +4,7 @@
 import os
 import sys
 import time
+from json import JSONDecodeError
 
 import pytest
 # noinspection PyUnresolvedReferences
@@ -25,12 +26,20 @@ def test_load_cache(mocker):
     mocker.patch('builtins.open', mocker.mock_open(read_data='{"k": "v"}'))
     assert load_cache(Config(), Arguments()) == {'k': 'v'}
 
+    mocker.patch('json.load').side_effect = JSONDecodeError('error', 'error', 0)
+    assert load_cache(Config(), Arguments()) is None
+
     mocker.patch('os.path.exists', return_value=False)
     assert load_cache(Config(), Arguments()) is None
 
     mock_redis = mocker.patch('redis.Redis')
     mock_redis.return_value.hgetall.return_value = {'key': '{"k":"v"}'}
     assert load_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments()) == {'key': {'k': 'v'}}
+
+    mock_loads = mocker.patch('json.loads')
+    mock_loads.side_effect = JSONDecodeError('error', 'error', 0)
+    assert load_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments()) is None
+    mocker.stop(mock_loads)
 
     mock_redis.side_effect = Exception
     assert load_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments()) is None
@@ -39,12 +48,22 @@ def test_load_cache(mocker):
     mock_tarantool.return_value.select.return_value = [('key', '{"k":"v"}')]
     assert load_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments()) == {'key': {'k': 'v'}}
 
+    mock_loads = mocker.patch('json.loads')
+    mock_loads.side_effect = JSONDecodeError('error', 'error', 0)
+    assert load_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments()) is None
+    mocker.stop(mock_loads)
+
     mock_tarantool.side_effect = Exception
     assert load_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments()) is None
 
     mock_memcache = mocker.patch('pymemcache.client.base.Client')
     mock_memcache.return_value.get.return_value = '{"k":"v"}'
     assert load_cache(Config({'base': {'cache_backend': 'memcached'}}), Arguments()) == {'k': 'v'}
+
+    mock_loads = mocker.patch('json.loads')
+    mock_loads.side_effect = JSONDecodeError('error', 'error', 0)
+    assert load_cache(Config({'base': {'cache_backend': 'memcached'}}), Arguments()) is None
+    mocker.stop(mock_loads)
 
     mock_memcache.side_effect = Exception
     assert load_cache(Config({'base': {'cache_backend': 'memcached'}}), Arguments()) is None
@@ -59,6 +78,9 @@ def test_save_cache(mocker):
     mock_open.assert_called_once_with('maven_check_versions_artifacts.json', 'w')
     mock_open_rv = mock_open.return_value.__enter__.return_value
     mock_json.assert_called_once_with({'k': 'v'}, mock_open_rv, cls=DCJSONEncoder)
+
+    mock_json.side_effect = Exception
+    save_cache(Config(), Arguments(), {'k': 'v'})
 
     mock_redis = mocker.patch('redis.Redis')
     save_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments(), {'k': 'v'})
