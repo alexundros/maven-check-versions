@@ -87,7 +87,7 @@ class _CacheBackendRegistry:
     """
     Registry for managing cache backend implementations.
     """
-    _backends = {}
+    _backends: dict[str, _CacheBackend] = {}
 
     @classmethod
     def register(cls, name: str, backend: _CacheBackend):
