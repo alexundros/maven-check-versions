@@ -5,6 +5,7 @@ import logging
 import math
 import os
 import time
+from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
@@ -16,17 +17,17 @@ import redis
 import tarantool
 from maven_check_versions.config import Config, Arguments
 
-ARTIFACTS_KEY = 'maven_check_versions_artifacts'
-VULNERABILITIES_KEY = 'maven_check_versions_vulnerabilities'
-HOST = 'localhost'
-REDIS_PORT = 6379
-TARANTOOL_PORT = 3301
-MEMCACHED_PORT = 11211
+_ARTIFACTS_KEY = 'maven_check_versions_artifacts'
+_VULNERABILITIES_KEY = 'maven_check_versions_vulnerabilities'
+_HOST = 'localhost'
+_REDIS_PORT = 6379
+_TARANTOOL_PORT = 3301
+_MEMCACHED_PORT = 11211
 
 
 class DCJSONEncoder(json.JSONEncoder):  # pragma: no cover
     """
-    JSON Encoder for dataclasses.
+    Custom JSON encoder for serializing dataclasses.
     """
 
     def default(self, obj):
@@ -42,387 +43,385 @@ class DCJSONEncoder(json.JSONEncoder):  # pragma: no cover
         return asdict(obj) if is_dataclass(obj) else super().default(obj)
 
 
-def _redis_config(
-        config: Config, arguments: Arguments, section: str
-) -> Tuple[str, int, str, Optional[str], Optional[str]]:
+class _CacheBackend(ABC):
     """
-    Retrieves the Redis connection parameters from the configuration.
-
-    Args:
-        config (Config): Configuration dictionary parsed from YAML.
-        arguments (Arguments): Command-line arguments.
-        section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
-
-    Returns:
-        tuple: A tuple containing (host, port, key, user, password) for Redis connection.
+    Abstract base class for cache backend implementations.
     """
-    return (
-        _config.get_config_value(
-            config, arguments, 'redis_host', section=section, default=HOST),
-        _config.get_config_value(
-            config, arguments, 'redis_port', section=section, default=REDIS_PORT),
-        _config.get_config_value(
-            config, arguments, 'redis_key', section=section,
-            default=VULNERABILITIES_KEY if section == 'vulnerability' else ARTIFACTS_KEY),
-        _config.get_config_value(config, arguments, 'redis_user', section=section),
-        _config.get_config_value(config, arguments, 'redis_password', section=section)
-    )
+
+    @abstractmethod
+    def load(  # pragma: no cover
+            self, config: Config, arguments: Arguments, section: str
+    ) -> tuple[bool, Optional[Dict[str, Any]]]:
+        """
+        Attempts to load the cache data.
+
+        Args:
+            config (Config): Configuration dictionary parsed from YAML.
+            arguments (Arguments): Command-line arguments.
+            section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
+
+        Returns:
+            tuple[bool, dict]: A tuple containing:
+                - bool: True if the cache was successfully loaded, False otherwise.
+                - Optional[Dict[str, Any]]: The cache data dictionary if successful, otherwise None.
+        """
+        pass
+
+    @abstractmethod
+    def save(  # pragma: no cover
+            self, config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
+    ) -> None:
+        """
+        Saves the cache data.
+
+        Args:
+            config (Config): Configuration dictionary parsed from YAML.
+            arguments (Arguments): Command-line arguments.
+            cache_data (Dict[str, Any]): Cache data to save.
+            section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
+        """
+        pass
 
 
-def _tarantool_config(config: Config, arguments: Arguments, section: str) -> tuple:
+class _CacheBackendRegistry:
     """
-    Retrieves the Tarantool connection parameters from the configuration.
-
-    Args:
-        config (Config): Configuration dictionary parsed from YAML.
-        arguments (Arguments): Command-line arguments.
-        section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
-
-    Returns:
-        tuple: A tuple containing (host, port, space, user, password) for Tarantool connection.
+    Registry for managing cache backend implementations.
     """
-    return (
-        _config.get_config_value(
-            config, arguments, 'tarantool_host', section=section, default=HOST),
-        _config.get_config_value(
-            config, arguments, 'tarantool_port', section=section, default=TARANTOOL_PORT),
-        _config.get_config_value(
-            config, arguments, 'tarantool_space', section=section,
-            default=VULNERABILITIES_KEY if section == 'vulnerability' else ARTIFACTS_KEY),
-        _config.get_config_value(config, arguments, 'tarantool_user', section=section),
-        _config.get_config_value(config, arguments, 'tarantool_password', section=section)
-    )
+    _backends = {}
+
+    @classmethod
+    def register(cls, name: str, backend: _CacheBackend):
+        """
+        Register a cache backend with a given name.
+        """
+        cls._backends[name] = backend
+
+    @classmethod
+    def get(cls, name: str) -> _CacheBackend:
+        """
+        Retrieve a cache backend by name, defaulting to JSON if not found.
+        """
+        return cls._backends.get(name, _JSONCacheBackend())
 
 
-def _memcached_config(config: Config, arguments: Arguments, section: str) -> tuple:
+class _JSONCacheBackend(_CacheBackend, ABC):
     """
-    Retrieves the Memcached connection parameters from the configuration.
-
-    Args:
-        config (Config): Configuration dictionary parsed from YAML.
-        arguments (Arguments): Command-line arguments.
-        section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
-
-    Returns:
-        tuple: A tuple containing (host, port, key) for Memcached connection.
+    Backend for caching data in json files.
     """
-    return (
-        _config.get_config_value(
-            config, arguments, 'memcached_host', section=section, default=HOST),
-        _config.get_config_value(
-            config, arguments, 'memcached_port', section=section, default=MEMCACHED_PORT),
-        _config.get_config_value(
-            config, arguments, 'memcached_key', section=section,
-            default=VULNERABILITIES_KEY if section == 'vulnerability' else ARTIFACTS_KEY)
-    )
 
+    def load(
+            self, config: Config, arguments: Arguments, section: str
+    ) -> tuple[bool, Optional[Dict[str, Any]]]:
+        cache_file = _config.get_config_value(
+            config, arguments, 'cache_file', section=section,
+            default=(_VULNERABILITIES_KEY if section == 'vulnerability' else _ARTIFACTS_KEY) + '.json')
 
-@contextmanager
-def _redis_connection(host: str, port: int, user: Optional[str], password: Optional[str]):
-    """
-    Context manager for Redis connection, ensuring proper cleanup.
+        if os.path.exists(cache_file):
+            try:
+                logging.info(f"Load Cache file: {Path(cache_file).absolute()}")
+                with open(cache_file) as cf:
+                    return True, json.load(cf)
+            except json.JSONDecodeError as e:
+                logging.error(f"Failed to decode JSON cache data: {e}")
+        return False, None
 
-    Args:
-        host (str): Redis server host.
-        port (int): Redis server port.
-        user (Optional[str]): Redis username, if required.
-        password (Optional[str]): Redis password, if required.
+    def save(
+            self, config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
+    ) -> None:
+        cache_file = _config.get_config_value(
+            config, arguments, 'cache_file', section=section,
+            default=(_VULNERABILITIES_KEY if section == 'vulnerability' else _ARTIFACTS_KEY) + '.json')
 
-    Yields:
-        redis.Redis: An instance of the Redis client.
-    """
-    inst = redis.Redis(host=host, port=port, username=user, password=password, decode_responses=True)
-    try:
-        yield inst
-    finally:
-        inst.close()
-
-
-@contextmanager
-def _tarantool_connection(host: str, port: int, user: Optional[str], password: Optional[str]):
-    """
-    Context manager for Tarantool connection, ensuring proper cleanup.
-
-    Args:
-        host (str): Tarantool server host.
-        port (int): Tarantool server port.
-        user (Optional[str]): Tarantool username, if required.
-        password (Optional[str]): Tarantool password, if required.
-
-    Yields:
-        tarantool.Connection: An instance of the Tarantool connection.
-    """
-    conn = tarantool.Connection(host, port, user=user, password=password)
-    try:
-        yield conn
-    finally:
-        conn.close()
-
-
-@contextmanager
-def _memcached_connection(host: str, port: int):
-    """
-    Context manager for Memcached connection, ensuring proper cleanup.
-
-    Args:
-        host (str): Memcached server host.
-        port (int): Memcached server port.
-
-    Yields:
-        pymemcache.client.base.Client: An instance of the Memcached client.
-    """
-    client = pymemcache.client.base.Client((host, port))
-    try:
-        yield client
-    finally:
-        client.close()
-
-
-def _load_cache_json(
-        config: Config, arguments: Arguments, section: str
-) -> tuple[bool, Optional[Dict[str, Any]]]:
-    """
-    Attempts to load the cache data from a JSON file specified in the configuration.
-
-    Args:
-        config (Config): Configuration dictionary parsed from YAML.
-        arguments (Arguments): Command-line arguments.
-        section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
-
-    Returns:
-        tuple[bool, dict]: A tuple containing:
-            - bool: True if the cache was successfully loaded, False otherwise.
-            - Optional[Dict[str, Any]]: The cache data dictionary if successful, otherwise None.
-    """
-    cache_file = _config.get_config_value(
-        config, arguments, 'cache_file', section=section,
-        default=(VULNERABILITIES_KEY if section == 'vulnerability' else ARTIFACTS_KEY) + '.json')
-
-    if os.path.exists(cache_file):
         try:
-            logging.info(f"Load Cache file: {Path(cache_file).absolute()}")
-            with open(cache_file) as cf:
-                return True, json.load(cf)
-        except json.JSONDecodeError as e:
-            logging.error(f"Failed to decode JSON cache data: {e}")
-    return False, None
+            logging.info(f"Save Cache file: {Path(cache_file).absolute()}")
+            with open(cache_file, 'w') as cf:
+                json.dump(cache_data, cf, cls=DCJSONEncoder)
+        except Exception as e:
+            logging.error(f"Failed to save cache to JSON file {cache_file}: {e}")
 
 
-def _load_cache_redis(
-        config: Config, arguments: Arguments, section: str
-) -> tuple[bool, Optional[Dict[str, Any]]]:
+class _RedisCacheBackend(_CacheBackend):
     """
-    Attempts to load the cache data from Redis using the configuration parameters.
-
-    Args:
-        config (Config): Configuration dictionary parsed from YAML.
-        arguments (Arguments): Command-line arguments.
-        section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
-
-    Returns:
-        tuple[bool, dict]: A tuple containing:
-            - bool: True if the cache was successfully loaded, False otherwise.
-            - Optional[Dict[str, Any]]: The cache data dictionary if successful, otherwise None.
+    Backend for caching data in Redis.
     """
-    try:
-        host, port, ckey, user, password = _redis_config(config, arguments, section)
 
-        with _redis_connection(host, port, user, password) as inst:
-            cache_data: Dict[str, Any] = {}
-            if isinstance(data := inst.hgetall(ckey), dict):
-                for key, value in data.items():
+    @staticmethod
+    def _config(
+            config: Config, arguments: Arguments, section: str
+    ) -> Tuple[str, int, str, Optional[str], Optional[str]]:
+        """
+        Retrieves the Redis connection parameters from the configuration.
+
+        Args:
+            config (Config): Configuration dictionary parsed from YAML.
+            arguments (Arguments): Command-line arguments.
+            section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
+
+        Returns:
+            tuple: A tuple containing (host, port, key, user, password) for Redis connection.
+        """
+        return (
+            _config.get_config_value(
+                config, arguments, 'redis_host', section=section, default=_HOST),
+            _config.get_config_value(
+                config, arguments, 'redis_port', section=section, default=_REDIS_PORT),
+            _config.get_config_value(
+                config, arguments, 'redis_key', section=section,
+                default=_VULNERABILITIES_KEY if section == 'vulnerability' else _ARTIFACTS_KEY),
+            _config.get_config_value(config, arguments, 'redis_user', section=section),
+            _config.get_config_value(config, arguments, 'redis_password', section=section)
+        )
+
+    @contextmanager
+    def _connection(
+            self, host: str, port: int, user: Optional[str], password: Optional[str]
+    ):
+        """
+        Context manager for Redis connection, ensuring proper cleanup.
+
+        Args:
+            host (str): Redis server host.
+            port (int): Redis server port.
+            user (Optional[str]): Redis username, if required.
+            password (Optional[str]): Redis password, if required.
+
+        Yields:
+            redis.Redis: An instance of the Redis client.
+        """
+        inst = redis.Redis(host=host, port=port, username=user, password=password, decode_responses=True)
+        try:
+            yield inst
+        finally:
+            inst.close()
+
+    def load(
+            self, config: Config, arguments: Arguments, section: str
+    ) -> tuple[bool, Optional[Dict[str, Any]]]:
+        try:
+            host, port, ckey, user, password = self._config(config, arguments, section)
+
+            with self._connection(host, port, user, password) as inst:
+                cache_data: Dict[str, Any] = {}
+                if isinstance(data := inst.hgetall(ckey), dict):
+                    for key, value in data.items():
+                        try:
+                            cache_data[key] = json.loads(value)
+                        except json.JSONDecodeError as e:
+                            logging.error(f"Failed to decode Redis data for key {key}: {e}")
+                            return False, None
+                return True, cache_data
+
+        except redis.ConnectionError as e:  # pragma: no cover
+            logging.error(f"Redis connection failed: {e}")
+        except redis.RedisError as e:  # pragma: no cover
+            logging.error(f"Redis error: {e}")
+        except Exception as e:
+            logging.error(f"Failed to load cache from Redis: {e}")
+        return False, None
+
+    def save(
+            self, config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
+    ) -> None:
+        try:
+            host, port, ckey, user, password = self._config(config, arguments, section)
+
+            with self._connection(host, port, user, password) as inst:
+                for key, value in cache_data.items():
                     try:
-                        cache_data[key] = json.loads(value)
-                    except json.JSONDecodeError as e:
-                        logging.error(f"Failed to decode Redis data for key {key}: {e}")
-                        return False, None
-            return True, cache_data
+                        inst.hset(ckey, key, json.dumps(value, cls=DCJSONEncoder))
+                    except redis.RedisError as e:  # pragma: no cover
+                        logging.error(f"Failed to save cache to Redis for key {key}: {e}")
 
-    except redis.ConnectionError as e:  # pragma: no cover
-        logging.error(f"Redis connection failed: {e}")
-    except redis.RedisError as e:  # pragma: no cover
-        logging.error(f"Redis error: {e}")
-    except Exception as e:
-        logging.error(f"Failed to load cache from Redis: {e}")
-    return False, None
+        except redis.ConnectionError as e:  # pragma: no cover
+            logging.error(f"Redis connection failed: {e}")
+        except redis.RedisError as e:  # pragma: no cover
+            logging.error(f"Redis error: {e}")
+        except Exception as e:
+            logging.error(f"Failed to save cache to Redis: {e}")
 
 
-def _load_cache_tarantool(
-        config: Config, arguments: Arguments, section: str
-) -> tuple[bool, Optional[Dict[str, Any]]]:
+class _TarantoolCacheBackend(_CacheBackend):
     """
-    Attempts to load the cache data from Tarantool using the configuration parameters.
-
-    Args:
-        config (Config): Configuration dictionary parsed from YAML.
-        arguments (Arguments): Command-line arguments.
-        section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
-
-    Returns:
-        tuple[bool, dict]: A tuple containing:
-            - bool: True if the cache was successfully loaded, False otherwise.
-            - Optional[Dict[str, Any]]: The cache data dictionary if successful, otherwise None.
+    Backend for caching data in Tarantool.
     """
-    try:
-        host, port, space, user, password = _tarantool_config(config, arguments, section)
 
-        with _tarantool_connection(host, port, user, password) as conn:
-            cache_data: Dict[str, Any] = {}
-            if data := conn.select(space):
-                for item in data:
+    @staticmethod
+    def _config(config: Config, arguments: Arguments, section: str) -> tuple:
+        """
+        Retrieves the Tarantool connection parameters from the configuration.
+
+        Args:
+            config (Config): Configuration dictionary parsed from YAML.
+            arguments (Arguments): Command-line arguments.
+            section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
+
+        Returns:
+            tuple: A tuple containing (host, port, space, user, password) for Tarantool connection.
+        """
+        return (
+            _config.get_config_value(
+                config, arguments, 'tarantool_host', section=section, default=_HOST),
+            _config.get_config_value(
+                config, arguments, 'tarantool_port', section=section, default=_TARANTOOL_PORT),
+            _config.get_config_value(
+                config, arguments, 'tarantool_space', section=section,
+                default=_VULNERABILITIES_KEY if section == 'vulnerability' else _ARTIFACTS_KEY),
+            _config.get_config_value(config, arguments, 'tarantool_user', section=section),
+            _config.get_config_value(config, arguments, 'tarantool_password', section=section)
+        )
+
+    @contextmanager
+    def _connection(
+            self, host: str, port: int, user: Optional[str], password: Optional[str]
+    ):
+        """
+        Context manager for Tarantool connection, ensuring proper cleanup.
+
+        Args:
+            host (str): Tarantool server host.
+            port (int): Tarantool server port.
+            user (Optional[str]): Tarantool username, if required.
+            password (Optional[str]): Tarantool password, if required.
+
+        Yields:
+            tarantool.Connection: An instance of the Tarantool connection.
+        """
+        conn = tarantool.Connection(host, port, user=user, password=password)
+        try:
+            yield conn
+        finally:
+            conn.close()
+
+    def load(
+            self, config: Config, arguments: Arguments, section: str
+    ) -> tuple[bool, Optional[Dict[str, Any]]]:
+        try:
+            host, port, space, user, password = self._config(config, arguments, section)
+
+            with self._connection(host, port, user, password) as conn:
+                cache_data: Dict[str, Any] = {}
+                if data := conn.select(space):
+                    for item in data:
+                        try:
+                            cache_data[item[0]] = json.loads(item[1])
+                        except json.JSONDecodeError as e:
+                            logging.error(f"Failed to decode Tarantool data for key {item[0]}: {e}")
+                            return False, None
+                return True, cache_data
+
+        except tarantool.DatabaseError as e:  # pragma: no cover
+            logging.error(f"Tarantool error: {e}")
+        except Exception as e:
+            logging.error(f"Failed to load cache from Tarantool: {e}")
+        return False, None
+
+    def save(
+            self, config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
+    ) -> None:
+        try:
+            host, port, space, user, password = self._config(config, arguments, section)
+
+            with self._connection(host, port, user, password) as conn:
+                space = conn.space(space)
+                for key, value in cache_data.items():
+                    space.replace((key, json.dumps(value, cls=DCJSONEncoder)))
+
+        except tarantool.DatabaseError as e:  # pragma: no cover
+            logging.error(f"Tarantool error: {e}")
+        except Exception as e:
+            logging.error(f"Failed to save cache to Tarantool: {e}")
+
+
+class _MemcachedCacheBackend(_CacheBackend):
+    """
+    Backend for caching data in Memcached.
+    """
+
+    @staticmethod
+    def _config(config: Config, arguments: Arguments, section: str) -> tuple:
+        """
+        Retrieves the Memcached connection parameters from the configuration.
+
+        Args:
+            config (Config): Configuration dictionary parsed from YAML.
+            arguments (Arguments): Command-line arguments.
+            section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
+
+        Returns:
+            tuple: A tuple containing (host, port, key) for Memcached connection.
+        """
+        return (
+            _config.get_config_value(
+                config, arguments, 'memcached_host', section=section, default=_HOST),
+            _config.get_config_value(
+                config, arguments, 'memcached_port', section=section, default=_MEMCACHED_PORT),
+            _config.get_config_value(
+                config, arguments, 'memcached_key', section=section,
+                default=_VULNERABILITIES_KEY if section == 'vulnerability' else _ARTIFACTS_KEY)
+        )
+
+    @contextmanager
+    def _connection(self, host: str, port: int):
+        """
+        Context manager for Memcached connection, ensuring proper cleanup.
+
+        Args:
+            host (str): Memcached server host.
+            port (int): Memcached server port.
+
+        Yields:
+            pymemcache.client.base.Client: An instance of the Memcached client.
+        """
+        client = pymemcache.client.base.Client((host, port))
+        try:
+            yield client
+        finally:
+            client.close()
+
+    def load(
+            self, config: Config, arguments: Arguments, section: str
+    ) -> tuple[bool, Optional[Dict[str, Any]]]:
+        try:
+            host, port, key = self._config(config, arguments, section)
+
+            with self._connection(host, port) as client:
+                if data := client.get(key):
                     try:
-                        cache_data[item[0]] = json.loads(item[1])
+                        return True, json.loads(data)
                     except json.JSONDecodeError as e:
-                        logging.error(f"Failed to decode Tarantool data for key {item[0]}: {e}")
+                        logging.error(f"Failed to decode Memcached data: {e}")
                         return False, None
-            return True, cache_data
 
-    except tarantool.DatabaseError as e:  # pragma: no cover
-        logging.error(f"Tarantool error: {e}")
-    except Exception as e:
-        logging.error(f"Failed to load cache from Tarantool: {e}")
-    return False, None
+        except pymemcache.exceptions.MemcacheError as e:  # pragma: no cover
+            logging.error(f"Memcached error: {e}")
+        except Exception as e:
+            logging.error(f"Failed to load cache from Memcached: {e}")
+        return False, None
 
+    def save(
+            self, config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
+    ) -> None:
+        try:
+            host, port, key = self._config(config, arguments, section)
 
-def _load_cache_memcached(
-        config: Config, arguments: Arguments, section: str
-) -> tuple[bool, Optional[Dict[str, Any]]]:
-    """
-    Attempts to load the cache data from Memcached using the configuration parameters.
+            with self._connection(host, port) as client:
+                client.set(key, json.dumps(cache_data, cls=DCJSONEncoder))
 
-    Args:
-        config (Config): Configuration dictionary parsed from YAML.
-        arguments (Arguments): Command-line arguments.
-        section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
-
-    Returns:
-        tuple[bool, dict]: A tuple containing:
-            - bool: True if the cache was successfully loaded, False otherwise.
-            - Optional[Dict[str, Any]]: The cache data dictionary if successful, otherwise None.
-    """
-    try:
-        host, port, key = _memcached_config(config, arguments, section)
-
-        with _memcached_connection(host, port) as client:
-            if data := client.get(key):
-                try:
-                    return True, json.loads(data)
-                except json.JSONDecodeError as e:
-                    logging.error(f"Failed to decode Memcached data: {e}")
-                    return False, None
-
-    except pymemcache.exceptions.MemcacheError as e:  # pragma: no cover
-        logging.error(f"Memcached error: {e}")
-    except Exception as e:
-        logging.error(f"Failed to load cache from Memcached: {e}")
-    return False, None
+        except pymemcache.exceptions.MemcacheError as e:  # pragma: no cover
+            logging.error(f"Memcached error: {e}")
+        except Exception as e:
+            logging.error(f"Failed to save cache to Memcached: {e}")
 
 
-def _save_cache_json(
-        config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
-) -> None:
-    """
-    Saves the cache data to a JSON file specified in the configuration.
-
-    Args:
-        config (Config): Configuration dictionary parsed from YAML.
-        arguments (Arguments): Command-line arguments.
-        cache_data (Dict[str, Any]): Cache data to save.
-        section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
-    """
-    cache_file = _config.get_config_value(
-        config, arguments, 'cache_file', section=section,
-        default=(VULNERABILITIES_KEY if section == 'vulnerability' else ARTIFACTS_KEY) + '.json')
-
-    try:
-        logging.info(f"Save Cache file: {Path(cache_file).absolute()}")
-        with open(cache_file, 'w') as cf:
-            json.dump(cache_data, cf, cls=DCJSONEncoder)
-    except Exception as e:
-        logging.error(f"Failed to save cache to JSON file {cache_file}: {e}")
+_CacheBackendRegistry.register('json', _JSONCacheBackend())
+_CacheBackendRegistry.register('redis', _RedisCacheBackend())
+_CacheBackendRegistry.register('tarantool', _TarantoolCacheBackend())
+_CacheBackendRegistry.register('memcached', _MemcachedCacheBackend())
 
 
-def _save_cache_redis(
-        config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
-) -> None:
-    """
-    Saves the cache data to Redis using the configuration parameters.
-
-    Args:
-        config (Config): Configuration dictionary parsed from YAML.
-        arguments (Arguments): Command-line arguments.
-        cache_data (Dict[str, Any]): Cache data to save.
-        section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
-    """
-    try:
-        host, port, ckey, user, password = _redis_config(config, arguments, section)
-
-        with _redis_connection(host, port, user, password) as inst:
-            for key, value in cache_data.items():
-                try:
-                    inst.hset(ckey, key, json.dumps(value, cls=DCJSONEncoder))
-                except redis.RedisError as e:  # pragma: no cover
-                    logging.error(f"Failed to save cache to Redis for key {key}: {e}")
-
-    except redis.ConnectionError as e:  # pragma: no cover
-        logging.error(f"Redis connection failed: {e}")
-    except redis.RedisError as e:  # pragma: no cover
-        logging.error(f"Redis error: {e}")
-    except Exception as e:
-        logging.error(f"Failed to save cache to Redis: {e}")
-
-
-def _save_cache_tarantool(
-        config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
-) -> None:
-    """
-    Saves the cache data to Tarantool using the configuration parameters.
-
-    Args:
-        config (Config): Configuration dictionary parsed from YAML.
-        arguments (Arguments): Command-line arguments.
-        cache_data (dict): Cache data to save.
-        section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
-    """
-    try:
-        host, port, space, user, password = _tarantool_config(config, arguments, section)
-
-        with _tarantool_connection(host, port, user, password) as conn:
-            space = conn.space(space)
-            for key, value in cache_data.items():
-                space.replace((key, json.dumps(value, cls=DCJSONEncoder)))
-
-    except tarantool.DatabaseError as e:  # pragma: no cover
-        logging.error(f"Tarantool error: {e}")
-    except Exception as e:
-        logging.error(f"Failed to save cache to Tarantool: {e}")
-
-
-def _save_cache_memcached(
-        config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
-) -> None:
-    """
-    Saves the cache data to Memcached using the configuration parameters.
-
-    Args:
-        config (Config): Configuration dictionary parsed from YAML.
-        arguments (Arguments): Command-line arguments.
-        cache_data (Dict[str, Any]): Cache data to save.
-        section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
-    """
-    try:
-        host, port, key = _memcached_config(config, arguments, section)
-
-        with _memcached_connection(host, port) as client:
-            client.set(key, json.dumps(cache_data, cls=DCJSONEncoder))
-
-    except pymemcache.exceptions.MemcacheError as e:  # pragma: no cover
-        logging.error(f"Memcached error: {e}")
-    except Exception as e:
-        logging.error(f"Failed to save cache to Memcached: {e}")
-
-
-def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> Optional[Dict[str, Any]]:
+def load_cache(
+        config: Config, arguments: Arguments, section: str = 'base'
+) -> Optional[Dict[str, Any]]:
     """
     Loads the cache data from the specified backend based on the configuration.
     Supports JSON, Redis, Tarantool, and Memcached backends.
@@ -435,32 +434,14 @@ def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> O
     Returns:
         Optional[Dict[str, Any]]: Cache data as a dictionary if successfully loaded, otherwise None.
     """
-    backend = _config.get_config_value(
-        config, arguments, 'cache_backend', section=section, default='json')
-    match backend:
-        case 'json':
-            success, value = _load_cache_json(config, arguments, section)
-            if success:
-                return value
-        case 'redis':
-            success, value = _load_cache_redis(config, arguments, section)
-            if success:
-                return value
-        case 'tarantool':
-            success, value = _load_cache_tarantool(config, arguments, section)
-            if success:
-                return value
-        case 'memcached':
-            success, value = _load_cache_memcached(config, arguments, section)
-            if success:
-                return value
-        case _:  # pragma: no cover
-            raise ValueError(f"Unsupported cache backend: {backend}")
-    return None
+    key = _config.get_config_value(config, arguments, 'cache_backend', section=section)
+    success, value = _CacheBackendRegistry.get(key).load(config, arguments, section)
+    return value if success else None
 
 
 def save_cache(
-        config: Config, arguments: Arguments, cache_data: Optional[Dict[str, Any]], section: str = 'base'
+        config: Config, arguments: Arguments, cache_data: Optional[Dict[str, Any]],
+        section: str = 'base'
 ) -> None:
     """
     Saves the cache data to the specified backend based on the configuration.
@@ -473,19 +454,8 @@ def save_cache(
         section (str, optional): Configuration section to use (default is 'base').
     """
     if cache_data is not None:
-        backend = _config.get_config_value(
-            config, arguments, 'cache_backend', section=section, default='json')
-        match backend:
-            case 'json':
-                _save_cache_json(config, arguments, cache_data, section)
-            case 'redis':
-                _save_cache_redis(config, arguments, cache_data, section)
-            case 'tarantool':
-                _save_cache_tarantool(config, arguments, cache_data, section)
-            case 'memcached':
-                _save_cache_memcached(config, arguments, cache_data, section)
-            case _:  # pragma: no cover
-                raise ValueError(f"Unsupported cache backend: {backend}")
+        key = _config.get_config_value(config, arguments, 'cache_backend', section=section)
+        _CacheBackendRegistry.get(key).save(config, arguments, cache_data, section)
 
 
 def process_cache_artifact(
