@@ -27,10 +27,10 @@ def test_load_cache(mocker):
     assert load_cache(Config(), Arguments()) == {'k': 'v'}
 
     mocker.patch('json.load').side_effect = JSONDecodeError('error', 'error', 0)
-    assert load_cache(Config(), Arguments()) is None
+    assert load_cache(Config(), Arguments()) == {}
 
     mocker.patch('os.path.exists', return_value=False)
-    assert load_cache(Config(), Arguments()) is None
+    assert load_cache(Config(), Arguments()) == {}
 
     mock_redis = mocker.patch('redis.Redis')
     mock_redis.return_value.hgetall.return_value = {'key': '{"k":"v"}'}
@@ -38,11 +38,11 @@ def test_load_cache(mocker):
 
     mock_loads = mocker.patch('json.loads')
     mock_loads.side_effect = JSONDecodeError('error', 'error', 0)
-    assert load_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments()) is None
+    assert load_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments()) == {}
     mocker.stop(mock_loads)
 
     mock_redis.side_effect = Exception
-    assert load_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments()) is None
+    assert load_cache(Config({'base': {'cache_backend': 'redis'}}), Arguments()) == {}
 
     mock_tarantool = mocker.patch('tarantool.Connection')
     mock_tarantool.return_value.select.return_value = [('key', '{"k":"v"}')]
@@ -50,11 +50,11 @@ def test_load_cache(mocker):
 
     mock_loads = mocker.patch('json.loads')
     mock_loads.side_effect = JSONDecodeError('error', 'error', 0)
-    assert load_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments()) is None
+    assert load_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments()) == {}
     mocker.stop(mock_loads)
 
     mock_tarantool.side_effect = Exception
-    assert load_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments()) is None
+    assert load_cache(Config({'base': {'cache_backend': 'tarantool'}}), Arguments()) == {}
 
     mock_memcache = mocker.patch('pymemcache.client.base.Client')
     mock_memcache.return_value.get.return_value = '{"k":"v"}'
@@ -62,22 +62,21 @@ def test_load_cache(mocker):
 
     mock_loads = mocker.patch('json.loads')
     mock_loads.side_effect = JSONDecodeError('error', 'error', 0)
-    assert load_cache(Config({'base': {'cache_backend': 'memcached'}}), Arguments()) is None
+    assert load_cache(Config({'base': {'cache_backend': 'memcached'}}), Arguments()) == {}
     mocker.stop(mock_loads)
 
     mock_memcache.side_effect = Exception
-    assert load_cache(Config({'base': {'cache_backend': 'memcached'}}), Arguments()) is None
+    assert load_cache(Config({'base': {'cache_backend': 'memcached'}}), Arguments()) == {}
     mocker.stopall()
 
 
 # noinspection PyShadowingNames
 def test_save_cache(mocker):
     mock_open = mocker.patch('builtins.open')
-    mock_json = mocker.patch('json.dump')
+    mock_json = mocker.patch('json.dumps')
     save_cache(Config(), Arguments(), {'k': 'v'})
-    mock_open.assert_called_once_with('maven_check_versions_artifacts.json', 'w')
-    mock_open_rv = mock_open.return_value.__enter__.return_value
-    mock_json.assert_called_once_with({'k': 'v'}, mock_open_rv, cls=DCJSONEncoder)
+    mock_open.assert_called_once_with('maven_check_versions_artifacts.json', 'w', encoding='utf-8')
+    mock_json.assert_called_once_with({'k': 'v'}, cls=DCJSONEncoder)
 
     mock_json.side_effect = Exception
     save_cache(Config(), Arguments(), {'k': 'v'})
