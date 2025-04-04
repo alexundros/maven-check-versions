@@ -44,8 +44,7 @@ def process_main(arguments: Arguments) -> None:
         for _, pom in _config.config_items(config, 'pom_files'):
             process_pom(cache_data, config, arguments, pom)
 
-    if cache_data is not None:
-        _cache.save_cache(config, arguments, cache_data)
+    _cache.save_cache(config, arguments, cache_data)
 
 
 def process_pom(

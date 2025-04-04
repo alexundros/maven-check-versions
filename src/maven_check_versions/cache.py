@@ -49,9 +49,7 @@ class _CacheBackend(ABC):
     """
 
     @abstractmethod
-    def load(  # pragma: no cover
-            self, config: Config, arguments: Arguments, section: str
-    ) -> tuple[bool, Optional[Dict[str, Any]]]:
+    def load(self, config: Config, arguments: Arguments, section: str) -> Dict[str, Any]:  # pragma: no cover
         """
         Attempts to load the cache data.
 
@@ -63,7 +61,7 @@ class _CacheBackend(ABC):
         Returns:
             tuple[bool, dict]: A tuple containing:
                 - bool: True if the cache was successfully loaded, False otherwise.
-                - Optional[Dict[str, Any]]: The cache data dictionary if successful, otherwise None.
+                - Dict[str, Any]: The cache data dictionary.
         """
         pass
 
@@ -109,9 +107,7 @@ class _JSONCacheBackend(_CacheBackend, ABC):
     Backend for caching data in json files.
     """
 
-    def load(
-            self, config: Config, arguments: Arguments, section: str
-    ) -> tuple[bool, Optional[Dict[str, Any]]]:
+    def load(self, config: Config, arguments: Arguments, section: str) -> Dict[str, Any]:
         cache_file = _config.get_config_value(
             config, arguments, 'cache_file', section=section,
             default=(_VULNERABILITIES_KEY if section == 'vulnerability' else _ARTIFACTS_KEY) + '.json')
@@ -119,11 +115,11 @@ class _JSONCacheBackend(_CacheBackend, ABC):
         if os.path.exists(cache_file):
             try:
                 logging.info(f"Load Cache file: {Path(cache_file).absolute()}")
-                with open(cache_file) as cf:
-                    return True, json.load(cf)
+                with open(cache_file, encoding='utf-8') as cf:
+                    return json.load(cf)
             except json.JSONDecodeError as e:
                 logging.error(f"Failed to decode JSON cache data: {e}")
-        return False, None
+        return {}
 
     def save(
             self, config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
@@ -134,8 +130,8 @@ class _JSONCacheBackend(_CacheBackend, ABC):
 
         try:
             logging.info(f"Save Cache file: {Path(cache_file).absolute()}")
-            with open(cache_file, 'w') as cf:
-                json.dump(cache_data, cf, cls=DCJSONEncoder)
+            with open(cache_file, 'w', encoding='utf-8') as cf:
+                cf.write(json.dumps(cache_data, cls=DCJSONEncoder))
         except Exception as e:
             logging.error(f"Failed to save cache to JSON file {cache_file}: {e}")
 
@@ -194,9 +190,7 @@ class _RedisCacheBackend(_CacheBackend):
         finally:
             inst.close()
 
-    def load(
-            self, config: Config, arguments: Arguments, section: str
-    ) -> tuple[bool, Optional[Dict[str, Any]]]:
+    def load(self, config: Config, arguments: Arguments, section: str) -> Dict[str, Any]:
         try:
             host, port, ckey, user, password = self._config(config, arguments, section)
 
@@ -208,8 +202,7 @@ class _RedisCacheBackend(_CacheBackend):
                             cache_data[key] = json.loads(value)
                         except json.JSONDecodeError as e:
                             logging.error(f"Failed to decode Redis data for key {key}: {e}")
-                            return False, None
-                return True, cache_data
+                return cache_data
 
         except redis.ConnectionError as e:  # pragma: no cover
             logging.error(f"Redis connection failed: {e}")
@@ -217,7 +210,7 @@ class _RedisCacheBackend(_CacheBackend):
             logging.error(f"Redis error: {e}")
         except Exception as e:
             logging.error(f"Failed to load cache from Redis: {e}")
-        return False, None
+        return {}
 
     def save(
             self, config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
@@ -292,9 +285,7 @@ class _TarantoolCacheBackend(_CacheBackend):
         finally:
             conn.close()
 
-    def load(
-            self, config: Config, arguments: Arguments, section: str
-    ) -> tuple[bool, Optional[Dict[str, Any]]]:
+    def load(self, config: Config, arguments: Arguments, section: str) -> Dict[str, Any]:
         try:
             host, port, space, user, password = self._config(config, arguments, section)
 
@@ -306,14 +297,13 @@ class _TarantoolCacheBackend(_CacheBackend):
                             cache_data[item[0]] = json.loads(item[1])
                         except json.JSONDecodeError as e:
                             logging.error(f"Failed to decode Tarantool data for key {item[0]}: {e}")
-                            return False, None
-                return True, cache_data
+                return cache_data
 
         except tarantool.DatabaseError as e:  # pragma: no cover
             logging.error(f"Tarantool error: {e}")
         except Exception as e:
             logging.error(f"Failed to load cache from Tarantool: {e}")
-        return False, None
+        return {}
 
     def save(
             self, config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
@@ -378,25 +368,22 @@ class _MemcachedCacheBackend(_CacheBackend):
         finally:
             client.close()
 
-    def load(
-            self, config: Config, arguments: Arguments, section: str
-    ) -> tuple[bool, Optional[Dict[str, Any]]]:
+    def load(self, config: Config, arguments: Arguments, section: str) -> Dict[str, Any]:
         try:
             host, port, key = self._config(config, arguments, section)
 
             with self._connection(host, port) as client:
                 if data := client.get(key):
                     try:
-                        return True, json.loads(data)
+                        return json.loads(data)
                     except json.JSONDecodeError as e:
                         logging.error(f"Failed to decode Memcached data: {e}")
-                        return False, None
 
         except pymemcache.exceptions.MemcacheError as e:  # pragma: no cover
             logging.error(f"Memcached error: {e}")
         except Exception as e:
             logging.error(f"Failed to load cache from Memcached: {e}")
-        return False, None
+        return {}
 
     def save(
             self, config: Config, arguments: Arguments, cache_data: Dict[str, Any], section: str
@@ -419,9 +406,7 @@ _CacheBackendRegistry.register('tarantool', _TarantoolCacheBackend())
 _CacheBackendRegistry.register('memcached', _MemcachedCacheBackend())
 
 
-def load_cache(
-        config: Config, arguments: Arguments, section: str = 'base'
-) -> Optional[Dict[str, Any]]:
+def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> Dict[str, Any]:
     """
     Loads the cache data from the specified backend based on the configuration.
     Supports JSON, Redis, Tarantool, and Memcached backends.
@@ -432,11 +417,10 @@ def load_cache(
         section (str, optional): Configuration section to use (default is 'base').
 
     Returns:
-        Optional[Dict[str, Any]]: Cache data as a dictionary if successfully loaded, otherwise None.
+        Dict[str, Any]: Cache data as a dictionary.
     """
     key = _config.get_config_value(config, arguments, 'cache_backend', section=section)
-    success, value = _CacheBackendRegistry.get(key).load(config, arguments, section)
-    return value if success else None
+    return _CacheBackendRegistry.get(key).load(config, arguments, section)
 
 
 def save_cache(
