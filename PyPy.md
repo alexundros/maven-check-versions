@@ -6,6 +6,7 @@
 </p>
 
 ---
+
 # Maven Check Versions
 
 This is a Python package designed for analyzing Maven POM files and managing dependencies.
@@ -40,23 +41,26 @@ You can install the tool via pip: `pip install maven_check_versions`
 ## Usage
 
 - Analyze a specific pom file:
+
 ```bash
 maven_check_versions --pom_file path/to/pom.xml
 ```
 
 - Search for a specific artifact:
+
 ```bash
 maven_check_versions --find_artifact com.example:my-lib:1.0
 ```
 
 - Enable CI mode to suppress prompts:
+
 ```bash
 maven_check_versions --ci_mode
 ```
 
 ### Docker images
 
-#### Pull images from GitHub: 
+#### Pull images from GitHub:
 
 Base image: `docker pull ghcr.io/alexundros/maven-check-versions`
 
@@ -71,16 +75,19 @@ Image based on pypy: `docker pull alexundros/maven-check-versions:pypy`
 #### Usage
 
 - Analyze a specific pom file:
+
 ```bash
 docker run --rm -v 'path/to/pom.xml:/app/pom.xml' alexundros/maven_check_versions -pf /app/pom.xml
 ```
 
 - Search for a specific artifact:
+
 ```bash
 docker run --rm alexundros/maven_check_versions -fa com.example:my-lib:1.0
 ```
 
 - Enable CI mode to suppress prompts:
+
 ```bash
 docker run --rm alexundros/maven_check_versions -ci
 ```
@@ -112,13 +119,13 @@ Depending on the selected cache backend, additional command-line arguments may b
 
 #### Redis Cache Backend
 
-| Parameter          | Short   | Description                                      | Example                  |
-|--------------------|---------|--------------------------------------------------|--------------------------|
-| `--redis_host`     | `-rsh`  | Redis host (default: localhost).                 | `--redis_host redis`     |
-| `--redis_port`     | `-rsp`  | Redis port (default: 6379).                      | `--redis_port 6379`      |
-| `--redis_key`      | `-rsk`  | Redis key (default: maven_check_versions_cache). | `--redis_key mycache`    |
-| `--redis_user`     | `-rsu`  | Redis username (optional).                       | `--redis_user user`      |
-| `--redis_password` | `-rsup` | Redis password (optional).                       | `--redis_password pass`  |
+| Parameter          | Short   | Description                                      | Example                 |
+|--------------------|---------|--------------------------------------------------|-------------------------|
+| `--redis_host`     | `-rsh`  | Redis host (default: localhost).                 | `--redis_host redis`    |
+| `--redis_port`     | `-rsp`  | Redis port (default: 6379).                      | `--redis_port 6379`     |
+| `--redis_key`      | `-rsk`  | Redis key (default: maven_check_versions_cache). | `--redis_key mycache`   |
+| `--redis_user`     | `-rsu`  | Redis username (optional).                       | `--redis_user user`     |
+| `--redis_password` | `-rsup` | Redis password (optional).                       | `--redis_password pass` |
 
 #### Tarantool Cache Backend
 
@@ -132,26 +139,26 @@ Depending on the selected cache backend, additional command-line arguments may b
 
 #### Memcached Cache Backend
 
-| Parameter           | Short  | Description                                          | Example                      |
-|---------------------|--------|------------------------------------------------------|------------------------------|
-| `--memcached_host`  | `-mch` | Memcached host (default: localhost).                 | `--memcached_host memcached` |
-| `--memcached_port`  | `-mcp` | Memcached port (default: 11211).                     | `--memcached_port 11211`     |
-| `--memcached_key`   | `-mck` | Memcached key (default: maven_check_versions_cache). | `--memcached_key mycache`    |
+| Parameter          | Short  | Description                                          | Example                      |
+|--------------------|--------|------------------------------------------------------|------------------------------|
+| `--memcached_host` | `-mch` | Memcached host (default: localhost).                 | `--memcached_host memcached` |
+| `--memcached_port` | `-mcp` | Memcached port (default: 11211).                     | `--memcached_port 11211`     |
+| `--memcached_key`  | `-mck` | Memcached key (default: maven_check_versions_cache). | `--memcached_key mycache`    |
 
 ### Logging Options
 
-| Parameter       | Short | Description                                                          | Example                 |
-|-----------------|-------|----------------------------------------------------------------------|-------------------------|
-| `--logfile_off` | `-lfo`| Disables logging to a file. Logs will only be shown in the terminal. | `--logfile_off`         |
-| `--log_file`    | `-lf` | Specifies the path to a custom log file.                             | `--log_file my_log.log` |
+| Parameter       | Short  | Description                                                          | Example                 |
+|-----------------|--------|----------------------------------------------------------------------|-------------------------|
+| `--logfile_off` | `-lfo` | Disables logging to a file. Logs will only be shown in the terminal. | `--logfile_off`         |
+| `--log_file`    | `-lf`  | Specifies the path to a custom log file.                             | `--log_file my_log.log` |
 
 ### Error Handling and Validation
 
-| Parameter      | Short | Description                                                                                        | Example          |
-|----------------|-------|----------------------------------------------------------------------------------------------------|------------------|
-| `--fail_mode`  | `-fm` | Enables "fail mode." The script will terminate if dependency versions exceed specified thresholds. | `--fail_mode`    |
-| `--fail_major` | `-mjv`| Specifies the major version difference threshold for failure.                                      | `--fail_major 1` |
-| `--fail_minor` | `-mnv`| Specifies the minor version difference threshold for failure.                                      | `--fail_minor 2` |
+| Parameter      | Short  | Description                                                                                        | Example          |
+|----------------|--------|----------------------------------------------------------------------------------------------------|------------------|
+| `--fail_mode`  | `-fm`  | Enables "fail mode." The script will terminate if dependency versions exceed specified thresholds. | `--fail_mode`    |
+| `--fail_major` | `-mjv` | Specifies the major version difference threshold for failure.                                      | `--fail_major 1` |
+| `--fail_minor` | `-mnv` | Specifies the minor version difference threshold for failure.                                      | `--fail_minor 2` |
 
 ### Dependency Search and Processing
 
@@ -166,10 +173,10 @@ Depending on the selected cache backend, additional command-line arguments may b
 
 ### Performance Options
 
-| Parameter      | Short | Description                                                               | Example           |
-|----------------|-------|---------------------------------------------------------------------------|-------------------|
-| `--threading`  | `-th` | Enables multi-threading to process dependencies and modules concurrently. | `--threading`     |
-| `--max_threads`| `-mt` | Specifies the maximum number of threads to use when threading is enabled. | `--max_threads 8` |
+| Parameter       | Short | Description                                                               | Example           |
+|-----------------|-------|---------------------------------------------------------------------------|-------------------|
+| `--threading`   | `-th` | Enables multi-threading to process dependencies and modules concurrently. | `--threading`     |
+| `--max_threads` | `-mt` | Specifies the maximum number of threads to use when threading is enabled. | `--max_threads 8` |
 
 ### Authentication
 
@@ -182,7 +189,8 @@ Depending on the selected cache backend, additional command-line arguments may b
 
 ## Configuration
 
-You can customize the tool’s behavior using a configuration file [`maven_check_versions.yml`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/maven_check_versions.yml.dist).
+You can customize the tool’s behavior using a configuration file [
+`maven_check_versions.yml`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/maven_check_versions.yml.dist).
 The following settings can be adjusted:
 
 - **SSL Verification:** Enable or disable SSL verification for HTTP requests.
@@ -202,14 +210,16 @@ The tool supports multiple cache backends:
 
 ### Vulnerability Checking Configuration
 
-To enable vulnerability checking, set `oss_index_enabled` to `true` in the `vulnerability` section of the configuration file. 
-This feature uses the OSS Index service to identify known vulnerabilities in your dependencies. 
+To enable vulnerability checking, set `oss_index_enabled` to `true` in the `vulnerability` section of the configuration
+file.
+This feature uses the OSS Index service to identify known vulnerabilities in your dependencies.
 You will need to provide your OSS Index username and API token, which you can obtain by signing up for a free account at
 [https://ossindex.sonatype.org/](https://ossindex.sonatype.org/).
 
 Example configuration:
 
 Vulnerability scanning will:
+
 1. Check all dependencies against OSS Index
 2. Fail build if any vulnerability with CVSS ≥7.0 found
 3. Skip checks for test components
@@ -224,13 +234,14 @@ vulnerability:
   oss_index_keep_safe: false
   fail_score: 7
   skip_no_versions: false
-  skip_checks: ["junit:junit:*"]
+  skip_checks: [ "junit:junit:*" ]
   cache_backend: "json"
 ```
 
 ### Configuration file
 
 maven_check_versions.yml:
+
 ```
 base:
   cache_off: false        # Disables caching of version check results
@@ -330,10 +341,10 @@ pom_files:
 
 # Repository configurations
 repositories:
-  "Central (repo1.maven.org)": "repo1.maven"  # Example repository mapping
+  "Central (repo1.maven.org)": "repo1_maven"  # Example repository mapping
 
 # Configuration for repo1.maven repository
-repo1.maven:
+repo1_maven:
   base: "https://repo1.maven.org"             # Base URL of the repository
   path: "maven2"                              # Path suffix for the repository
   auth: false                                 # Enables authentication for this repository
@@ -345,28 +356,35 @@ repo1.maven:
 
 ## Environment Variables
 
-The tool supports environment variables to override configuration settings or provide credentials for external services. Below is a list of supported environment variables:
+The tool supports environment variables to override configuration settings or provide credentials for external services.
+Below is a list of supported environment variables:
 
 ### Configuration Overrides
-These variables override settings from the `maven_check_versions.yml` file or command-line arguments. The format is `CV_<KEY>` where `<KEY>` corresponds to a configuration key in the `base` section (case-insensitive).
 
-| Variable            | Description                                                          | Example Value |
-|---------------------|----------------------------------------------------------------------|---------------|
-| `CV_CACHE_OFF`      | Disables caching if set to `true`.                                   | `true`        |
-| `CV_CACHE_TIME`     | Sets cache expiration time in seconds.                               | `3600`        |
-| `CV_FAIL_MODE`      | Enables fail mode if set to `true`.                                  | `true`        |
-| `CV_FAIL_MAJOR`     | Sets the major version threshold for failure.                        | `1`           |
-| `CV_FAIL_MINOR`     | Sets the minor version threshold for failure.                        | `2`           |
-| `CV_SEARCH_PLUGINS` | Enables searching plugins if set to `true`.                          | `true`        |
-| `CV_PROCESS_MODULES`| Enables processing of modules if set to `true`.                      | `true`        |
-| `CV_SHOW_SKIP`      | Logs skipped dependencies if set to `true`.                          | `true`        |
-| `CV_SHOW_SEARCH`    | Logs search actions if set to `true`.                                | `true`        |
-| `CV_EMPTY_VERSION`  | Allows empty versions if set to `true`.                              | `true`        |
-| `CV_SHOW_INVALID`   | Logs invalid dependencies if set to `true`.                          | `true`        |
-| `CV_THREADING`      | Enables multi-threading if set to `true`.                            | `true`        |
-| `CV_MAX_THREADS`    | Sets the maximum number of threads to use when threading is enabled. | `8`           |
-| `CV_USER`           | Specifies the username for repository authentication.                | `my_username` |
-| `CV_PASSWORD`       | Specifies the password for repository authentication.                | `my_password` |
+These variables override settings from the `maven_check_versions.yml` file or command-line arguments. The format is
+`CV_<KEY>` where `<KEY>` corresponds to a configuration key in the `base` section.
+
+| Variable             | Description                                                          | Example Value |
+|----------------------|----------------------------------------------------------------------|---------------|
+| `CV_CACHE_OFF`       | Disables caching if set to `true`.                                   | `true`        |
+| `CV_CACHE_TIME`      | Sets cache expiration time in seconds.                               | `3600`        |
+| `CV_FAIL_MODE`       | Enables fail mode if set to `true`.                                  | `true`        |
+| `CV_FAIL_MAJOR`      | Sets the major version threshold for failure.                        | `1`           |
+| `CV_FAIL_MINOR`      | Sets the minor version threshold for failure.                        | `2`           |
+| `CV_SEARCH_PLUGINS`  | Enables searching plugins if set to `true`.                          | `true`        |
+| `CV_PROCESS_MODULES` | Enables processing of modules if set to `true`.                      | `true`        |
+| `CV_SHOW_SKIP`       | Logs skipped dependencies if set to `true`.                          | `true`        |
+| `CV_SHOW_SEARCH`     | Logs search actions if set to `true`.                                | `true`        |
+| `CV_EMPTY_VERSION`   | Allows empty versions if set to `true`.                              | `true`        |
+| `CV_SHOW_INVALID`    | Logs invalid dependencies if set to `true`.                          | `true`        |
+| `CV_THREADING`       | Enables multi-threading if set to `true`.                            | `true`        |
+| `CV_MAX_THREADS`     | Sets the maximum number of threads to use when threading is enabled. | `8`           |
+| `CV_USER`            | Specifies the username for repository authentication.                | `my_username` |
+| `CV_PASSWORD`        | Specifies the password for repository authentication.                | `my_password` |
+
+#### Other configuration sections
+
+The format is `CV_<SECTION>_<KEY>` where `<KEY>` corresponds to a configuration key in the `<SECTION>` section.
 
 ### Usage Example
 
@@ -381,6 +399,8 @@ maven_check_versions --pom_file path/to/pom.xml
 
 ## License
 
-This project is licensed under the MIT License. See the [`LICENSE`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/LICENSE) file for more details.
+This project is licensed under the MIT License. See the [
+`LICENSE`](https://raw.githubusercontent.com/alexundros/maven-check-versions/refs/heads/main/LICENSE) file for more
+details.
 
 ---
