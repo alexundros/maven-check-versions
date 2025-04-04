@@ -28,7 +28,7 @@ def test_get_config(mocker):
 
 # noinspection PyShadowingNames
 def test_get_config_value(monkeypatch):
-    config = Config({'base': {'key': True}})
+    config = Config({'base': {'key': True}, 'other': {'key': False}})
     assert get_config_value(config, Arguments(), 'key') is True
     assert get_config_value(config, Arguments(), 'val', default=True) is True
     assert get_config_value(config, Arguments({'key': False}), 'key') is False
@@ -38,6 +38,8 @@ def test_get_config_value(monkeypatch):
     monkeypatch.setenv('CV_KEY', 'true')
     assert get_config_value(config, Arguments({'key': None}), 'key') is True
     assert get_config_value(config, Arguments({'key': False}), 'key') is False
+    monkeypatch.setenv('CV_OTHER_KEY', 'true')
+    assert get_config_value(config, Arguments(), 'key', section='other') is True
     monkeypatch.undo()
     config = Config({'base': {'key': 123}})
     assert get_config_value(config, Arguments(), 'key') == 123

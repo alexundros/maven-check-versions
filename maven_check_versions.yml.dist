@@ -96,10 +96,10 @@ pom_files:
 
 # Repository configurations
 repositories:
-  "Central (repo1.maven.org)": "repo1.maven"  # Example repository mapping
+  "Central (repo1.maven.org)": "repo1_maven"  # Example repository mapping
 
 # Configuration for repo1.maven repository
-repo1.maven:
+repo1_maven:
   base: "https://repo1.maven.org"             # Base URL of the repository
   path: "maven2"                              # Path suffix for the repository
   auth: false                                 # Enables authentication for this repository
