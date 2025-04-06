@@ -7,6 +7,10 @@ import os
 import sys
 import time
 
+if sys.version_info < (3, 10):  # pragma: no cover
+    print('Python 3.10 or higher is required')
+    sys.exit(1)
+
 if importlib.util.find_spec('maven_check_versions') is None:  # pragma: no cover
     sys.path.append(os.path.dirname(__file__) + '/..')
 
@@ -28,26 +32,20 @@ def main() -> None:
         arguments = _utils.parse_command_line()
         _logutils.configure_logging(arguments)
         ci_mode_enabled = arguments.get('ci_mode')  # type: ignore
-
         _process.process_main(arguments)
-
-        elapsed_time = f"{time.time() - start_time:.2f} sec."
-        logging.info(f"Processing is completed, {elapsed_time}")
+        elapsed = f"{time.time() - start_time:.2f} sec."
+        logging.info(f"Processing is completed, {elapsed}")
 
     except FileNotFoundError as ex:
         exception_occurred = True
         logging.exception(ex)
-
     except AssertionError:
         exception_occurred = True
-
     except KeyboardInterrupt:
         exception_occurred = True
         logging.warning('Processing is interrupted')
-
     except SystemExit:  # NOSONAR
         exception_occurred = True
-
     except Exception as ex:
         exception_occurred = True
         logging.exception(ex)
