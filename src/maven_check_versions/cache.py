@@ -51,7 +51,7 @@ class _CacheBackend(ABC):
     @abstractmethod
     def load(self, config: Config, arguments: Arguments, section: str) -> Dict[str, Any]:  # pragma: no cover
         """
-        Attempts to load the cache data.
+        Loads the cache data from the specified backend.
 
         Args:
             config (Config): Configuration dictionary parsed from YAML.
@@ -59,9 +59,8 @@ class _CacheBackend(ABC):
             section (str): Configuration section to use (e.g., 'base' or 'vulnerability').
 
         Returns:
-            tuple[bool, dict]: A tuple containing:
-                - bool: True if the cache was successfully loaded, False otherwise.
-                - Dict[str, Any]: The cache data dictionary.
+            Dict[str, Any]: The cache data dictionary. Returns an empty dictionary if loading
+                fails or no data is available.
         """
         pass
 
@@ -183,6 +182,10 @@ class _RedisCacheBackend(_CacheBackend):
 
         Yields:
             redis.Redis: An instance of the Redis client.
+
+        Raises:
+            redis.ConnectionError: If the connection to Redis fails.
+            redis.RedisError: If an error occurs during Redis operations.
         """
         inst = redis.Redis(host=host, port=port, username=user, password=password, decode_responses=True)
         try:
@@ -278,6 +281,9 @@ class _TarantoolCacheBackend(_CacheBackend):
 
         Yields:
             tarantool.Connection: An instance of the Tarantool connection.
+
+        Raises:
+            tarantool.DatabaseError: If an error occurs during Tarantool operations.
         """
         conn = tarantool.Connection(host, port, user=user, password=password)
         try:
@@ -361,6 +367,9 @@ class _MemcachedCacheBackend(_CacheBackend):
 
         Yields:
             pymemcache.client.base.Client: An instance of the Memcached client.
+
+        Raises:
+            pymemcache.exceptions.MemcacheError: If an error occurs during Memcached operations.
         """
         client = pymemcache.client.base.Client((host, port))
         try:
@@ -414,10 +423,13 @@ def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> D
     Args:
         config (Config): Configuration dictionary parsed from YAML.
         arguments (Arguments): Command-line arguments.
-        section (str, optional): Configuration section to use (default is 'base').
+        section (str, optional): Configuration section to use, such as 'base' or 'vulnerability'.
+            Defaults to 'base'.
 
     Returns:
         Dict[str, Any]: Cache data as a dictionary.
+            Returns an empty dictionary if the backend fails or no data is available.
+            If the specified backend is not found, defaults to JSON backend.
     """
     key = _config.get_config_value(config, arguments, 'cache_backend', section=section)
     return _CacheBackendRegistry.get(key).load(config, arguments, section)
@@ -435,7 +447,8 @@ def save_cache(
         config (Config): Configuration dictionary parsed from YAML.
         arguments (Arguments): Command-line arguments.
         cache_data (Optional[Dict[str, Any]]): Cache data to save.
-        section (str, optional): Configuration section to use (default is 'base').
+        section (str, optional): Configuration section to use, such as 'base' or 'vulnerability'.
+            Defaults to 'base'.
     """
     if cache_data is not None:
         key = _config.get_config_value(config, arguments, 'cache_backend', section=section)
@@ -455,7 +468,7 @@ def process_cache_artifact(
         cache_data (Optional[Dict[str, Any]]): The cache data dictionary containing artifact information.
         artifact (str): The artifact ID of the dependency.
         group (str): The group ID of the dependency.
-        version (Optional[str]): The current version of the artifact, or None if not specified.
+        version (Optional[str]): The current version of the artifact, or None if not specified or unresolved.
 
     Returns:
         bool: True if the cache exists and either the cached version matches the provided version

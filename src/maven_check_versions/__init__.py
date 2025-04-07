@@ -32,7 +32,9 @@ def main() -> None:
         arguments = _utils.parse_command_line()
         _logutils.configure_logging(arguments)
         ci_mode_enabled = arguments.get('ci_mode')  # type: ignore
+
         _process.process_main(arguments)
+
         elapsed = f"{time.time() - start_time:.2f} sec."
         logging.info(f"Processing is completed, {elapsed}")
 
