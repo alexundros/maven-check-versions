@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Dict, Any
 
 import maven_check_versions.config as _config
 import pymemcache
@@ -141,9 +141,7 @@ class _RedisCacheBackend(_CacheBackend):
     """
 
     @staticmethod
-    def _config(
-            config: Config, arguments: Arguments, section: str
-    ) -> Tuple[str, int, str, Optional[str], Optional[str]]:
+    def _config(config: Config, arguments: Arguments, section: str) -> tuple:
         """
         Retrieves the Redis connection parameters from the configuration.
 
