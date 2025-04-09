@@ -68,13 +68,13 @@ def add_cache_args(argument_parser: ArgumentParser) -> None:
     argument_parser.add_argument('-rsp', '--redis_port', help='Redis port', default=None)
     argument_parser.add_argument('-rsk', '--redis_key', help='Redis key', default=None)
     argument_parser.add_argument('-rsu', '--redis_user', help='Redis user', default=None)
-    argument_parser.add_argument('-rsp', '--redis_password', help='Redis password', default=None)
+    argument_parser.add_argument('-rsup', '--redis_password', help='Redis password', default=None)
 
     argument_parser.add_argument('-tlh', '--tarantool_host', help='Tarantool host', default=None)
     argument_parser.add_argument('-tlp', '--tarantool_port', help='Tarantool port', default=None)
     argument_parser.add_argument('-tls', '--tarantool_space', help='Tarantool space', default=None)
     argument_parser.add_argument('-tlu', '--tarantool_user', help='Tarantool user', default=None)
-    argument_parser.add_argument('-tlp', '--tarantool_password', help='Tarantool password', default=None)
+    argument_parser.add_argument('-tlup', '--tarantool_password', help='Tarantool password', default=None)
 
     argument_parser.add_argument('-mch', '--memcached_host', help='Memcached host', default=None)
     argument_parser.add_argument('-mcp', '--memcached_port', help='Memcached port', default=None)

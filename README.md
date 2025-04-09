@@ -128,23 +128,23 @@ Depending on the selected cache backend, additional command-line arguments may b
 
 #### Redis Cache Backend
 
-| Parameter          | Short  | Description                                      | Example                 |
-|--------------------|--------|--------------------------------------------------|-------------------------|
-| `--redis_host`     | `-rsh` | Redis host (default: localhost).                 | `--redis_host redis`    |
-| `--redis_port`     | `-rsp` | Redis port (default: 6379).                      | `--redis_port 6379`     |
-| `--redis_key`      | `-rsk` | Redis key (default: maven_check_versions_cache). | `--redis_key mycache`   |
-| `--redis_user`     | `-rsu` | Redis username (optional).                       | `--redis_user user`     |
-| `--redis_password` | `-rsp` | Redis password (optional).                       | `--redis_password pass` |
+| Parameter          | Short   | Description                                      | Example                 |
+|--------------------|---------|--------------------------------------------------|-------------------------|
+| `--redis_host`     | `-rsh`  | Redis host (default: localhost).                 | `--redis_host redis`    |
+| `--redis_port`     | `-rsp`  | Redis port (default: 6379).                      | `--redis_port 6379`     |
+| `--redis_key`      | `-rsk`  | Redis key (default: maven_check_versions_cache). | `--redis_key mycache`   |
+| `--redis_user`     | `-rsu`  | Redis username (optional).                       | `--redis_user user`     |
+| `--redis_password` | `-rsup` | Redis password (optional).                       | `--redis_password pass` |
 
 #### Tarantool Cache Backend
 
-| Parameter              | Short  | Description                                            | Example                      |
-|------------------------|--------|--------------------------------------------------------|------------------------------|
-| `--tarantool_host`     | `-tlh` | Tarantool host (default: localhost).                   | `--tarantool_host tarantool` |
-| `--tarantool_port`     | `-tlp` | Tarantool port (default: 3301).                        | `--tarantool_port 3301`      |
-| `--tarantool_space`    | `-tls` | Tarantool space (default: maven_check_versions_cache). | `--tarantool_space myspace`  |
-| `--tarantool_user`     | `-tlu` | Tarantool username (optional).                         | `--tarantool_user user`      |
-| `--tarantool_password` | `-tlp` | Tarantool password (optional).                         | `--tarantool_password pass`  |
+| Parameter              | Short   | Description                                            | Example                      |
+|------------------------|---------|--------------------------------------------------------|------------------------------|
+| `--tarantool_host`     | `-tlh`  | Tarantool host (default: localhost).                   | `--tarantool_host tarantool` |
+| `--tarantool_port`     | `-tlp`  | Tarantool port (default: 3301).                        | `--tarantool_port 3301`      |
+| `--tarantool_space`    | `-tls`  | Tarantool space (default: maven_check_versions_cache). | `--tarantool_space myspace`  |
+| `--tarantool_user`     | `-tlu`  | Tarantool username (optional).                         | `--tarantool_user user`      |
+| `--tarantool_password` | `-tlup` | Tarantool password (optional).                         | `--tarantool_password pass`  |
 
 #### Memcached Cache Backend
 
