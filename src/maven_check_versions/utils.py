@@ -15,7 +15,6 @@ import maven_check_versions.config as _config
 import maven_check_versions.logutils as _logutils
 import requests
 from maven_check_versions.config import Config, Arguments
-from packaging import version as _version
 
 
 def parse_command_line() -> Arguments:
@@ -322,7 +321,7 @@ def check_versions(
         bool: True if the current version is valid, False otherwise.
     """
     available_versions = list(filter(lambda v: re.match('^\\d+.+', v), available_versions))
-    available_versions.sort(key=lambda v: _version.parse(v), reverse=True)
+    available_versions.reverse()
 
     major_threshold = minor_threshold = 0
     current_major = current_minor = 0
