@@ -115,7 +115,7 @@ def process_dependency(
         cve_data (dict[str, list[Vulnerability]]): CVE Data.
     """
     group, artifact = _utils.get_dependency_identifiers(dependency, ns_mapping)
-    if artifact is None or group is None:
+    if not artifact or not group:
         logging.error("Missing artifactId or groupId in a dependency.")
         return
 
@@ -332,8 +332,12 @@ def process_rest(
     response = requests.get(path + '/', auth=auth_info, verify=verify_ssl)
 
     if response.status_code == 200:
-        html_content = BeautifulSoup(response.text, 'html.parser')
-        version_links = html_content.find('table').find_all('a')  # type: ignore
+        table = BeautifulSoup(response.text, 'html.parser').find('table')
+        if table is None:  # pragma: no cover
+            logging.error(f"Failed to parse versions from HTML at {path}")
+            return False
+
+        version_links = table.find_all('a')  # type: ignore
         available_versions = list(map(lambda v: v.text, version_links))
         path = f"{base_url}/repository/{repository_name}/{group.replace('.', '/')}/{artifact}"
 
