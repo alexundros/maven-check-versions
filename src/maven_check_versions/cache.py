@@ -4,6 +4,7 @@ import json
 import logging
 import math
 import os
+import threading
 import time
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
@@ -23,6 +24,8 @@ _HOST = 'localhost'
 _REDIS_PORT = 6379
 _TARANTOOL_PORT = 3301
 _MEMCACHED_PORT = 11211
+
+update_cache_artifact_lock = threading.Lock()
 
 
 class DCJSONEncoder(json.JSONEncoder):  # pragma: no cover
@@ -101,7 +104,7 @@ class _CacheBackendRegistry:
         return cls._backends.get(name, _JSONCacheBackend())
 
 
-class _JSONCacheBackend(_CacheBackend, ABC):
+class _JSONCacheBackend(_CacheBackend):
     """
     Backend for caching data in json files.
     """
@@ -507,5 +510,6 @@ def update_cache_artifact(
         section_key (str): The repository section key from the configuration.
     """
     if cache_data is not None:
-        value = (math.trunc(time.time()), item, section_key, last_modified_date, versions[:3])
-        cache_data[f"{group}:{artifact}"] = value
+        with update_cache_artifact_lock:
+            value = (math.trunc(time.time()), item, section_key, last_modified_date, versions[:3])
+            cache_data[f"{group}:{artifact}"] = value

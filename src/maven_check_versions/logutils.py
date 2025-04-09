@@ -40,16 +40,16 @@ def configure_logging(arguments: Arguments) -> None:
         arguments (Arguments): Command-line arguments, which may include 'logfile_off'
                             to disable file logging and 'log_file' to specify the log file path.
     """
-    frm = '%(asctime)s %(levelname)s: %(message)s'
+    log_format = '%(asctime)s %(levelname)s: %(message)s'
     stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.formatter = Formatter(fmt=frm)
+    stream_handler.formatter = Formatter(fmt=log_format)
     handlers: list = [stream_handler]
 
     if not arguments.get('logfile_off'):
         if (log_file_path := arguments.get('log_file')) is None:
             log_file_path = 'maven_check_versions.log'
         file_handler = logging.FileHandler(log_file_path, 'w')
-        file_handler.formatter = Formatter(fmt=frm)
+        file_handler.formatter = Formatter(fmt=log_format)
         handlers.append(file_handler)
 
     logging.basicConfig(  # NOSONAR

@@ -15,6 +15,7 @@ import maven_check_versions.config as _config
 import maven_check_versions.logutils as _logutils
 import requests
 from maven_check_versions.config import Config, Arguments
+from packaging import version as _version
 
 
 def parse_command_line() -> Arguments:
@@ -66,14 +67,14 @@ def add_cache_args(argument_parser: ArgumentParser) -> None:
     argument_parser.add_argument('-rsh', '--redis_host', help='Redis host', default=None)
     argument_parser.add_argument('-rsp', '--redis_port', help='Redis port', default=None)
     argument_parser.add_argument('-rsk', '--redis_key', help='Redis key', default=None)
-    argument_parser.add_argument('-rsu', '--redis_user', help='Tarantool user', default=None)
-    argument_parser.add_argument('-rsup', '--redis_password', help='Tarantool password', default=None)
+    argument_parser.add_argument('-rsu', '--redis_user', help='Redis user', default=None)
+    argument_parser.add_argument('-rsp', '--redis_password', help='Redis password', default=None)
 
     argument_parser.add_argument('-tlh', '--tarantool_host', help='Tarantool host', default=None)
     argument_parser.add_argument('-tlp', '--tarantool_port', help='Tarantool port', default=None)
     argument_parser.add_argument('-tls', '--tarantool_space', help='Tarantool space', default=None)
     argument_parser.add_argument('-tlu', '--tarantool_user', help='Tarantool user', default=None)
-    argument_parser.add_argument('-tlup', '--tarantool_password', help='Tarantool password', default=None)
+    argument_parser.add_argument('-tlp', '--tarantool_password', help='Tarantool password', default=None)
 
     argument_parser.add_argument('-mch', '--memcached_host', help='Memcached host', default=None)
     argument_parser.add_argument('-mcp', '--memcached_port', help='Memcached port', default=None)
@@ -226,7 +227,7 @@ def fail_mode_if_required(
         item_major_version = 0
         item_minor_version = 0
 
-        if item_match := re.match('^(\\d+).(\\d+).?', item):
+        if item and (item_match := re.match('^(\\d+).(\\d+).?', item)):
             item_major_version, item_minor_version = int(item_match.group(1)), int(item_match.group(2))
 
         if item_major_version - current_major_version > major_version_threshold or \
@@ -321,7 +322,7 @@ def check_versions(
         bool: True if the current version is valid, False otherwise.
     """
     available_versions = list(filter(lambda v: re.match('^\\d+.+', v), available_versions))
-    available_versions.reverse()
+    available_versions.sort(key=lambda v: _version.parse(v), reverse=True)
 
     major_threshold = minor_threshold = 0
     current_major = current_minor = 0
@@ -412,9 +413,9 @@ def get_pom_tree(
             )
         response = requests.get(pom_path, auth=auth_info, verify=verify_ssl)
         if response.status_code != 200:
-            raise FileNotFoundError(f'{pom_path} not found')
+            raise FileNotFoundError(f"Failed to get_pom_tree {pom_path}: HTTP {response.status_code}")
         return ET.ElementTree(ET.fromstring(response.text))
     else:
         if not os.path.exists(pom_path) or not os.path.isfile(pom_path):
-            raise FileNotFoundError(f'{pom_path} not found')
+            raise FileNotFoundError(f"Failed to get_pom_tree {pom_path}")
         return ET.parse(pom_path)
