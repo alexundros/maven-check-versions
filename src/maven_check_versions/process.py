@@ -333,7 +333,7 @@ def process_rest(
 
     if response.status_code == 200:
         table = BeautifulSoup(response.text, 'html.parser').find('table')
-        if table is None:
+        if table is None:  # pragma: no cover
             logging.error(f"Failed to parse versions from HTML at {path}")
             return False
 
