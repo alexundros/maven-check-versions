@@ -216,7 +216,7 @@ def process_artifact(
         artifact_to_find (str): Artifact to search for in groupId:artifactId:version format.
     """
     verify_ssl = _config.get_config_value(config, arguments, 'verify', 'requests')
-    group, artifact, version = artifact_to_find.split(sep=":", maxsplit=3)
+    group, artifact, version = artifact_to_find.split(':', maxsplit=2)
 
     _logutils.log_search_if_required(config, arguments, group, artifact, version)
 
