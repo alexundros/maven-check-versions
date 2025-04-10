@@ -273,7 +273,7 @@ def process_repository(
     if response.status_code == 200:
         tree = ET.ElementTree(ET.fromstring(response.text))
         version_elements = tree.getroot().findall('.//version')
-        available_versions = list(map(lambda v: v.text, version_elements))
+        available_versions = [v.text for v in version_elements if v.text]
 
         if _utils.check_versions(
                 cache_data, config, arguments, group, artifact, version, section_key,

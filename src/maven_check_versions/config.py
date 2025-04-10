@@ -4,17 +4,17 @@
 import logging
 import os
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
 
 import yaml
 
 
-class Config(Dict):
+class Config(dict):
     """Wrapper for Config"""
     pass
 
 
-class Arguments(Dict):
+class Arguments(dict):
     """Wrapper for Arguments"""
     pass
 
@@ -38,8 +38,11 @@ def get_config(arguments: Arguments) -> Config:
 
     if os.path.exists(config_file):
         logging.info(f"Load Config: {Path(config_file).absolute()}")
-        with open(config_file, encoding='utf-8') as f:
-            config = yaml.safe_load(f)
+        try:
+            with open(config_file, encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+        except yaml.YAMLError as e:  # pragma: no cover
+            logging.error(f"Failed to get_config: {e}")
 
     return config
 
