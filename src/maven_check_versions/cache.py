@@ -200,7 +200,7 @@ class _RedisCacheBackend(_CacheBackend):
 
             with self._connection(host, port, user, password) as inst:
                 cache_data: Dict[str, Any] = {}
-                if isinstance(data := inst.hgetall(ckey), dict):
+                if data := inst.hgetall(ckey):
                     for key, value in data.items():
                         try:
                             cache_data[key] = json.loads(value)

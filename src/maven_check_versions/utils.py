@@ -226,7 +226,7 @@ def fail_mode_if_required(
         item_major_version = 0
         item_minor_version = 0
 
-        if item and (item_match := re.match('^(\\d+).(\\d+).?', item)):
+        if item and (item_match := re.match(r'^(\d+).(\d+).?', item)):
             item_major_version, item_minor_version = int(item_match.group(1)), int(item_match.group(2))
 
         if item_major_version - current_major_version > major_version_threshold or \
@@ -288,7 +288,7 @@ def get_version(
             project_version_text = str(project_version.text) if project_version is not None else ''
             version_text = resolve_version(project_version_text, root, ns_mapping)
 
-        if version_text and re.match('^\\${([^}]+)}$', version_text):
+        if version_text and re.match(r'^\${([^}]+)}$', version_text):
             if not _config.get_config_value(config, arguments, 'empty_version'):
                 return version_text, True
 
@@ -320,7 +320,7 @@ def check_versions(
     Returns:
         bool: True if the current version is valid, False otherwise.
     """
-    available_versions = [v for v in available_versions if re.match('^\\d+.+', v)]
+    available_versions = [v for v in available_versions if re.match(r'^\d+.+', v)]
     available_versions.reverse()
 
     major_threshold = minor_threshold = 0
@@ -330,7 +330,7 @@ def check_versions(
         major_threshold = int(_config.get_config_value(config, arguments, 'fail_major'))
         minor_threshold = int(_config.get_config_value(config, arguments, 'fail_minor'))
 
-        if version and (version_match := re.match('^(\\d+)\\.(\\d+).?', version)):
+        if version and (version_match := re.match(r'^(\d+)\.(\d+).?', version)):
             current_major, current_minor = int(version_match.group(1)), int(version_match.group(2))
 
     skip_current = _config.get_config_value(config, arguments, 'skip_current')

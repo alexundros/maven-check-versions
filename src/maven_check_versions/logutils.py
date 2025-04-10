@@ -28,7 +28,8 @@ class Formatter(logging.Formatter):
         Returns:
             str: The formatted timestamp as a string.
         """
-        return datetime.datetime.fromtimestamp(record.created)
+        value: datetime.datetime = datetime.datetime.fromtimestamp(record.created)
+        return value.strftime('%Y-%m-%d %H:%M:%S.%f')
 
 
 def configure_logging(arguments: Arguments) -> None:
@@ -48,7 +49,7 @@ def configure_logging(arguments: Arguments) -> None:
     if not arguments.get('logfile_off'):
         if (log_file_path := arguments.get('log_file')) is None:
             log_file_path = 'maven_check_versions.log'
-        file_handler = logging.FileHandler(log_file_path, 'w')
+        file_handler = logging.FileHandler(log_file_path)
         file_handler.formatter = Formatter(fmt=log_format)
         handlers.append(file_handler)
 
@@ -88,7 +89,7 @@ def log_search_if_required(
         version (Optional[str]): Dependency version (Maybe None or a placeholder).
     """
     if _config.get_config_value(config, arguments, 'show_search'):
-        if version is None or re.match('^\\${([^}]+)}$', version):
+        if version is None or re.match(r'^\${([^}]+)}$', version):
             logging.warning(f"Search: {group}:{artifact}:{version}")
         else:
             logging.info(f"Search: {group}:{artifact}:{version}")

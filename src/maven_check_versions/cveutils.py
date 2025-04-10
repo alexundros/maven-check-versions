@@ -126,7 +126,7 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list[
         (group, artifact) = _utils.get_dependency_identifiers(dependency, ns_mapping)
         (version, _) = _utils.get_version(config, arguments, ns_mapping, root, dependency)
 
-        if skip_no_versions and version and re.match('^\\${[^}]+}$', version):
+        if skip_no_versions and version and re.match(r'^\${[^}]+}$', version):
             continue
         if combined is None or not re.match(combined, f"{group}:{artifact}:{version}"):
             result.append(f"pkg:maven/{group}/{artifact}@{version}")
