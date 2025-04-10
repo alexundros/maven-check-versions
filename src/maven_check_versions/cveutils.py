@@ -101,7 +101,7 @@ def log_vulnerability(
                 raise AssertionError
 
 
-def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:
+def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list[str]:
     """
     Get Coordinates.
 
@@ -113,7 +113,7 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:
         ns_mapping (dict): A dictionary mapping XML namespaces for parsing.
 
     Returns:
-        list: Coordinates.
+        list[str]: Coordinates.
     """
     skip_no_versions = _config.get_config_value(
         config, arguments, 'skip_no_versions', 'vulnerability', default=False)
@@ -129,7 +129,7 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list:
         if skip_no_versions and version and re.match('^\\${[^}]+}$', version):
             continue
         if combined is None or not re.match(combined, f"{group}:{artifact}:{version}"):
-            list.append(result, f"pkg:maven/{group}/{artifact}@{version}")
+            result.append(f"pkg:maven/{group}/{artifact}@{version}")
 
     return result
 

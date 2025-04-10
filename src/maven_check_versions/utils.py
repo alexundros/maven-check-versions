@@ -182,7 +182,7 @@ def collect_dependencies(
     return dependencies
 
 
-def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tuple[str, Optional[str]]:
+def get_dependency_identifiers(dependency: ET.Element, ns_mapping: dict) -> tuple[str, str]:
     """
     Extracts the groupId and artifactId from a dependency element.
 
@@ -320,7 +320,7 @@ def check_versions(
     Returns:
         bool: True if the current version is valid, False otherwise.
     """
-    available_versions = list(filter(lambda v: re.match('^\\d+.+', v), available_versions))
+    available_versions = [v for v in available_versions if re.match('^\\d+.+', v)]
     available_versions.reverse()
 
     major_threshold = minor_threshold = 0
