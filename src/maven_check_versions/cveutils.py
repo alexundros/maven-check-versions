@@ -96,7 +96,7 @@ def log_vulnerability(
                 info = f"{info} {cve.reference}"
             logging.warning(f"Vulnerability for {group}:{artifact}:{version}: {info}")
 
-            if fail_score and cve.cvssScore >= fail_score:
+            if cve.cvssScore and fail_score and cve.cvssScore >= fail_score:
                 logging.error(f"cvssScore={cve.cvssScore} >= fail_score={fail_score}")
                 raise AssertionError
 
@@ -176,10 +176,11 @@ def _fetch_cve_data(
     try:
         url, user, token, batch_size, keep_safe = _oss_index_config(config, arguments)
         auth = HTTPBasicAuth(user, token)
+        session = requests.Session()
 
         it = iter(coordinates)
         while batch := list(islice(it, batch_size)):
-            response = requests.post(url, json={"coordinates": batch}, auth=auth)
+            response = session.post(url, json={"coordinates": batch}, auth=auth)
             if response.status_code != 200:
                 logging.error(f"OSS Index API error: {response.status_code}")
                 continue

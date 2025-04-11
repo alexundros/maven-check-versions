@@ -267,8 +267,9 @@ def process_repository(
         path = f"{path}/{repository_name}"
     path = f"{path}/{group.replace('.', '/')}/{artifact}"
 
+    session = requests.Session()
     metadata_url = path + '/maven-metadata.xml'
-    response = requests.get(metadata_url, auth=auth_info, verify=verify_ssl)
+    response = session.get(metadata_url, auth=auth_info, verify=verify_ssl)
 
     if response.status_code == 200:
         tree = ET.ElementTree(ET.fromstring(response.text))
@@ -316,8 +317,9 @@ def process_rest(
     path = f"{base_url}/service/rest/repository/browse/{repository_name}"
     path = f"{path}/{group.replace('.', '/')}/{artifact}"
 
+    session = requests.Session()
     metadata_url = path + '/maven-metadata.xml'
-    response = requests.get(metadata_url, auth=auth_info, verify=verify_ssl)
+    response = session.get(metadata_url, auth=auth_info, verify=verify_ssl)
 
     if response.status_code == 200:
         tree = ET.ElementTree(ET.fromstring(response.text))
@@ -329,7 +331,7 @@ def process_rest(
                 section_key, path, auth_info, verify_ssl, available_versions, response):
             return True
 
-    response = requests.get(path + '/', auth=auth_info, verify=verify_ssl)
+    response = session.get(path + '/', auth=auth_info, verify=verify_ssl)
 
     if response.status_code == 200:
         table = BeautifulSoup(response.text, 'html.parser').find('table')
