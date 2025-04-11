@@ -71,7 +71,7 @@ def test_process_rest(mocker):
 
     mock_check_versions = mocker.patch('maven_check_versions.utils.check_versions')
     mock_check_versions.return_value = True
-    mock_requests = mocker.patch('requests.get')
+    mock_requests = mocker.patch('requests.Session.get')
     mock_requests.return_value = mocker.Mock(status_code=200, text="""
     <?xml version="1.0" encoding="UTF-8"?>
     <root>
@@ -109,7 +109,7 @@ def test_process_repository(mocker):
             'repository', 'section', True
         )
 
-    mock_requests = mocker.patch('requests.get')
+    mock_requests = mocker.patch('requests.Session.get')
     mock_requests.return_value = mocker.Mock(status_code=200, text="""
     <?xml version="1.0" encoding="UTF-8"?>
     <metadata>

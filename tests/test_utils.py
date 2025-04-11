@@ -218,7 +218,7 @@ def test_get_pom_data(mocker):
     pom_path = 'http://example.com/pom.pom'  # NOSONAR
     headers = {'Last-Modified': 'Wed, 18 Jan 2025 12:00:00 GMT'}
     mock_response = mocker.Mock(status_code=200, headers=headers)
-    mock_requests = mocker.patch('requests.get', return_value=mock_response)
+    mock_requests = mocker.patch('requests.Session.get', return_value=mock_response)
     is_valid, last_modified = get_pom_data(None, True, 'artifact', '1.0', pom_path)
     assert is_valid is True and last_modified == '2025-01-18'
 
@@ -250,7 +250,7 @@ def test_get_pom_tree(mocker):
 
     pom_path = 'http://example.com/pom.pom'  # NOSONAR
     mock_response = mocker.Mock(status_code=200, text=xml)
-    mock_requests = mocker.patch('requests.get', return_value=mock_response)
+    mock_requests = mocker.patch('requests.Session.get', return_value=mock_response)
     assert isinstance(get_pom_tree(pom_path, True, config, Arguments()), ET.ElementTree)
 
     mock_requests.return_value.status_code = 404

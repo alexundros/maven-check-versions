@@ -72,7 +72,7 @@ def test_get_cve_data(mocker):
     mock_load_cache.return_value = {'pkg:maven/group4/artifact@1.0': []}
     mocker.patch('maven_check_versions.cache.save_cache')
     mock_requests = mocker.patch(
-        'requests.post',
+        'requests.Session.post',
         return_value=mocker.Mock(status_code=200, json=lambda: [{
             'coordinates': 'pkg:maven/group1/artifact@1.0',
             'vulnerabilities': [{'id': '1', 'cvssScore': 1}]
