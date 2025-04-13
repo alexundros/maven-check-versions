@@ -55,7 +55,7 @@ def main() -> None:
     try:
         if not ci_mode_enabled:
             input('Press Enter to continue')
-    except (KeyboardInterrupt, UnicodeDecodeError):
+    except (KeyboardInterrupt, UnicodeDecodeError, EOFError):
         pass
     sys.exit(1 if exception_occurred else 0)
 

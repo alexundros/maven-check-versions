@@ -41,7 +41,7 @@ def get_config(arguments: Arguments) -> Config:
         try:
             with open(config_file, encoding='utf-8') as f:
                 config = yaml.safe_load(f)
-        except yaml.YAMLError as e:  # pragma: no cover
+        except Exception as e:  # pragma: no cover
             logging.error(f"Failed to get_config: {e}")
 
     return config

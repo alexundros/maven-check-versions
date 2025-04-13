@@ -267,19 +267,19 @@ def process_repository(
         path = f"{path}/{repository_name}"
     path = f"{path}/{group.replace('.', '/')}/{artifact}"
 
-    session = requests.Session()
-    metadata_url = path + '/maven-metadata.xml'
-    response = session.get(metadata_url, auth=auth_info, verify=verify_ssl)
+    with requests.Session() as session:
+        metadata_url = path + '/maven-metadata.xml'
+        response = session.get(metadata_url, auth=auth_info, verify=verify_ssl)
 
-    if response.status_code == 200:
-        tree = ET.ElementTree(ET.fromstring(response.text))
-        version_elements = tree.getroot().findall('.//version')
-        available_versions = [v.text for v in version_elements if v.text]
+        if response.status_code == 200:
+            tree = ET.ElementTree(ET.fromstring(response.text))
+            version_elements = tree.getroot().findall('.//version')
+            available_versions = [v.text for v in version_elements if v.text]
 
-        if _utils.check_versions(
-                cache_data, config, arguments, group, artifact, version, section_key,
-                path, auth_info, verify_ssl, available_versions, response):
-            return True
+            if _utils.check_versions(
+                    cache_data, config, arguments, group, artifact, version, section_key,
+                    path, auth_info, verify_ssl, available_versions, response):
+                return True
 
     if _config.get_config_value(config, arguments, 'service_rest', repository_section):
         return process_rest(
@@ -317,35 +317,35 @@ def process_rest(
     path = f"{base_url}/service/rest/repository/browse/{repository_name}"
     path = f"{path}/{group.replace('.', '/')}/{artifact}"
 
-    session = requests.Session()
-    metadata_url = path + '/maven-metadata.xml'
-    response = session.get(metadata_url, auth=auth_info, verify=verify_ssl)
+    with requests.Session() as session:
+        metadata_url = path + '/maven-metadata.xml'
+        response = session.get(metadata_url, auth=auth_info, verify=verify_ssl)
 
-    if response.status_code == 200:
-        tree = ET.ElementTree(ET.fromstring(response.text))
-        version_elements = tree.getroot().findall('.//version')
-        available_versions = list(map(lambda v: v.text, version_elements))
+        if response.status_code == 200:
+            tree = ET.ElementTree(ET.fromstring(response.text))
+            version_elements = tree.getroot().findall('.//version')
+            available_versions = list(map(lambda v: v.text, version_elements))
 
-        if _utils.check_versions(
-                cache_data, config, arguments, group, artifact, version,
-                section_key, path, auth_info, verify_ssl, available_versions, response):
-            return True
+            if _utils.check_versions(
+                    cache_data, config, arguments, group, artifact, version,
+                    section_key, path, auth_info, verify_ssl, available_versions, response):
+                return True
 
-    response = session.get(path + '/', auth=auth_info, verify=verify_ssl)
+        response = session.get(path + '/', auth=auth_info, verify=verify_ssl)
 
-    if response.status_code == 200:
-        table = BeautifulSoup(response.text, 'html.parser').find('table')
-        if table is None:  # pragma: no cover
-            logging.error(f"Failed to parse versions from HTML at {path}")
-            return False
+        if response.status_code == 200:
+            table = BeautifulSoup(response.text, 'html.parser').find('table')
+            if table is None:  # pragma: no cover
+                logging.error(f"Failed to parse versions from HTML at {path}")
+                return False
 
-        version_links = table.find_all('a')  # type: ignore
-        available_versions = list(map(lambda v: v.text, version_links))
-        path = f"{base_url}/repository/{repository_name}/{group.replace('.', '/')}/{artifact}"
+            version_links = table.find_all('a')  # type: ignore
+            available_versions = list(map(lambda v: v.text, version_links))
+            path = f"{base_url}/repository/{repository_name}/{group.replace('.', '/')}/{artifact}"
 
-        if _utils.check_versions(
-                cache_data, config, arguments, group, artifact, version,
-                section_key, path, auth_info, verify_ssl, available_versions, response):
-            return True
+            if _utils.check_versions(
+                    cache_data, config, arguments, group, artifact, version,
+                    section_key, path, auth_info, verify_ssl, available_versions, response):
+                return True
 
     return False

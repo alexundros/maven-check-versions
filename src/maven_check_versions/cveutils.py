@@ -176,21 +176,21 @@ def _fetch_cve_data(
     try:
         url, user, token, batch_size, keep_safe = _oss_index_config(config, arguments)
         auth = HTTPBasicAuth(user, token)
-        session = requests.Session()
 
-        it = iter(coordinates)
-        while batch := list(islice(it, batch_size)):
-            response = session.post(url, json={"coordinates": batch}, auth=auth)
-            if response.status_code != 200:
-                logging.error(f"OSS Index API error: {response.status_code}")
-                continue
+        with requests.Session() as session:
+            it = iter(coordinates)
+            while batch := list(islice(it, batch_size)):
+                response = session.post(url, json={"coordinates": batch}, auth=auth)
+                if response.status_code != 200:
+                    logging.error(f"OSS Index API error: {response.status_code}")
+                    continue
 
-            for item in response.json():
-                cves = []
-                if data := item.get('vulnerabilities'):
-                    cves = [Vulnerability(**cve) for cve in data]
-                if len(cves) or keep_safe:
-                    result.update({item['coordinates']: cves})
+                for item in response.json():
+                    cves = []
+                    if data := item.get('vulnerabilities'):
+                        cves = [Vulnerability(**cve) for cve in data]
+                    if len(cves) or keep_safe:
+                        result.update({item['coordinates']: cves})
 
     except Exception as e:
         logging.error(f"Failed to _fetch_cve_data: {e}")
