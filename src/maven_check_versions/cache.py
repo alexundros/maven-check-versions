@@ -43,7 +43,11 @@ class DCJSONEncoder(json.JSONEncoder):  # pragma: no cover
         Returns:
             dict: The encoded object as a dictionary, or delegates to the parent encoder.
         """
-        return asdict(obj) if is_dataclass(obj) else super().default(obj)
+        try:
+            return asdict(obj) if is_dataclass(obj) else super().default(obj)
+        except Exception as e:
+            logging.error(f"Failed to encode dataclass: {e}")
+            return None
 
 
 class _CacheBackend(ABC):

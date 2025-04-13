@@ -378,13 +378,13 @@ def get_pom_data(
     Returns:
         tuple[bool, Optional[str]]: Tuple of success flag and last modified date (or None).
     """
-    session = requests.Session()
-    url = f"{path}/{version}/{artifact}-{version}.pom"
-    response = session.get(url, auth=auth_info, verify=verify_ssl)
+    with requests.Session() as session:
+        url = f"{path}/{version}/{artifact}-{version}.pom"
+        response = session.get(url, auth=auth_info, verify=verify_ssl)
 
-    if response.status_code == 200:
-        last_modified_header = response.headers.get('Last-Modified')
-        return True, parser.parse(last_modified_header).date().isoformat()
+        if response.status_code == 200:
+            last_modified_header = response.headers.get('Last-Modified')
+            return True, parser.parse(last_modified_header).date().isoformat()
 
     return False, None
 
@@ -411,11 +411,11 @@ def get_pom_tree(
                 _config.get_config_value(config, arguments, 'user'),
                 _config.get_config_value(config, arguments, 'password')
             )
-        session = requests.Session()
-        response = session.get(pom_path, auth=auth_info, verify=verify_ssl)
-        if response.status_code != 200:
-            raise FileNotFoundError(f"Failed to get_pom_tree {pom_path}: HTTP {response.status_code}")
-        return ET.ElementTree(ET.fromstring(response.text))
+        with requests.Session() as session:
+            response = session.get(pom_path, auth=auth_info, verify=verify_ssl)
+            if response.status_code != 200:
+                raise FileNotFoundError(f"Failed to get_pom_tree {pom_path}: HTTP {response.status_code}")
+            return ET.ElementTree(ET.fromstring(response.text))
     else:
         if not os.path.exists(pom_path) or not os.path.isfile(pom_path):
             raise FileNotFoundError(f"Failed to get_pom_tree {pom_path}")
