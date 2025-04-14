@@ -2,7 +2,6 @@
 """This file provides cache utilities"""
 import json
 import logging
-import math
 import os
 import threading
 import time
@@ -437,7 +436,10 @@ def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> D
             If the specified backend is not found, defaults to JSON backend.
     """
     key = _config.get_config_value(config, arguments, 'cache_backend', section=section)
-    return _CacheBackendRegistry.get(key).load(config, arguments, section)
+    if backend := _CacheBackendRegistry.get(key):
+        return backend.load(config, arguments, section)
+    else:  # pragma: no cover
+        raise AssertionError('Invalid cache backend')
 
 
 def save_cache(
@@ -457,7 +459,10 @@ def save_cache(
     """
     if cache_data is not None:
         key = _config.get_config_value(config, arguments, 'cache_backend', section=section)
-        _CacheBackendRegistry.get(key).save(config, arguments, cache_data, section)
+        if backend := _CacheBackendRegistry.get(key):
+            backend.save(config, arguments, cache_data, section)
+        else:  # pragma: no cover
+            raise AssertionError('Invalid cache backend')
 
 
 def process_cache_artifact(
@@ -485,7 +490,7 @@ def process_cache_artifact(
     if cached_version == version:
         return True
 
-    ct_threshold = _config.get_config_value(config, arguments, 'cache_time')
+    ct_threshold = int(_config.get_config_value(config, arguments, 'cache_time'))
 
     if ct_threshold == 0 or time.time() - cached_time < ct_threshold:
         message_format = '*{}: {}:{}, current:{} versions: {} updated: {}'
@@ -498,7 +503,7 @@ def process_cache_artifact(
 
 def update_cache_artifact(
         cache_data: Optional[Dict[str, Any]], versions: list, artifact: str, group,
-        item: str, last_modified_date: Optional[str], section_key: str
+        item: str, last_modified: Optional[str], section_key: str
 ) -> None:
     """
     Updates the cache dictionary with the latest data for the specified artifact.
@@ -509,11 +514,11 @@ def update_cache_artifact(
         artifact (str): The artifact ID of the dependency.
         group (str): The group ID of the dependency.
         item (str): The current version of the artifact being processed.
-        last_modified_date (Optional[str]):
+        last_modified (Optional[str]):
             The last modified date of the artifact in ISO format, or None if unavailable.
         section_key (str): The repository section key from the configuration.
     """
     if cache_data is not None:
         with update_cache_artifact_lock:
-            value = (math.trunc(time.time()), item, section_key, last_modified_date, versions[:3])
+            value = (int(time.time()), item, section_key, last_modified, versions[:3])
             cache_data[f"{group}:{artifact}"] = value
