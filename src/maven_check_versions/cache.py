@@ -136,7 +136,7 @@ class _JSONCacheBackend(_CacheBackend):
         try:
             logging.info(f"Save Cache file: {Path(cache_file).absolute()}")
             with open(cache_file, 'w', encoding='utf-8') as cf:
-                cf.write(json.dumps(cache_data, cls=DCJSONEncoder))
+                cf.write(json.dumps(cache_data, cls=DCJSONEncoder, indent=2))
         except Exception as e:
             logging.error(f"Failed to save cache to JSON file {cache_file}: {e}")
 
