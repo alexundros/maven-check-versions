@@ -20,7 +20,7 @@ import maven_check_versions.utils as _utils
 
 
 # noinspection PyMissingOrEmptyDocstring
-def main() -> None:
+def main() -> int:
     """
     Entry point for the maven_check_versions tool.
     """
@@ -53,8 +53,8 @@ def main() -> None:
             input('Press Enter to continue')
     except (KeyboardInterrupt, UnicodeDecodeError, EOFError):
         pass
-    sys.exit(1 if exception_occurred else 0)
+    return 1 if exception_occurred else 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
