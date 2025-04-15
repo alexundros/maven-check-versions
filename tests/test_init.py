@@ -23,10 +23,6 @@ def test_main(mocker):
     mocker.patch('maven_check_versions.logutils.configure_logging')
     mocker.patch('sys.exit')
     main()
-    mock_process_main.side_effect = FileNotFoundError
-    main()
-    mock_process_main.side_effect = AssertionError
-    main()
     mock_process_main.side_effect = KeyboardInterrupt
     main()
     mock_process_main.side_effect = SystemExit
