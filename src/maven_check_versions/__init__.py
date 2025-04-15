@@ -38,19 +38,15 @@ def main() -> None:
         elapsed = f"{time.time() - start_time:.2f} sec."
         logging.info(f"Processing is completed, {elapsed}")
 
-    except FileNotFoundError as ex:
-        exception_occurred = True
-        logging.exception(ex)
-    except AssertionError:
-        exception_occurred = True
     except KeyboardInterrupt:
         exception_occurred = True
-        logging.warning('Processing is interrupted')
+        logging.warning('Processing was interrupted')
     except SystemExit:  # NOSONAR
         exception_occurred = True
-    except Exception as ex:
+        logging.warning('Processing was terminated')
+    except Exception as e:
         exception_occurred = True
-        logging.exception(ex)
+        logging.exception(e)
 
     try:
         if not ci_mode_enabled:
