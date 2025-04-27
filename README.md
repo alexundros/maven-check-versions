@@ -16,14 +16,11 @@
 
 # Maven Check Versions
 
-This is a Python package designed for analyzing Maven POM files and managing dependencies.
-It checks the versions of dependencies in a project and identifies the latest available versions in Maven repositories.
-Developed for developers, this package simplifies dependency management in Maven-based projects.
-It is especially useful in CI/CD environments, where maintaining consistency and up-to-date dependencies is critical.
+This is a python package designed for analyzing Maven pom files.
+It checks the versions of dependencies in a project and identifies the latest available versions in repositories.
+It is especially useful in CI/CD environments, where maintaining consistency and up-to-date dependencies is crucial.
 
 See https://pypi.org/project/maven-check-versions for more details.
-
----
 
 ## Features
 
@@ -37,15 +34,11 @@ See https://pypi.org/project/maven-check-versions for more details.
 - **Command-Line Interface:** Easily integrates into CI/CD pipelines.
 - **Vulnerability Checking:** Checks dependencies for known vulnerabilities using OSS Index.
 
----
-
 ## Installation
 
 System requirements: Python 3.10 or higher
 
 You can install the tool via pip: `pip install maven_check_versions`
-
----
 
 ## Usage
 
@@ -100,8 +93,6 @@ docker run --rm alexundros/maven_check_versions -fa com.example:my-lib:1.0
 ```bash
 docker run --rm alexundros/maven_check_versions -ci
 ```
-
----
 
 ## Command-Line Arguments
 
@@ -193,8 +184,6 @@ Depending on the selected cache backend, additional command-line arguments may b
 |--------------|-------|----------------------------------------------------------------------------|--------------------------|
 | `--user`     | `-un` | Specifies a username for basic authentication when accessing repositories. | `--user my_username`     |
 | `--password` | `-up` | Specifies a password for basic authentication when accessing repositories. | `--password my_password` |
-
----
 
 ## Configuration
 
@@ -360,8 +349,6 @@ repo1_maven:
   service_rest: false                         # Enables REST service for this repository
 ```
 
----
-
 ## Environment Variables
 
 The tool supports environment variables to override configuration settings or provide credentials for external services.
@@ -403,10 +390,6 @@ export CV_CACHE_TIME=1800
 maven_check_versions --pom_file path/to/pom.xml
 ```
 
----
-
 ## License
 
 This project is licensed under the MIT License.
-
----
