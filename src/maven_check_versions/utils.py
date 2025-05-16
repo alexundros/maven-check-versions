@@ -333,7 +333,7 @@ def check_versions(
         if version and (version_match := re.match(r'^(\d+)\.(\d+).?', version)):
             current_major, current_minor = int(version_match.group(1)), int(version_match.group(2))
 
-    skip_current = _config.get_config_value(config, arguments, 'skip_current')
+    skip_current = _config.get_config_value(config, arguments, 'skip_current', default=True)
     invalid_flag = False
 
     for item in available_versions:
