@@ -409,8 +409,8 @@ def get_pom_tree(
         auth_info: Optional[tuple[str, str]] = None
         if _config.get_config_value(config, arguments, 'auth', 'pom_http', default=True):
             auth_info = (
-                _config.get_config_value(config, arguments, 'user'),
-                _config.get_config_value(config, arguments, 'password')
+                _config.get_config_value(config, arguments, 'user', 'pom_http'),
+                _config.get_config_value(config, arguments, 'password', 'pom_http')
             )
         with requests.Session() as session:
             response = session.get(pom_path, auth=auth_info, verify=verify_ssl)

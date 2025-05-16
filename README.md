@@ -323,7 +323,9 @@ vulnerability:
 # Configuration for HTTP-based POM file access
 pom_http:
   auth: true                                  # Enables authentication for HTTP-based POM file access
-
+  user: "USER"                                # Username for basic authentication
+  password: "PASSWORD"                        # Password for basic authentication
+  
 # Configuration for urllib3 library
 urllib3:
   warnings: true                              # Enables or disables urllib3 warnings
