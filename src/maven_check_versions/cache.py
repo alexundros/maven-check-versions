@@ -490,7 +490,7 @@ def process_cache_artifact(
     if cached_version == version:
         return True
 
-    ct_threshold = int(_config.get_config_value(config, arguments, 'cache_time'))
+    ct_threshold = int(_config.get_config_value(config, arguments, 'cache_time', default=0))
 
     if ct_threshold == 0 or time.time() - cached_time < ct_threshold:
         message_format = '*{}: {}:{}, current:{} versions: {} updated: {}'
