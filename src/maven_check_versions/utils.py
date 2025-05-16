@@ -407,7 +407,7 @@ def get_pom_tree(
     """
     if pom_path.startswith('http'):
         auth_info: Optional[tuple[str, str]] = None
-        if _config.get_config_value(config, arguments, 'auth', 'pom_http'):
+        if _config.get_config_value(config, arguments, 'auth', 'pom_http', default=True):
             auth_info = (
                 _config.get_config_value(config, arguments, 'user'),
                 _config.get_config_value(config, arguments, 'password')
