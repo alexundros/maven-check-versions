@@ -281,7 +281,7 @@ def process_repository(
                     path, auth_info, verify_ssl, available_versions, response):
                 return True
 
-    if _config.get_config_value(config, arguments, 'service_rest', repository_section, default=True):
+    if _config.get_config_value(config, arguments, 'use_rest', repository_section, default=True):
         return process_rest(
             cache_data, config, arguments, group, artifact, version, section_key,
             repository_section, base_url, auth_info, verify_ssl)

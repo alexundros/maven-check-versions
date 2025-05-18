@@ -98,7 +98,7 @@ def test_process_repository(mocker):
             'base': 'https://repo1.maven.org',
             'path': 'maven2',
             'repo': 'maven-central',
-            'service_rest': True,
+            'use_rest': True,
             'auth': True,
         }})
     args = Arguments({'user': 'user', 'password': 'pass'})  # NOSONAR
@@ -130,7 +130,7 @@ def test_process_repository(mocker):
     mock_process_rest.return_value = True
     assert _process_repository()
 
-    config['section']['service_rest'] = False
+    config['section']['use_rest'] = False
     assert not _process_repository()
 
 
