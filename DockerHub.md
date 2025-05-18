@@ -287,7 +287,7 @@ vulnerability:
 
 # Configuration for HTTP-based POM file access
 pom_http:
-  auth: true                                  # Enables authentication for HTTP-based POM file access
+  auth: false                                 # Enables authentication for HTTP-based POM file access
   user: "USER"                                # Username for basic authentication
   password: "PASSWORD"                        # Password for basic authentication
 

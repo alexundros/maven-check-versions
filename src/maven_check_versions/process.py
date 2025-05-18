@@ -252,7 +252,7 @@ def process_repository(
         bool: True if the dependency is found, False otherwise.
     """
     auth_info: Optional[tuple[str, str]] = None
-    if _config.get_config_value(config, arguments, 'auth', repository_section, default=True):
+    if _config.get_config_value(config, arguments, 'auth', repository_section, default=False):
         auth_info = (
             _config.get_config_value(config, arguments, 'user'),
             _config.get_config_value(config, arguments, 'password')
@@ -281,7 +281,7 @@ def process_repository(
                     path, auth_info, verify_ssl, available_versions, response):
                 return True
 
-    if _config.get_config_value(config, arguments, 'use_rest', repository_section, default=True):
+    if _config.get_config_value(config, arguments, 'use_rest', repository_section, default=False):
         return process_rest(
             cache_data, config, arguments, group, artifact, version, section_key,
             repository_section, base_url, auth_info, verify_ssl)
