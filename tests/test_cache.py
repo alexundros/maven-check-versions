@@ -75,7 +75,7 @@ def test_save_cache(mocker):
     mock_open = mocker.patch('builtins.open')
     mock_json = mocker.patch('json.dumps')
     save_cache(Config(), Arguments(), {'k': 'v'})
-    mock_open.assert_called_once_with('maven_check_versions_artifacts.json', 'w', encoding='utf-8')
+    mock_open.assert_called_once_with('cache_maven_check_versions_artifacts.json', 'w', encoding='utf-8')
     mock_json.assert_called_once_with({'k': 'v'}, cls=DCJSONEncoder, indent=2)
 
     mock_json.side_effect = Exception

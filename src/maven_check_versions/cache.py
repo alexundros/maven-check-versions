@@ -17,8 +17,8 @@ import redis
 import tarantool
 from maven_check_versions.config import Config, Arguments
 
-_ARTIFACTS_KEY = 'maven_check_versions_artifacts'
-_VULNERABILITIES_KEY = 'maven_check_versions_vulnerabilities'
+_ARTIFACTS_KEY = 'cache_maven_check_versions_artifacts'
+_VULNERABILITIES_KEY = 'cache_maven_check_versions_vulnerabilities'
 _HOST = 'localhost'
 _REDIS_PORT = 6379
 _TARANTOOL_PORT = 3301
