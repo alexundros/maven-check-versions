@@ -1,11 +1,3 @@
-base:
-  user: "USER"            # Username for basic authentication in repositories
-  password: "PASSWORD"    # Password for basic authentication in repositories
-
-# Configuration for HTTP-based POM file access
-pom_http:
-  user: "USER"                                # Username for basic authentication
-  password: "PASSWORD"                        # Password for basic authentication
 
 # List of POM files to process
 pom_files:
@@ -19,6 +11,4 @@ repositories:
 repo1_maven:
   base: "https://repo1.maven.org"             # Base URL of the repository
   path: "maven2"                              # Path suffix for the repository
-  auth: false                                 # Enables authentication for this repository
   repo: "maven2"                              # Repository name
-  service_rest: false                         # Enables REST service for this repository

@@ -106,4 +106,4 @@ repo1_maven:
   path: "maven2"                              # Path suffix for the repository
   auth: false                                 # Enables authentication for this repository
   repo: "maven2"                              # Repository name
-  service_rest: false                         # Enables REST service for this repository
+  use_rest: false                             # Enables REST service for this repository

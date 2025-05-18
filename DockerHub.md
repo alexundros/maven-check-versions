@@ -287,7 +287,7 @@ vulnerability:
 
 # Configuration for HTTP-based POM file access
 pom_http:
-  auth: true                                  # Enables authentication for HTTP-based POM file access
+  auth: false                                 # Enables authentication for HTTP-based POM file access
   user: "USER"                                # Username for basic authentication
   password: "PASSWORD"                        # Password for basic authentication
 
@@ -313,7 +313,7 @@ repo1_maven:
   path: "maven2"                              # Path suffix for the repository
   auth: false                                 # Enables authentication for this repository
   repo: "maven2"                              # Repository name
-  service_rest: false                         # Enables REST service for this repository
+  use_rest: false                             # Enables REST service for this repository
 ```
 
 ## Environment Variables

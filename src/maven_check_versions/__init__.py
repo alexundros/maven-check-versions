@@ -37,7 +37,6 @@ def main() -> int:
 
         elapsed = f"{time.time() - start_time:.2f} sec."
         logging.info(f"Processing is completed, {elapsed}")
-
     except KeyboardInterrupt:
         exception_occurred = True
         logging.warning('Processing was interrupted')
