@@ -133,7 +133,7 @@ def process_dependency(
             return
 
     if not process_repositories(artifact, cache_data, config, group, arguments, verify_ssl, version):
-        logging.warning(f"Not Found: {group}:{artifact}, current:{version}")
+        logging.warning(f"Not Found: {group}:{artifact}:{version}")
 
 
 def process_repositories(
@@ -275,6 +275,7 @@ def process_repository(
             tree = ET.ElementTree(ET.fromstring(response.text))
             version_elements = tree.getroot().findall('.//version')
             available_versions = [v.text for v in version_elements if v.text]
+            available_versions.reverse()
 
             if _utils.check_versions(
                     cache_data, config, arguments, group, artifact, version, section_key,
@@ -313,8 +314,8 @@ def process_rest(
     Returns:
         bool: True if the dependency is found, False otherwise.
     """
-    repository_name = _config.get_config_value(config, arguments, 'repo', repository_section)
-    path = f"{base_url}/service/rest/repository/browse/{repository_name}"
+    repo = _config.get_config_value(config, arguments, 'repo', repository_section)
+    path = f"{base_url}/service/rest/repository/browse/{repo}"
     path = f"{path}/{group.replace('.', '/')}/{artifact}"
 
     with requests.Session() as session:
@@ -324,7 +325,8 @@ def process_rest(
         if response.status_code == 200:
             tree = ET.ElementTree(ET.fromstring(response.text))
             version_elements = tree.getroot().findall('.//version')
-            available_versions = list(map(lambda v: v.text, version_elements))
+            available_versions = [v.text for v in version_elements if v.text]
+            available_versions.reverse()
 
             if _utils.check_versions(
                     cache_data, config, arguments, group, artifact, version,
@@ -339,9 +341,10 @@ def process_rest(
                 logging.error(f"Failed to parse versions from HTML at {path}")
                 return False
 
-            version_links = table.find_all('a')  # type: ignore
-            available_versions = list(map(lambda v: v.text, version_links))
-            path = f"{base_url}/repository/{repository_name}/{group.replace('.', '/')}/{artifact}"
+            version_links = table.find_all('a')[1:]  # type: ignore
+            path = f"{base_url}/repository/{repo}/{group.replace('.', '/')}/{artifact}"
+            available_versions = [v.text for v in version_links if v.text]
+            available_versions.reverse()
 
             if _utils.check_versions(
                     cache_data, config, arguments, group, artifact, version,

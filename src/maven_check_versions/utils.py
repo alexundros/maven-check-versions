@@ -320,9 +320,6 @@ def check_versions(
     Returns:
         bool: True if the current version is valid, False otherwise.
     """
-    available_versions = [v for v in available_versions if re.match(r'^\d+.+', v)]
-    available_versions.reverse()
-
     major_threshold = minor_threshold = 0
     current_major = current_minor = 0
 
@@ -344,8 +341,8 @@ def check_versions(
 
         is_valid, last_modified = get_pom_data(auth_info, verify_ssl, artifact, item, path)
         if is_valid:
-            logging.info('{}: {}:{}, current:{} {} {}'.format(
-                section_key, group, artifact, version, available_versions[:3], last_modified).rstrip())
+            logging.info('{}: {}:{}:{}, last versions: {}, modified:{}.'.format(
+                section_key, group, artifact, version, available_versions[:5], last_modified).rstrip())
 
             _cache.update_cache_artifact(
                 cache_data, available_versions, artifact, group, item, last_modified, section_key)
