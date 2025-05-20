@@ -179,6 +179,17 @@ def collect_dependencies(
     if _config.get_config_value(config, arguments, 'search_plugins'):
         plugins = root.findall('.//xmlns:plugins/xmlns:plugin', namespaces=ns_mapping)
         dependencies.extend(plugins)
+
+    if skip := _config.get_config_value(config, arguments, 'skip_checks'):
+        logging.warning(f"Skip checking dependency versions for {skip}")
+        result: list = []
+        combined = '(' + ')|('.join(skip) + ')'
+        for dependency in dependencies:
+            (group, artifact) = get_dependency_identifiers(dependency, ns_mapping)
+            if not re.match(combined, f"{group}:{artifact}"):
+                result.append(dependency)
+        return result
+
     return dependencies
 
 

@@ -93,12 +93,12 @@ def test_collect_dependencies(mocker):
     <project xmlns="http://maven.apache.org/POM/4.0.0">
         <dependencies>
             <dependency>
-                <groupId>groupId</groupId>
-                <artifactId>artifactId</artifactId>
+                <groupId>groupId1</groupId>
+                <artifactId>artifactId1</artifactId>
             </dependency>
             <dependency>
-                <groupId>groupId</groupId>
-                <artifactId>artifactId</artifactId>
+                <groupId>groupId2</groupId>
+                <artifactId>artifactId2</artifactId>
             </dependency>
         </dependencies>
         <build>
@@ -114,6 +114,10 @@ def test_collect_dependencies(mocker):
     args = Arguments({'search_plugins': True})
     result = collect_dependencies(root, ns_mappings, Config(), args)
     assert len(result) == 3
+
+    config = Config({'base': {'skip_checks': ['groupId2:*']}})
+    result = collect_dependencies(root, ns_mappings, config, args)
+    assert len(result) == 2
 
 
 def test_get_dependency_identifiers():
