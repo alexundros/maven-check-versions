@@ -71,7 +71,7 @@ def log_skip_if_required(
         artifact (str): Artifact ID.
         version (Optional[str]): Dependency version.
     """
-    if _config.get_config_value(config, arguments, 'show_skip'):
+    if _config.get_config_value(config, arguments, 'show_skip', default=False):
         logging.warning(f"Skip: {group}:{artifact}:{version}")
 
 
@@ -88,7 +88,7 @@ def log_search_if_required(
         artifact (str): Artifact ID.
         version (Optional[str]): Dependency version (Maybe None or a placeholder).
     """
-    if _config.get_config_value(config, arguments, 'show_search'):
+    if _config.get_config_value(config, arguments, 'show_search', default=False):
         if version is None or re.match(r'^\${([^}]+)}$', version):
             logging.warning(f"Search: {group}:{artifact}:{version}")
         else:
@@ -111,7 +111,7 @@ def log_invalid_if_required(
         item (str): Version being checked.
         invalid_flag (bool): Flag indicating invalid versions have been logged.
     """
-    if _config.get_config_value(config, arguments, 'show_invalid'):
+    if _config.get_config_value(config, arguments, 'show_invalid', default=False):
         if not invalid_flag:
             logging.info(response.url)
         logging.warning(f"Invalid: {group}:{artifact}:{item}")

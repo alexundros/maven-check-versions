@@ -118,7 +118,7 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list[
     skip_no_versions = _config.get_config_value(
         config, arguments, 'skip_no_versions', 'vulnerability', default=False)
     combined = None
-    if skip := _config.get_config_value(config, arguments, 'skip_checks', 'vulnerability'):
+    if skip := _config.get_config_value(config, arguments, 'skip_checks', 'vulnerability', default=[]):
         combined = '(' + ')|('.join(skip) + ')'
 
     result: list = []

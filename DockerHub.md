@@ -211,47 +211,48 @@ base:
   cache_backend: "json"   # Cache backend to use: json, redis, tarantool, memcached
 
   # Redis cache backend settings
-  redis_host: "localhost"                           # Redis host
-  redis_port: 6379                                  # Redis port
-  redis_key: "maven_check_versions_artifacts"       # Key for storing data in Redis
-  redis_user: null                                  # Redis username (optional)
-  redis_password: null                              # Redis password (optional)
+  redis_host: "localhost"                                   # Redis host
+  redis_port: 6379                                          # Redis port
+  redis_key: "cache_maven_check_versions_artifacts"         # Key for storing data
+  redis_user: "CACHE_USER"                                  # Redis username
+  redis_password: "CACHE_PASSWORD"                          # Redis password
 
   # Tarantool cache backend settings
-  tarantool_host: "localhost"                       # Tarantool host
-  tarantool_port: 3301                              # Tarantool port
-  tarantool_space: "maven_check_versions_artifacts" # Tarantool space
-  tarantool_user: null                              # Tarantool username (optional)
-  tarantool_password: null                          # Tarantool password (optional)
+  tarantool_host: "localhost"                               # Tarantool host
+  tarantool_port: 3301                                      # Tarantool port
+  tarantool_space: "cache_maven_check_versions_artifacts"   # Tarantool space
+  tarantool_user: "CACHE_USER"                              # Tarantool username
+  tarantool_password: "CACHE_PASSWORD"                      # Tarantool password
 
   # Memcached cache backend settings
-  memcached_host: "localhost"                       # Memcached host
-  memcached_port: 11211                             # Memcached port
-  memcached_key: "maven_check_versions_artifacts"   # Key for storing data in Memcached
+  memcached_host: "localhost"                               # Memcached host
+  memcached_port: 11211                                     # Memcached port
+  memcached_key: "cache_maven_check_versions_artifacts"     # Key for storing data
 
-  fail_mode: false        # Enables fail mode, terminating the script if version thresholds are exceeded
-  fail_major: 0           # Major version difference threshold for failure
-  fail_minor: 0           # Minor version difference threshold for failure
+  fail_mode: false            # Enables fail mode, terminating the script if version thresholds are exceeded
+  fail_major: 0               # Major version difference threshold for failure
+  fail_minor: 0               # Minor version difference threshold for failure
 
-  search_plugins: false   # Includes Maven plugins in the dependency search process
-  process_modules: false  # Processes modules listed in the POM file
+  show_skip: false            # Logs dependencies that are skipped during processing
+  show_search: false          # Logs information about search actions for dependencies
 
-  show_skip: false        # Logs dependencies that are skipped during processing
-  show_search: false      # Logs information about search actions for dependencies
+  search_plugins: false       # Includes Maven plugins in the dependency search process
+  process_modules: false      # Processes modules listed in the POM file
+  empty_version: false        # Allows processing of dependencies without a specified version
+  show_invalid: false         # Logs information about invalid dependencies
+  skip_current: true          # Skips version checks for dependencies matching the current version
 
-  empty_version: false    # Allows processing of dependencies without a specified version
-  show_invalid: false     # Logs information about invalid dependencies
-  skip_current: true      # Skips version checks for dependencies matching the current version
+  skip_checks: []             # List of dependencies to skip checking versions (e.g., ["group:artifact"])
 
-  threading: false        # Enables multi-threading for concurrent processing
-  max_threads: 8          # Maximum number of threads to use when threading is enabled
+  threading: true             # Enables multi-threading for concurrent processing
+  max_threads: 8              # Maximum number of threads to use when threading is enabled
 
-  user: "USER"            # Username for basic authentication in repositories
-  password: "PASSWORD"    # Password for basic authentication in repositories
+  user: "USER"           # Username for basic authentication
+  password: "PASSWORD"   # Password for basic authentication
 
 # Configuration for vulnerability checks
 vulnerability:
-  oss_index_enabled: true                           # Enables OSS Index vulnerability checks
+  oss_index_enabled: false                          # Enables OSS Index vulnerability checks
   oss_index_url: "https://ossindex.sonatype.org/api/v3/component-report"  # OSS Index API URL
   oss_index_user: "OSS_INDEX_USER"                  # OSS Index username
   oss_index_token: "OSS_INDEX_TOKEN"                # OSS Index API token
@@ -261,43 +262,43 @@ vulnerability:
   fail_score: 0                                     # Fail if CVSS score exceeds this value
   cve_reference: false                              # Logs link for detailed information
   skip_no_versions: false                           # Skips dependencies without versions in vulnerability checks
-  skip_checks: []                                   # List of dependencies to skip in vulnerability checks
+  skip_checks: [ ]                                  # List of dependencies to skip in vulnerability checks
                                                     # (e.g., ["group:artifact:version"])
 
   cache_backend: "json"                             # Cache backend to use: json, redis, tarantool, memcached
 
   # Redis cache backend settings for the vulnerability
-  redis_host: "localhost"                                 # Redis host
-  redis_port: 6379                                        # Redis port
-  redis_key: "maven_check_versions_vulnerabilities"       # Key for storing data in Redis
-  redis_user: null                                        # Redis username (optional)
-  redis_password: null                                    # Redis password (optional)
+  redis_host: "localhost"                                         # Redis host
+  redis_port: 6379                                                # Redis port
+  redis_key: "cache_maven_check_versions_vulnerabilities"         # Key for storing data
+  redis_user: "CACHE_USER"                                        # Redis username
+  redis_password: "CACHE_PASSWORD"                                # Redis password
 
   # Tarantool cache backend settings for the vulnerability
-  tarantool_host: "localhost"                             # Tarantool host
-  tarantool_port: 3301                                    # Tarantool port
-  tarantool_space: "maven_check_versions_vulnerabilities" # Tarantool space
-  tarantool_user: null                                    # Tarantool username (optional)
-  tarantool_password: null                                # Tarantool password (optional)
+  tarantool_host: "localhost"                                     # Tarantool host
+  tarantool_port: 3301                                            # Tarantool port
+  tarantool_space: "cache_maven_check_versions_vulnerabilities"   # Tarantool space
+  tarantool_user: "CACHE_USER"                                    # Tarantool username
+  tarantool_password: "CACHE_PASSWORD"                            # Tarantool password
 
   # Memcached cache backend settings for the vulnerability
-  memcached_host: "localhost"                             # Memcached host
-  memcached_port: 11211                                   # Memcached port
-  memcached_key: "maven_check_versions_vulnerabilities"   # Key for storing data in Memcached
+  memcached_host: "localhost"                                     # Memcached host
+  memcached_port: 11211                                           # Memcached port
+  memcached_key: "cache_maven_check_versions_vulnerabilities"     # Key for storing data
 
 # Configuration for HTTP-based POM file access
 pom_http:
-  auth: false                                 # Enables authentication for HTTP-based POM file access
+  auth: false                                 # Enables authentication for HTTP-based access
   user: "USER"                                # Username for basic authentication
   password: "PASSWORD"                        # Password for basic authentication
 
 # Configuration for urllib3 library
 urllib3:
-  warnings: true                              # Enables or disables urllib3 warnings
+  warnings: true                              # Enables urllib3 warnings
 
 # Configuration for requests library
 requests:
-  verify: true                                # Enables or disables SSL verification for requests
+  verify: true                                # Enables SSL verification for requests
 
 # List of POM files to process
 pom_files:
@@ -305,15 +306,15 @@ pom_files:
 
 # Repository configurations
 repositories:
-  "Central (repo1.maven.org)": "repo1_maven"  # Example repository mapping
+  - "Central (repo1.maven.org)"               # Repository section
 
-# Configuration for repo1.maven repository
-repo1_maven:
-  base: "https://repo1.maven.org"             # Base URL of the repository
-  path: "maven2"                              # Path suffix for the repository
-  auth: false                                 # Enables authentication for this repository
+# Configuration for "Central (repo1.maven.org)"
+"Central (repo1.maven.org)":
+  base: "https://repo1.maven.org"             # Base URL
+  path: "maven2"                              # Path suffix
   repo: "maven2"                              # Repository name
-  use_rest: false                             # Enables REST service for this repository
+  auth: false                                 # Enables authentication
+  use_rest: false                             # Use alternative REST API
 ```
 
 ## Environment Variables
