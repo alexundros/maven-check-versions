@@ -93,4 +93,4 @@ def config_items(config: Config, section: str) -> list:
                 Returns an empty list if the section does not exist.
     """
     get = config.get(section)
-    return list(get.items()) if isinstance(get, dict) else get if isinstance(get, list) else []
+    return list(get.items()) if isinstance(get, dict) else get if isinstance(get, list) else []  # NOSONAR
