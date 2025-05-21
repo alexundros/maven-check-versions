@@ -65,7 +65,7 @@ def test_process_main(mocker, monkeypatch):
 def test_process_rest(mocker):
     def _service_rest():
         return process_rest(
-            {}, Config(), Arguments(), 'group', 'artifact', '1.0', 'section',
+            {}, Config(), Arguments(), 'group', 'artifact', '1.0',
             'repository', 'http://example.com/pom.pom', None, True  # NOSONAR
         )
 
@@ -94,7 +94,7 @@ def test_process_rest(mocker):
 # noinspection PyShadowingNames
 def test_process_repository(mocker):
     config = Config({
-        'section': {
+        'repository': {
             'base': 'https://repo1.maven.org',
             'path': 'maven2',
             'repo': 'maven-central',
@@ -105,8 +105,7 @@ def test_process_repository(mocker):
 
     def _process_repository():
         return process_repository(
-            {}, config, args, 'group', 'artifact', '1.0',
-            'repository', 'section', True
+            {}, config, args, 'group', 'artifact', '1.0', 'repository', True
         )
 
     mock_requests = mocker.patch('requests.Session.get')
@@ -130,7 +129,7 @@ def test_process_repository(mocker):
     mock_process_rest.return_value = True
     assert _process_repository()
 
-    config['section']['use_rest'] = False
+    config['repository']['use_rest'] = False
     assert not _process_repository()
 
 

@@ -503,7 +503,7 @@ def process_cache_artifact(
 
 def update_cache_artifact(
         cache_data: Optional[Dict[str, Any]], versions: list, artifact: str, group,
-        item: str, last_modified: Optional[str], section_key: str
+        item: str, last_modified: Optional[str], repository_key: str
 ) -> None:
     """
     Updates the cache dictionary with the latest data for the specified artifact.
@@ -516,9 +516,9 @@ def update_cache_artifact(
         item (str): The current version of the artifact being processed.
         last_modified (Optional[str]):
             The last modified date of the artifact in ISO format, or None if unavailable.
-        section_key (str): The repository section key from the configuration.
+        repository_key (str): The repository section key from the configuration.
     """
     if cache_data is not None:
         with update_cache_artifact_lock:
-            value = (int(time.time()), item, section_key, last_modified, versions[:5])
+            value = (int(time.time()), item, repository_key, last_modified, versions[:5])
             cache_data[f"{group}:{artifact}"] = value

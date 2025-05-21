@@ -156,10 +156,10 @@ def process_repositories(
         bool: True if the dependency is found, False otherwise.
     """
     if len(items := _config.config_items(config, 'repositories')):
-        for section_key, repository_section in items:
+        for repository_key in items:
             if (process_repository(
                     cache_data, config, arguments, group, artifact, version,
-                    section_key, repository_section, verify_ssl)):
+                    repository_key, verify_ssl)):
                 return True
     return False
 
@@ -221,10 +221,10 @@ def process_artifact(
     _logutils.log_search_if_required(config, arguments, group, artifact, version)
 
     dependency_found = False
-    for section_key, repository_section in _config.config_items(config, 'repositories'):
+    for repository_key in _config.config_items(config, 'repositories'):
         if (dependency_found := process_repository(
                 cache_data, config, arguments, group, artifact, version,
-                section_key, repository_section, verify_ssl)):
+                repository_key, verify_ssl)):
             break
     if not dependency_found:
         logging.warning(f"Not Found: {group}:{artifact}, current:{version}")
@@ -232,7 +232,7 @@ def process_artifact(
 
 def process_repository(
         cache_data: Optional[dict], config: Config, arguments: Arguments, group: str, artifact: str,
-        version: Optional[str], section_key: str, repository_section: str, verify_ssl: bool
+        version: Optional[str], repository_key: str, verify_ssl: bool
 ) -> bool:
     """
     Processes a repository section.
@@ -244,23 +244,22 @@ def process_repository(
         group (str): Group ID.
         artifact (str): Artifact ID.
         version (Optional[str]): Artifact version.
-        section_key (str): Repository section key.
-        repository_section (str): Repository section name.
+        repository_key (str): Repository section key.
         verify_ssl (bool): SSL verification flag.
 
     Returns:
         bool: True if the dependency is found, False otherwise.
     """
     auth_info: Optional[tuple[str, str]] = None
-    if _config.get_config_value(config, arguments, 'auth', repository_section, default=False):
+    if _config.get_config_value(config, arguments, 'auth', repository_key, default=False):
         auth_info = (
             _config.get_config_value(config, arguments, 'user'),
             _config.get_config_value(config, arguments, 'password')
         )
 
-    base_url = _config.get_config_value(config, arguments, 'base', repository_section)
-    path_suffix = _config.get_config_value(config, arguments, 'path', repository_section)
-    repository_name = _config.get_config_value(config, arguments, 'repo', repository_section)
+    base_url = _config.get_config_value(config, arguments, 'base', repository_key)
+    path_suffix = _config.get_config_value(config, arguments, 'path', repository_key)
+    repository_name = _config.get_config_value(config, arguments, 'repo', repository_key)
 
     path = f"{base_url}/{path_suffix}"
     if repository_name is not None:
@@ -268,8 +267,7 @@ def process_repository(
     path = f"{path}/{group.replace('.', '/')}/{artifact}"
 
     with requests.Session() as session:
-        metadata_url = path + '/maven-metadata.xml'
-        response = session.get(metadata_url, auth=auth_info, verify=verify_ssl)
+        response = session.get(path + '/maven-metadata.xml', auth=auth_info, verify=verify_ssl)
 
         if response.status_code == 200:
             tree = ET.ElementTree(ET.fromstring(response.text))
@@ -278,21 +276,21 @@ def process_repository(
             available_versions.reverse()
 
             if _utils.check_versions(
-                    cache_data, config, arguments, group, artifact, version, section_key,
+                    cache_data, config, arguments, group, artifact, version, repository_key,
                     path, auth_info, verify_ssl, available_versions, response):
                 return True
 
-    if _config.get_config_value(config, arguments, 'use_rest', repository_section, default=False):
+    if _config.get_config_value(config, arguments, 'use_rest', repository_key, default=False):
         return process_rest(
-            cache_data, config, arguments, group, artifact, version, section_key,
-            repository_section, base_url, auth_info, verify_ssl)
+            cache_data, config, arguments, group, artifact, version,
+            repository_key, base_url, auth_info, verify_ssl)
 
     return False
 
 
 def process_rest(
         cache_data: Optional[dict], config: Config, arguments: Arguments, group: str, artifact: str,
-        version: Optional[str], section_key: str, repository_section: str, base_url: str,
+        version: Optional[str], repository_key: str, base_url: str,
         auth_info: Optional[tuple[str, str]], verify_ssl: bool
 ) -> bool:
     """
@@ -305,8 +303,7 @@ def process_rest(
         group (str): Group ID.
         artifact (str): Artifact ID.
         version (Optional[str]): Artifact version.
-        section_key (str): Repository section key.
-        repository_section (str): Repository section name.
+        repository_key (str): Repository section name.
         base_url (str): Base URL of the repository.
         auth_info (Optional[tuple[str, str]]): Authentication credentials.
         verify_ssl (bool): SSL verification flag.
@@ -314,7 +311,7 @@ def process_rest(
     Returns:
         bool: True if the dependency is found, False otherwise.
     """
-    repo = _config.get_config_value(config, arguments, 'repo', repository_section)
+    repo = _config.get_config_value(config, arguments, 'repo', repository_key)
     path = f"{base_url}/service/rest/repository/browse/{repo}"
     path = f"{path}/{group.replace('.', '/')}/{artifact}"
 
@@ -329,8 +326,8 @@ def process_rest(
             available_versions.reverse()
 
             if _utils.check_versions(
-                    cache_data, config, arguments, group, artifact, version,
-                    section_key, path, auth_info, verify_ssl, available_versions, response):
+                    cache_data, config, arguments, group, artifact, version, repository_key,
+                    path, auth_info, verify_ssl, available_versions, response):
                 return True
 
         response = session.get(path + '/', auth=auth_info, verify=verify_ssl)
@@ -347,8 +344,8 @@ def process_rest(
             available_versions.reverse()
 
             if _utils.check_versions(
-                    cache_data, config, arguments, group, artifact, version,
-                    section_key, path, auth_info, verify_ssl, available_versions, response):
+                    cache_data, config, arguments, group, artifact, version, repository_key,
+                    path, auth_info, verify_ssl, available_versions, response):
                 return True
 
     return False

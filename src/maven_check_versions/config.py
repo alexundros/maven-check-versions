@@ -80,7 +80,7 @@ def get_config_value(
     return default if value is None else value
 
 
-def config_items(config: Config, section: str) -> list[tuple[str, str]]:
+def config_items(config: Config, section: str) -> list:
     """
     Retrieves all key-value pairs from a specified configuration section.
 
@@ -89,7 +89,8 @@ def config_items(config: Config, section: str) -> list[tuple[str, str]]:
         section (str): The name of the configuration section (e.g., 'repositories').
 
     Returns:
-        list[tuple[str, str]]: A list of tuples, each containing a key and its value from the section.
-                            Returns an empty list if the section does not exist.
+        list: A list of tuples, each containing a key and its value from the section.
+                Returns an empty list if the section does not exist.
     """
-    return list(get.items()) if (get := config.get(section)) else []
+    get = config.get(section)
+    return list(get.items()) if isinstance(get, dict) else get if isinstance(get, list) else []

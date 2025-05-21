@@ -308,7 +308,7 @@ def get_version(
 
 def check_versions(
         cache_data: Optional[dict], config: Config, arguments: Arguments, group: str, artifact: str,
-        version: Optional[str], section_key: str, path: str, auth_info: Optional[tuple[str, str]],
+        version: Optional[str], repository_key: str, path: str, auth_info: Optional[tuple[str, str]],
         verify_ssl: bool, available_versions: list[str], response: requests.Response
 ) -> bool:
     """
@@ -321,7 +321,7 @@ def check_versions(
         group (str): Group ID.
         artifact (str): Artifact ID.
         version (Optional[str]): Current version.
-        section_key (str): Repository section key.
+        repository_key (str): Repository section key.
         path (str): Path to the dependency in the repository.
         auth_info (Optional[tuple[str, str]]): Authentication credentials.
         verify_ssl (bool): SSL verification flag.
@@ -347,16 +347,16 @@ def check_versions(
     for item in available_versions:
         if item == version and skip_current:
             _cache.update_cache_artifact(
-                cache_data, available_versions, artifact, group, item, None, section_key)
+                cache_data, available_versions, artifact, group, item, None, repository_key)
             return True
 
         is_valid, last_modified = get_pom_data(auth_info, verify_ssl, artifact, item, path)
         if is_valid:
             logging.info('{}: {}:{}:{}, last versions: {}, modified:{}.'.format(
-                section_key, group, artifact, version, available_versions[:5], last_modified).rstrip())
+                repository_key, group, artifact, version, available_versions[:5], last_modified).rstrip())
 
             _cache.update_cache_artifact(
-                cache_data, available_versions, artifact, group, item, last_modified, section_key)
+                cache_data, available_versions, artifact, group, item, last_modified, repository_key)
 
             fail_mode_if_required(
                 config, current_major, current_minor, item,
