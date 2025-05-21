@@ -176,11 +176,11 @@ def collect_dependencies(
         list[ET.Element]: A list of dependency elements (and plugin elements if specified).
     """
     dependencies = root.findall('.//xmlns:dependency', namespaces=ns_mapping)
-    if _config.get_config_value(config, arguments, 'search_plugins'):
+    if _config.get_config_value(config, arguments, 'search_plugins', default=False):
         plugins = root.findall('.//xmlns:plugins/xmlns:plugin', namespaces=ns_mapping)
         dependencies.extend(plugins)
 
-    if skip := _config.get_config_value(config, arguments, 'skip_checks'):
+    if skip := _config.get_config_value(config, arguments, 'skip_checks', default=[]):
         logging.warning(f"Skip checking dependency versions for {skip}")
         result: list = []
         combined = '(' + ')|('.join(skip) + ')'
@@ -233,7 +233,7 @@ def fail_mode_if_required(
         arguments (Arguments): Command-line arguments.
         version (Optional[str]): The current version of the artifact (e.g., '1.0.0').
     """
-    if _config.get_config_value(config, arguments, 'fail_mode'):
+    if _config.get_config_value(config, arguments, 'fail_mode', default=False):
         item_major_version = 0
         item_minor_version = 0
 
@@ -289,7 +289,7 @@ def get_version(
     version = dependency.find('xmlns:version', namespaces=ns_mapping)
 
     if version is None:
-        if not _config.get_config_value(config, arguments, 'empty_version'):
+        if not _config.get_config_value(config, arguments, 'empty_version', default=False):
             return None, True
     else:
         version_text = resolve_version(str(version.text), root, ns_mapping)
@@ -300,7 +300,7 @@ def get_version(
             version_text = resolve_version(project_version_text, root, ns_mapping)
 
         if version_text and re.match(r'^\${([^}]+)}$', version_text):
-            if not _config.get_config_value(config, arguments, 'empty_version'):
+            if not _config.get_config_value(config, arguments, 'empty_version', default=False):
                 return version_text, True
 
     return version_text, False
@@ -334,9 +334,9 @@ def check_versions(
     major_threshold = minor_threshold = 0
     current_major = current_minor = 0
 
-    if _config.get_config_value(config, arguments, 'fail_mode'):
-        major_threshold = int(_config.get_config_value(config, arguments, 'fail_major'))
-        minor_threshold = int(_config.get_config_value(config, arguments, 'fail_minor'))
+    if _config.get_config_value(config, arguments, 'fail_mode', default=False):
+        major_threshold = int(_config.get_config_value(config, arguments, 'fail_major', default=0))
+        minor_threshold = int(_config.get_config_value(config, arguments, 'fail_minor', default=0))
 
         if version and (version_match := re.match(r'^(\d+)\.(\d+).?', version)):
             current_major, current_minor = int(version_match.group(1)), int(version_match.group(2))

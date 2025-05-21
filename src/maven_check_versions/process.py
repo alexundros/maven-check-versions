@@ -33,7 +33,7 @@ def process_main(arguments: Arguments) -> None:
     if not _config.get_config_value(config, arguments, 'warnings', 'urllib3'):
         urllib3.disable_warnings()
 
-    cache_disabled = _config.get_config_value(config, arguments, 'cache_off')
+    cache_disabled = _config.get_config_value(config, arguments, 'cache_off', default=False)
     cache_data = _cache.load_cache(config, arguments) if not cache_disabled else None
 
     if pom_file := arguments.get('pom_file'):
@@ -62,7 +62,7 @@ def process_pom(
         pom_path (str): Local path or URL to the POM file to process.
         prefix (str, optional): Prefix to prepend to the artifact name in logs (default is None).
     """
-    verify_ssl = _config.get_config_value(config, arguments, 'verify', 'requests')
+    verify_ssl = _config.get_config_value(config, arguments, 'verify', 'requests', default=True)
 
     tree = _utils.get_pom_tree(pom_path, verify_ssl, config, arguments)
     root = tree.getroot()
@@ -77,7 +77,7 @@ def process_pom(
 
     cve_data = _cveutils.get_cve_data(config, arguments, dependencies, root, ns_mapping)
 
-    if _config.get_config_value(config, arguments, 'threading'):
+    if _config.get_config_value(config, arguments, 'threading', default=True):
         max_threads = _config.get_config_value(config, arguments, 'max_threads')
 
         with ThreadPoolExecutor(max_workers=max_threads) as executor:
@@ -180,14 +180,14 @@ def process_modules_if_required(
         ns_mapping (dict): XML namespace mapping.
         prefix (str, optional): Prefix for the artifact name.
     """
-    if _config.get_config_value(config, arguments, 'process_modules'):
+    if _config.get_config_value(config, arguments, 'process_modules', default=False):
         directory_path = os.path.dirname(pom_path)
         modules = root.findall('.//xmlns:modules/xmlns:module', namespaces=ns_mapping)
         module_paths = [f"{directory_path}/{module.text}/pom.xml" for module in modules]
         valid_module_paths = [p for p in module_paths if p.startswith('http') or os.path.exists(p)]
 
-        if _config.get_config_value(config, arguments, 'threading'):
-            max_threads = _config.get_config_value(config, arguments, 'max_threads')
+        if _config.get_config_value(config, arguments, 'threading', default=True):
+            max_threads = _config.get_config_value(config, arguments, 'max_threads', default=8)
             with ThreadPoolExecutor(max_workers=max_threads) as executor:
                 for future in as_completed([
                     executor.submit(process_pom, cache_data, config, arguments, module_path, prefix)
@@ -215,7 +215,7 @@ def process_artifact(
         arguments (Arguments): Command-line arguments.
         artifact_to_find (str): Artifact to search for in groupId:artifactId:version format.
     """
-    verify_ssl = _config.get_config_value(config, arguments, 'verify', 'requests')
+    verify_ssl = _config.get_config_value(config, arguments, 'verify', 'requests', default=True)
     group, artifact, version = artifact_to_find.split(':', maxsplit=2)
 
     _logutils.log_search_if_required(config, arguments, group, artifact, version)

@@ -435,7 +435,7 @@ def load_cache(config: Config, arguments: Arguments, section: str = 'base') -> D
             Returns an empty dictionary if the backend fails or no data is available.
             If the specified backend is not found, defaults to JSON backend.
     """
-    key = _config.get_config_value(config, arguments, 'cache_backend', section=section)
+    key = _config.get_config_value(config, arguments, 'cache_backend', section=section, default='json')
     if backend := _CacheBackendRegistry.get(key):
         return backend.load(config, arguments, section)
     else:  # pragma: no cover
@@ -458,7 +458,7 @@ def save_cache(
             Defaults to 'base'.
     """
     if cache_data is not None:
-        key = _config.get_config_value(config, arguments, 'cache_backend', section=section)
+        key = _config.get_config_value(config, arguments, 'cache_backend', section=section, default='json')
         if backend := _CacheBackendRegistry.get(key):
             backend.save(config, arguments, cache_data, section)
         else:  # pragma: no cover
@@ -490,7 +490,7 @@ def process_cache_artifact(
     if cached_version == version:
         return True
 
-    ct_threshold = int(_config.get_config_value(config, arguments, 'cache_time', default=0))
+    ct_threshold = int(_config.get_config_value(config, arguments, 'cache_time', default=600))
 
     if ct_threshold == 0 or time.time() - cached_time < ct_threshold:
         message_format = '*{}: {}:{}:{}, last versions: {}, modified:{}.'
