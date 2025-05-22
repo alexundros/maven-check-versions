@@ -207,7 +207,7 @@ The tool supports multiple cache backends:
 
 ### Vulnerability Checking Configuration
 
-To enable vulnerability checking, set `oss_index_enabled` to `true` in the `vulnerability` section of the configuration
+To enable vulnerability checking, set `oss_index` to `true` in the `vulnerability` section of the configuration
 file.
 This feature uses the OSS Index service to identify known vulnerabilities in your dependencies.
 You will need to provide your OSS Index username and API token, which you can obtain by signing up for a free account at
@@ -223,7 +223,7 @@ Vulnerability scanning will:
 
 ```yaml
 vulnerability:
-  oss_index_enabled: true
+  oss_index: true
   oss_index_url: "https://ossindex.sonatype.org/api/v3/component-report"
   oss_index_user: "OSS_INDEX_USER"
   oss_index_token: "OSS_INDEX_TOKEN"
@@ -287,7 +287,7 @@ base:
 
 # Configuration for vulnerability checks
 vulnerability:
-  oss_index_enabled: false                          # Enables OSS Index vulnerability checks
+  oss_index: false                                  # Enables OSS Index vulnerability checks
   oss_index_url: "https://ossindex.sonatype.org/api/v3/component-report"  # OSS Index API URL
   oss_index_user: "OSS_INDEX_USER"                  # OSS Index username
   oss_index_token: "OSS_INDEX_TOKEN"                # OSS Index API token

@@ -64,7 +64,7 @@ def test_get_cve_data(mocker):
     """.lstrip())
     ns_mappings = {'xmlns': 'http://maven.apache.org/POM/4.0.0'}  # NOSONAR
     config = Config({'vulnerability': {
-        'oss_index_enabled': True, 'skip_no_versions': True,
+        'oss_index': True, 'skip_no_versions': True,
         'skip_checks': ['group2.*']
     }})
     deps = collect_dependencies(root, ns_mappings, config, Arguments())
