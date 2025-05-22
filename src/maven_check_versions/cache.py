@@ -159,14 +159,11 @@ class _RedisCacheBackend(_CacheBackend):
         Returns:
             tuple: A tuple containing (host, port, key, user, password) for Redis connection.
         """
+        default_key = _VULNERABILITIES_KEY if section == 'vulnerability' else _ARTIFACTS_KEY
         return (
-            _config.get_config_value(
-                config, arguments, 'redis_host', section=section, default=_HOST),
-            _config.get_config_value(
-                config, arguments, 'redis_port', section=section, default=_REDIS_PORT),
-            _config.get_config_value(
-                config, arguments, 'redis_key', section=section,
-                default=_VULNERABILITIES_KEY if section == 'vulnerability' else _ARTIFACTS_KEY),
+            _config.get_config_value(config, arguments, 'redis_host', section=section, default=_HOST),
+            _config.get_config_value(config, arguments, 'redis_port', section=section, default=_REDIS_PORT),
+            _config.get_config_value(config, arguments, 'redis_key', section=section, default=default_key),
             _config.get_config_value(config, arguments, 'redis_user', section=section),
             _config.get_config_value(config, arguments, 'redis_password', section=section)
         )
@@ -258,14 +255,11 @@ class _TarantoolCacheBackend(_CacheBackend):
         Returns:
             tuple: A tuple containing (host, port, space, user, password) for Tarantool connection.
         """
+        default_key = _VULNERABILITIES_KEY if section == 'vulnerability' else _ARTIFACTS_KEY
         return (
-            _config.get_config_value(
-                config, arguments, 'tarantool_host', section=section, default=_HOST),
-            _config.get_config_value(
-                config, arguments, 'tarantool_port', section=section, default=_TARANTOOL_PORT),
-            _config.get_config_value(
-                config, arguments, 'tarantool_space', section=section,
-                default=_VULNERABILITIES_KEY if section == 'vulnerability' else _ARTIFACTS_KEY),
+            _config.get_config_value(config, arguments, 'tarantool_host', section=section, default=_HOST),
+            _config.get_config_value(config, arguments, 'tarantool_port', section=section, default=_TARANTOOL_PORT),
+            _config.get_config_value(config, arguments, 'tarantool_space', section=section, default=default_key),
             _config.get_config_value(config, arguments, 'tarantool_user', section=section),
             _config.get_config_value(config, arguments, 'tarantool_password', section=section)
         )
@@ -350,14 +344,11 @@ class _MemcachedCacheBackend(_CacheBackend):
         Returns:
             tuple: A tuple containing (host, port, key) for Memcached connection.
         """
+        default_key = _VULNERABILITIES_KEY if section == 'vulnerability' else _ARTIFACTS_KEY
         return (
-            _config.get_config_value(
-                config, arguments, 'memcached_host', section=section, default=_HOST),
-            _config.get_config_value(
-                config, arguments, 'memcached_port', section=section, default=_MEMCACHED_PORT),
-            _config.get_config_value(
-                config, arguments, 'memcached_key', section=section,
-                default=_VULNERABILITIES_KEY if section == 'vulnerability' else _ARTIFACTS_KEY)
+            _config.get_config_value(config, arguments, 'memcached_host', section=section, default=_HOST),
+            _config.get_config_value(config, arguments, 'memcached_port', section=section, default=_MEMCACHED_PORT),
+            _config.get_config_value(config, arguments, 'memcached_key', section=section, default=default_key)
         )
 
     @contextmanager
