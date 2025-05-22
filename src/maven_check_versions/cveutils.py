@@ -53,11 +53,12 @@ def get_cve_data(
     Returns:
         dict[str, list[Vulnerability]]: CVE Data.
     """
-    if not _config.get_config_value(config, arguments, 'oss_index_enabled', 'vulnerability', default=False):
+    section = 'vulnerability'
+    if not _config.get_config_value(config, arguments, 'oss_index', section, default=False):
         return {}
 
     coordinates = _get_coordinates(config, arguments, dependencies, ns_mapping, root)
-    cve_data = _cache.load_cache(config, arguments, 'vulnerability') or {}
+    cve_data = _cache.load_cache(config, arguments, section) or {}
 
     for key, data in cve_data.items():
         cve_data[key] = [Vulnerability(**item) for item in data]
@@ -66,7 +67,7 @@ def get_cve_data(
 
     if new_cve_data := _fetch_cve_data(config, arguments, coordinates):
         cve_data.update(new_cve_data)
-        _cache.save_cache(config, arguments, cve_data, 'vulnerability')
+        _cache.save_cache(config, arguments, cve_data, section)
 
     return cve_data
 
@@ -86,8 +87,9 @@ def log_vulnerability(
         version (Optional[str]): Dependency version.
         cve_data (dict[str, Optional[list[Vulnerability]]]): CVE Data.
     """
-    fail_score = _config.get_config_value(config, arguments, 'fail_score', 'vulnerability', default=0)
-    cve_ref = _config.get_config_value(config, arguments, 'cve_reference', 'vulnerability', default=False)
+    section = 'vulnerability'
+    fail_score = _config.get_config_value(config, arguments, 'fail_score', section, default=0)
+    cve_ref = _config.get_config_value(config, arguments, 'cve_reference', section, default=False)
 
     if cve_data is not None and (cves := cve_data.get(f"pkg:maven/{group}/{artifact}@{version}")):
         for cve in cves:
@@ -115,18 +117,18 @@ def _get_coordinates(config, arguments, dependencies, ns_mapping, root) -> list[
     Returns:
         list[str]: Coordinates.
     """
-    skip_no_versions = _config.get_config_value(
-        config, arguments, 'skip_no_versions', 'vulnerability', default=False)
+    section = 'vulnerability'
+    skip_nv = _config.get_config_value(config, arguments, 'skip_no_versions', section, default=False)
     combined = None
-    if skip := _config.get_config_value(config, arguments, 'skip_checks', 'vulnerability', default=[]):
-        combined = '(' + ')|('.join(skip) + ')'
+    if skip_checks := _config.get_config_value(config, arguments, 'skip_checks', section, default=[]):
+        combined = '(' + ')|('.join(skip_checks) + ')'
 
     result: list = []
     for dependency in dependencies:
         (group, artifact) = _utils.get_dependency_identifiers(dependency, ns_mapping)
         (version, _) = _utils.get_version(config, arguments, ns_mapping, root, dependency)
 
-        if skip_no_versions and version and re.match(r'^\${[^}]+}$', version):
+        if skip_nv and version and re.match(r'^\${[^}]+}$', version):
             continue
         if combined is None or not re.match(combined, f"{group}:{artifact}:{version}"):
             result.append(f"pkg:maven/{group}/{artifact}@{version}")
@@ -145,16 +147,14 @@ def _oss_index_config(config: Config, arguments: Arguments) -> tuple:
     Returns:
         tuple: OSS Index parameters.
     """
+    section = 'vulnerability'
+    default_url = 'https://ossindex.sonatype.org/api/v3/component-report'
     return (
-        _config.get_config_value(
-            config, arguments, 'oss_index_url', 'vulnerability',
-            default='https://ossindex.sonatype.org/api/v3/component-report'),
-        _config.get_config_value(config, arguments, 'oss_index_user', 'vulnerability'),
-        _config.get_config_value(config, arguments, 'oss_index_token', 'vulnerability'),
-        _config.get_config_value(
-            config, arguments, 'oss_index_batch_size', 'vulnerability', default=128),
-        _config.get_config_value(
-            config, arguments, 'oss_index_keep_safe', 'vulnerability', default=False)
+        _config.get_config_value(config, arguments, 'oss_index_url', section, default=default_url),
+        _config.get_config_value(config, arguments, 'oss_index_user', section),
+        _config.get_config_value(config, arguments, 'oss_index_token', section),
+        _config.get_config_value(config, arguments, 'oss_index_batch_size', section, default=128),
+        _config.get_config_value(config, arguments, 'oss_index_keep_safe', section, default=False)
     )
 
 
@@ -175,10 +175,11 @@ def _fetch_cve_data(
     result = {}
     try:
         url, user, token, batch_size, keep_safe = _oss_index_config(config, arguments)
-        auth = HTTPBasicAuth(user, token)
 
         with requests.Session() as session:
             it = iter(coordinates)
+            auth = HTTPBasicAuth(user, token)
+
             while batch := list(islice(it, batch_size)):
                 response = session.post(url, json={"coordinates": batch}, auth=auth)
                 if response.status_code != 200:
