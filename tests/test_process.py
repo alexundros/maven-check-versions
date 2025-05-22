@@ -125,7 +125,7 @@ def test_process_repository(mocker):
     assert _process_repository()
 
     mock_requests.return_value = mocker.Mock(status_code=404)
-    mock_process_rest = mocker.patch('maven_check_versions.process.process_rest')
+    mock_process_rest = mocker.patch('maven_check_versions.process.service_rest')
     mock_process_rest.return_value = True
     assert _process_repository()
 
