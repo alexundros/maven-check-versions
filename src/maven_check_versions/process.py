@@ -3,6 +3,7 @@
 
 import logging
 import os
+import threading
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -18,6 +19,8 @@ import urllib3
 from bs4 import BeautifulSoup
 from maven_check_versions.config import Config, Arguments
 from maven_check_versions.cveutils import Vulnerability
+
+process_dependency_lock = threading.Lock()
 
 
 def process_main(arguments: Arguments) -> None:
@@ -124,16 +127,19 @@ def process_dependency(
         _logutils.log_skip_if_required(config, arguments, group, artifact, version)
         return
 
-    _logutils.log_search_if_required(config, arguments, group, artifact, version)
+    with process_dependency_lock:
+        _logutils.log_search_if_required(config, arguments, group, artifact, version)
 
-    _cveutils.log_vulnerability(config, arguments, group, artifact, version, cve_data)
+        processed = False
+        if cache_data is not None and cache_data.get(f"{group}:{artifact}") is not None and \
+                _cache.process_cache_artifact(config, arguments, cache_data, artifact, group, version):
+            processed = True
 
-    if cache_data is not None and cache_data.get(f"{group}:{artifact}") is not None:
-        if _cache.process_cache_artifact(config, arguments, cache_data, artifact, group, version):
-            return
+        if not processed and \
+                not process_repositories(artifact, cache_data, config, group, arguments, verify_ssl, version):
+            logging.warning(f"Not Found: {group}:{artifact}:{version}")
 
-    if not process_repositories(artifact, cache_data, config, group, arguments, verify_ssl, version):
-        logging.warning(f"Not Found: {group}:{artifact}:{version}")
+        _cveutils.log_vulnerability(config, arguments, group, artifact, version, cve_data)
 
 
 def process_repositories(
@@ -316,8 +322,7 @@ def process_rest(
     path = f"{path}/{group.replace('.', '/')}/{artifact}"
 
     with requests.Session() as session:
-        metadata_url = path + '/maven-metadata.xml'
-        response = session.get(metadata_url, auth=auth_info, verify=verify_ssl)
+        response = session.get(path + '/maven-metadata.xml', auth=auth_info, verify=verify_ssl)
 
         if response.status_code == 200:
             tree = ET.ElementTree(ET.fromstring(response.text))
