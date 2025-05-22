@@ -493,7 +493,7 @@ def process_cache_artifact(
     ct_threshold = int(_config.get_config_value(config, arguments, 'cache_time', default=600))
 
     if ct_threshold == 0 or time.time() - cached_time < ct_threshold:
-        message_format = '*{}: {}:{}:{}, last versions: {}, modified:{}.'
+        message_format = 'cache {}: {}:{}:{}, last versions: {}, modified:{}.'
         logging.info(message_format.format(
             cached_key, group, artifact, version, ', '.join(cached_versions),
             cached_date if cached_date is not None else '').rstrip())
