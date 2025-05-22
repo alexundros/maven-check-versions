@@ -286,15 +286,15 @@ def process_repository(
                     path, auth_info, verify_ssl, available_versions, response):
                 return True
 
-    if _config.get_config_value(config, arguments, 'use_rest', repository_key, default=False):
-        return process_rest(
+    if _config.get_config_value(config, arguments, 'service_rest', repository_key, default=False):
+        return service_rest(
             cache_data, config, arguments, group, artifact, version,
             repository_key, base_url, auth_info, verify_ssl)
 
     return False
 
 
-def process_rest(
+def service_rest(
         cache_data: Optional[dict], config: Config, arguments: Arguments, group: str, artifact: str,
         version: Optional[str], repository_key: str, base_url: str,
         auth_info: Optional[tuple[str, str]], verify_ssl: bool

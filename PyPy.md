@@ -333,15 +333,15 @@ pom_files:
 
 # Repository configurations
 repositories:
-  - "Central (repo1.maven.org)"               # Repository section
+  - "Central (repo1.maven.org)"               # Example repository section
 
-# Configuration for "Central (repo1.maven.org)"
+# Configuration for example "Central (repo1.maven.org)"
 "Central (repo1.maven.org)":
   base: "https://repo1.maven.org"             # Base URL
   path: "maven2"                              # Path suffix
   repo: "maven2"                              # Repository name
   auth: false                                 # Enables authentication
-  use_rest: false                             # Use alternative REST API
+  service_rest: false                         # Use alternative REST API
 ```
 
 ## Environment Variables

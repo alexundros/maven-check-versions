@@ -15,7 +15,7 @@ sys.path.append('../src')
 
 # noinspection PyUnresolvedReferences
 from maven_check_versions.process import (  # noqa: E402
-    process_rest, process_repository, process_repositories,
+    service_rest, process_repository, process_repositories,
     process_modules_if_required, process_artifact,
     process_dependency, process_pom, process_main
 )
@@ -64,7 +64,7 @@ def test_process_main(mocker, monkeypatch):
 # noinspection PyShadowingNames
 def test_process_rest(mocker):
     def _service_rest():
-        return process_rest(
+        return service_rest(
             {}, Config(), Arguments(), 'group', 'artifact', '1.0',
             'repository', 'http://example.com/pom.pom', None, True  # NOSONAR
         )
@@ -98,7 +98,7 @@ def test_process_repository(mocker):
             'base': 'https://repo1.maven.org',
             'path': 'maven2',
             'repo': 'maven-central',
-            'use_rest': True,
+            'service_rest': True,
             'auth': True,
         }})
     args = Arguments({'user': 'user', 'password': 'pass'})  # NOSONAR
@@ -129,7 +129,7 @@ def test_process_repository(mocker):
     mock_process_rest.return_value = True
     assert _process_repository()
 
-    config['repository']['use_rest'] = False
+    config['repository']['service_rest'] = False
     assert not _process_repository()
 
 
