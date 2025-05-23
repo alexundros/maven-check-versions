@@ -258,10 +258,7 @@ def process_repository(
     """
     auth_info: Optional[tuple[str, str]] = None
     if _config.get_config_value(config, arguments, 'auth', repository_key, default=False):
-        auth_info = (
-            _config.get_config_value(config, arguments, 'user'),
-            _config.get_config_value(config, arguments, 'password')
-        )
+        auth_info = _utils.get_auth_info(arguments, config, repository_key)
 
     base_url = _config.get_config_value(config, arguments, 'base', repository_key)
     path_suffix = _config.get_config_value(config, arguments, 'path', repository_key)

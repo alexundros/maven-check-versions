@@ -282,8 +282,8 @@ base:
   threading: true             # Enables multi-threading for concurrent processing
   max_threads: 8              # Maximum number of threads to use when threading is enabled
 
-  user: "USER"           # Username for basic authentication
-  password: "PASSWORD"   # Password for basic authentication
+  user: "USER"                # Default username for authentication
+  password: "PASSWORD"        # Default password for authentication
 
 # Configuration for vulnerability checks
 vulnerability:
@@ -321,11 +321,11 @@ vulnerability:
   memcached_port: 11211                                           # Memcached port
   memcached_key: "cache_maven_check_versions_vulnerabilities"     # Key for storing data
 
-# Configuration for HTTP-based POM file access
+# Configuration for http-based access
 pom_http:
-  auth: false                                 # Enables authentication for HTTP-based access
-  user: "USER"                                # Username for basic authentication
-  password: "PASSWORD"                        # Password for basic authentication
+  auth: false                                 # Enables authentication
+  user: "USER"                                # Username for authentication
+  password: "PASSWORD"                        # Password for authentication
 
 # Configuration for urllib3 library
 urllib3:
@@ -349,6 +349,8 @@ repositories:
   path: "maven2"                              # Path suffix
   repo: "maven2"                              # Repository name
   auth: false                                 # Enables authentication
+  user: "USER"                                # Username for authentication
+  password: "PASSWORD"                        # Password for authentication
   service_rest: false                         # Use alternative REST API
 ```
 
