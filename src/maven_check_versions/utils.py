@@ -429,3 +429,23 @@ def get_pom_tree(
         if not os.path.exists(pom_path) or not os.path.isfile(pom_path):
             raise FileNotFoundError(f"Failed to get_pom_tree {pom_path}")
         return ET.parse(pom_path)
+
+
+def get_auth_info(arguments, config, repository_key) -> tuple[str, str]:
+    """
+    Retrieves authentication data.
+
+    Args:
+        arguments (Arguments): Command-line arguments.
+        config (Config): Parsed YAML as dict.
+        repository_key (str): Repository section key.
+
+    Returns:
+        tuple: authentication data.
+    """
+    user = _config.get_config_value(config, arguments, 'user')
+    password = _config.get_config_value(config, arguments, 'password')
+    return (
+        _config.get_config_value(config, arguments, 'user', repository_key, default=user),
+        _config.get_config_value(config, arguments, 'password', repository_key, default=password)
+    )
